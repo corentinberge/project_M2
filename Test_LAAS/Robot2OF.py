@@ -3,9 +3,10 @@ from pinocchio.visualize import GepettoVisualizer
 from pinocchio.robot_wrapper import RobotWrapper
 
 
-# chemin repertoir urdf
-path = '/home/jo/'
-urdf = '/home/jo/robots/planar_2DOF/urdf/planar_2DOF.urdf'
+# chemin repertoire urdf
+path = '/home/corentin/project_M2'
+urdf = '/home/corentin/project_M2/robots/urdf/planar_2DOF.urdf'
+
 
 
 print(path)
@@ -28,23 +29,38 @@ model = robot.model
 print(model)
 
 
-
+values = []
 for i in  range(3):
     #m = m + model.inertias[i].toDynamicParameters()
     #m.append(model.inertias[i].toDynamicParameters())
     print(model.inertias[i].toDynamicParameters()) #vecteur mx... link 
+    for j in model.inertias[i].toDynamicParameters():
+        values += [j]
 
-values = []
+
 names = []
-for i in range (3):
+for i in range (1,4):
     names += ['m'+str(i), 'mx'+str(i), 'my'+str(i), 'mz'+str(i), 'Ixx'+str(i), 'Ixy'+str(i), 'Iyy'+str(i), 'Izx'+str(i), 'Izy'+str(i), 'Izz'+str(i)]
-    values += model.inertias[i].toDynamicParameters()
+    
+
+print(values)
+print(names)
 
 d = {}
-for i in range(3):
-    for name in names,value in values[i]:
-            d.put(name, value)
+for i in range(30):
+    d[names[i]] = values[i]
 
+print(d)
+
+tau = []
+
+#generate output 100 samples
+for i in range(100):
+    tau += pin.rnea(model,data,q[i],dq[i],ddq[i])
+
+nb_sample = 100
+for i in range(nb_sample): 
+    pin.computeJointTorqueRegressor(model,data,q[i],dq[i],ddq[i])
 
 
 #print("\n\n HELLO WORLD")
@@ -54,12 +70,9 @@ for i in range(3):
 # Step 3 : generate input (joint angle, velocity, acceleration)
 # Input/ZDOF : 100 samples -> (q, dq, ddq)
 # Step 4 : Create IDM by pinocchio
-nb_sample = 100
-for i in range(nb_sample): 
-    pin.computeJointTorqueRegressor(model,data,q[i],dq[i],ddq[i])
 
 
 
-# St: ep 3 : Grab a coffee
+# Step 3 : Grab a coffee
 # Step 4 : Make some code
 # Step 5 : Destroy the robot
