@@ -6,7 +6,7 @@ import os
 # module pour importer le robot hc10 dans le gepettoviewer
 
 
-def loard_hc10_model(path = "",default=True):
+def load_hc10_model(path = "",default=True):
 # Fonction renvois le robotwrapper du hc10, l'affiche dans ça config initial
     if default==True:
         print('Attention à être dans le bon fichier !')
