@@ -1,20 +1,24 @@
-from os import name
 from numpy.lib.nanfunctions import _nanmedian_small
-import pinocchio as pin
 from pinocchio.visualize import GepettoVisualizer
 from pinocchio.robot_wrapper import RobotWrapper
+import matplotlib.pyplot as plt
+import pinocchio as pin
 import numpy as np
 import math
-import matplotlib.pyplot as plt
+import os
 
 
-# chemin repertoir urdf
-path = '/home/jo/'
-urdf = '/home/jo/robots/planar_2DOF/urdf/planar_2DOF.urdf'
+currentDir = os.getcwd()
+os.chdir('../')
+workingDir = os.getcwd()
+
+# urdf directory path
+package_path = workingDir
+urdf_path = package_path + '/robots/urdf/planar_2DOF.urdf'
 robot = RobotWrapper()
 
 #robot.BuildFromURDF(urdf,path,verbose=True)
-robot.initFromURDF(urdf,path,verbose=True)
+robot.initFromURDF(urdf_path,package_path,verbose=True)
 #print("MODEL DU ROBOT\n",robot.model)
 #print("VISUAL MODEL ",robot.visual_model)
 
@@ -24,7 +28,7 @@ robot.display(robot.q0)
 data = robot.data
 model = robot.model
 NQ = robot.nq #number of joint angle 
-NV = robot.nv#number of joint vélocity 
+NV = robot.nv #number of joint velocity 
 NJOINT = robot.model.njoints
 gv = robot.viewer.gui
 
