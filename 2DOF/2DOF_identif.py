@@ -1,8 +1,10 @@
+from numpy import linalg
 from numpy.core.fromnumeric import shape
 from numpy.lib.nanfunctions import _nanmedian_small
 from pinocchio.visualize import GepettoVisualizer
 from pinocchio.robot_wrapper import RobotWrapper
 import matplotlib.pyplot as plt
+import scipy.linalg as sp
 import pinocchio as pin
 import numpy as np
 import os
@@ -69,35 +71,16 @@ for i in range (nbSamples):
     W.extend(pin.computeJointTorqueRegressor(model,data,q[:, i],dq[:, i],ddq[:, i]))
 print('Shape of W:\t', np.array(W).shape)
 
-
 # Step 5 - Remove non dynamic effect columns then remove zero value columns then remove the parameters related to zero value columns
-#           at the end we will have a matix W_modifier et Phi_modifier 
-# the parameters are not calculated so the modification will be or in the name of the parameter or in the size of the parameter vector we have to check 
-# the size of the first vector calculated in previous and comparet with the size of W and tau 
-# best regards
-# Julien est un idiot avec ca methode agile 
-
+#           at the end we will have a matix W_modified et Phi_modified
 
 threshold = 0.000001
-
-# test = [[1, 2, 3, 4, 5]]
-# print(test)
-# print(np.transpose(test))
-# print()
-# print(np.dot(test, np.transpose(test)))
-
-# test = [[1, 2, 0, 4, 5],
-#         [6, 7, 0, 9, 10],
-#         [11, 12, 0, 14, 15],
-#         [16, 17, 0, 19, 20]]
 
 W_base = W[:]
 W = np.array(W)
 tmp = []
 for i in range(20):
-    # print(np.dot([W[:, i]], np.transpose([W[:, i]])))
     if (np.dot([W[:, i]], np.transpose([W[:, i]]))[0][0] <= threshold):
-        #W = np.delete(W, i, 1)
         tmp.append(i)
 tmp.sort(reverse=True)
 print(tmp)
@@ -114,16 +97,15 @@ print('shape of W:\t', W.shape)
 
 print('shape of phi:\t', np.array(phi).shape)
 
+# Step 6 - QR decomposition + pivoting
 
+(Q, R, P) = sp.qr(W, pivoting=True)
 
-# j=0
-# W_base = W[:]
-# for i in range(100,200):
-#     # print(np.transpose([W[i]]))
-#     # print([W[i]])
-#     print(np.dot([W[i]], np.transpose([W[i]])))
-        
-
+print(Q)
+print('\n==========\n')
+print(R)
+print('\n==========\n')
+print(P)
 
 
 
