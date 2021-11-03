@@ -9,8 +9,10 @@ import math
 import matplotlib.pyplot as plt
 from numpy.linalg import norm, inv, pinv
 import time
+import os
+
+#Simulation de la trajectoire
 def simulateurTraj(N,robot,IDX):
-    
     dt = 1e-2
     a0,a1,a2 = 0,1,2
     X = np.zeros((N,7))
@@ -26,23 +28,30 @@ def simulateurTraj(N,robot,IDX):
         
 #Loi polynomial
 def loiPoly(a0,a1,a2,t):
-
     q = [a0 + a1*t + a2*(t**2) , a0 + a1*t + a2*(t**2)]
-    dq = [ a1 + a2*t , a1 + a2*t ]
-
+    dq = [ a1 + 2*a2*t , a1 + 2*a2*t ]
     return q, dq
    
 #Jacobienne
-def jacobienneValidation(J,Xp):
-    
+def jacobienneValidation(J,Xp): 
     print()
 
 def calculDotX(X):
     print("test")
+    
+#Passage de X dans un proportionnel
+def prop(X,p):
+	for i in X:
+		i = i*p
 
-currentDir = os.getcwd()
-os.chdir('../')
-workingDir = os.getcwd()
+#Passade de X dans une jacobienne
+def jacob(X,J):
+	return
+
+#Main 
+#currentDir = os.getcwd()
+#os.chdir('../')
+workingDir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # urdf directory path
 package_path = workingDir
