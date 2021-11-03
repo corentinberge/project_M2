@@ -63,9 +63,3 @@ NQ = robot.nq #number of joint angle
 NV = robot.nv #number of joint velocity 
 NJOINT = robot.model.njoints
 gv = robot.viewer.gui
-
-    robot = RobotWrapper.BuildFromURDF(urdf,path,verbose=True)
-    robot.initViewer(loadModel=True)
-    robot.display(robot.q0)
-
-    simulateurTraj(1000,robot,robot.model.getFrameId("tcp"))
