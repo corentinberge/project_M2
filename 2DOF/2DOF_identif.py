@@ -13,8 +13,6 @@ import os
 # os.chdir('../')
 workingDir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# exit(0)
-
 # urdf directory path
 package_path = workingDir
 urdf_path    = package_path + '/robots/urdf/planar_2DOF.urdf'
@@ -83,16 +81,16 @@ for i in tmp:
     phi_modified   = np.delete(phi_modified, i, 0)
     names_modified = np.delete(names_modified, i, 0)
 
-print('shape of W_m:\t', W_modified.shape)
-print('shape of phi_m:\t', np.array(phi_modified).shape)
+# print('shape of W_m:\t', W_modified.shape)
+# print('shape of phi_m:\t', np.array(phi_modified).shape)
 
 # Step 6 - QR decomposition + pivoting
 
 (Q, R, P) = sp.qr(W_modified, pivoting=True)
 
-print('shape of Q:\t', np.array(Q).shape)
-print('shape of R:\t', np.array(R).shape)
-print('shape of P:\t', np.array(P).shape)
+# print('shape of Q:\t', np.array(Q).shape)
+# print('shape of R:\t', np.array(R).shape)
+# print('shape of P:\t', np.array(P).shape)
 
 # Step 7 - Calculate base parameters
 
@@ -106,18 +104,15 @@ R2 = R[:tmp+1, tmp+1:]
 
 Q1 = Q[:, :tmp+1]
 
-print(tmp, len(P))
-print(P)
-
 for i in (tmp+1, len(P)-1):
     names.pop(P[i])
 
-print('Shape of R1:\t', np.array(R1).shape)
-print('Shape of R2:\t', np.array(R2).shape)
-print('Shape of Q1:\t', np.array(Q1).shape)
+# print('Shape of R1:\t', np.array(R1).shape)
+# print('Shape of R2:\t', np.array(R2).shape)
+# print('Shape of Q1:\t', np.array(Q1).shape)
 
 beta = np.dot(np.linalg.inv(R1), R2)
-print('Shape of res:\t', beta.shape)
+# print('Shape of res:\t', beta.shape)
 
 # beta = np.round(res, 6)
 # print(res)
@@ -125,14 +120,11 @@ print('Shape of res:\t', beta.shape)
 phi_modified = np.dot(np.linalg.inv(R1), np.dot(Q1.T, tau))
 W_modified   = np.dot(Q1, R1)
 
-print('Shape of phi_m:\t', np.array(phi_modified).shape)
-print('Shape of W_m:\t', np.array(W_modified).shape)
+# print('Shape of phi_m:\t', np.array(phi_modified).shape)
+# print('Shape of W_m:\t', np.array(W_modified).shape)
 
 inertialParameters = {names_modified[i] : phi_modified[i] for i in range(len(phi_modified))}
 print(inertialParameters)
-
-# print(phi_modified)
-# print(W_modified)
 
 # print("press enter to continue")
 # input()
