@@ -71,4 +71,8 @@ model = robot.model
 NQ = robot.nq #number of joint angle 
 NV = robot.nv #number of joint velocity 
 NJOINT = robot.model.njoints
+<<<<<<< HEAD
 gv = robot.viewer.gui
+=======
+gv = robot.viewer.gui
+>>>>>>> 6bffd2d93811033e2c6f97b682065bd305b013d5
