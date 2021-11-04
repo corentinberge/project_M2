@@ -49,13 +49,13 @@ def adaptJacob(J):
     nJ = np.array([J[0,:],J[2,:],J[4,:]])
     return nJ
 
-def getTraj(N,robot,IDX,loi='P'):
+def getTraj(N,robot,IDX,loi='P',V=10):
     dt = 1e-2
     a0,a1,a2 = 0,1,2
     X = np.zeros((N,3))
     for i in range(N-1):
         if(loi == 'P'):
-            q,dq = loiPoly(robot,i*dt)
+            q,dq = loiPoly(robot,i*dt,Vmax=V)
         else:
             q,dq = loiPendule(i*dt)
         robot.forwardKinematics(q) #update joint 
@@ -70,7 +70,7 @@ def getTraj(N,robot,IDX,loi='P'):
 
 def loiPoly(robot,t,Vmax=10):
     """ Création de la loi polynomial, à modifier il manque la vrai valeur des coeff"""
-    qf = np.array([-math.pi/6, +math.pi/3])
+    qf = np.array([-2*math.pi/3, +6*math.pi/4])
     a0, a1, a2, a3, tf = calcCoeff(Vmax, robot,qf) # a modifier pour le calculer seulement a la premiere itération
     #print("t \t",t)
     if(t == 0):
@@ -166,9 +166,10 @@ def simuLoiCommande(robot):
     BASE = pin.ReferenceFrame.LOCAL_WORLD_ALIGNED
     IDX = robot.model.getFrameId("tcp")
     dt = 1e-2
-    Xc = getTraj(300,robot,IDX,loi='P')
+    Xc = getTraj(300,robot,IDX,loi='P',V=5)
     q = robot.q0 
     N = Xc.shape[0]
+    print(N)
     traj_OT = np.zeros(Xc.shape)
     t = np.zeros(N)
     for i in range(N):
@@ -177,12 +178,13 @@ def simuLoiCommande(robot):
         J = adaptJacob(pin.computeFrameJacobian(robot.model,robot.data,q,IDX,BASE)) #calcul de la jacobienne
         X= adaptSituation(situationOT(robot.data.oMf[IDX]),q)
         deltaX = computeError(Xc[i,:],X)
-        print(deltaX)
+        #print(deltaX)
         q = loiCommande(deltaX,1,J,q)
         traj_OT[i,:] = X
         t[i] = i*dt
         robot.display(q)
         time.sleep(dt)
+        print("I",i)
     robot.forwardKinematics(q) #update joint 
     pin.updateFramePlacements(robot.model,robot.data) #update frame placement
     X= adaptSituation(situationOT(robot.data.oMf[IDX]),q)
@@ -191,11 +193,11 @@ def simuLoiCommande(robot):
     print("orientation OT" + "\torientation consigne",X[2],Xc[N-1,:][2])
     if PLOT: 
         plt.plot(t,traj_OT[:,0],label="position OT selon axe x")
-        #plt.plot(t,traj_OT[:,1],label="position OT selon axe y")
-        #plt.plot(t,traj_OT[:,2],label="orientation OT")
+        plt.plot(t,traj_OT[:,1],label="position OT selon axe y")
+        plt.plot(t,traj_OT[:,2],label="orientation OT")
         plt.plot(t,Xc[:,0],".",label="position consigne selon axe x")
-        #plt.plot(t,Xc[:,1],".",label="position consigne selon axe y")
-        #plt.plot(t,Xc[:,2],".",label="orientation consigne")
+        plt.plot(t,Xc[:,1],".",label="position consigne selon axe y")
+        plt.plot(t,Xc[:,2],".",label="orientation consigne")
         plt.legend()
         plt.show()
     
