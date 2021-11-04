@@ -74,6 +74,10 @@ def loiPoly(robot,t,Vmax=10):
     #print("t \t",t)
     if(t == 0):
         print("a0 : \t",a0)
+        print("a1 : \t",a1)
+        print("a2 : \t",a2)
+        print("a3 : \t",a3)
+        print(tf)
     q = np.zeros(robot.nq)
     dq = np.zeros(robot.nv)
     for i in range(robot.nq):
@@ -117,15 +121,16 @@ def simulateurVerif(N,robot):
     t = np.zeros(N-1)
     dotXJac = np.zeros(X.shape)
     for i in range(N-1):
-        #J = pin.jacobianSubtreeCenterOfMass(robot.model,robot.data,2) # essais de pin.jacobianSubtreeCenterOfMass(robot.model,robot.data,2)
-        #J = pin.jacobianCenterOfMass(robot.model,robot.data,q)
-        #q = np.array([0.1*np.cos(2*math.pi*dt*i),0])
-        #dq = np.array([-0.2*math.pi*np.sin(2*math.pi*dt*i),0])
         q,dq = loiPendule(i*dt)
+        #q,dq = loiPoly(robot,i*dt,Vmax=4)
         robot.forwardKinematics(q) #update joint 
         pin.updateFramePlacements(robot.model,robot.data) #update frame placement
-        #J = adaptJacob(pin.computeFrameJacobian(robot.model,robot.data,q,IDX,LOCAL)) #essais de world, local comme frame de ref 
-        J = adaptJacob(robot.computeFrameJacobian(q,IDX))
+        if(i*dt == 0.5):
+            print("qpoint = \t",dq)
+            print("q \t",q)
+            print("J \t",J)
+        J = adaptJacob(pin.computeFrameJacobian(robot.model,robot.data,q,IDX,pin.ReferenceFrame.LOCAL_WORLD_ALIGNED)) #essais de world, local comme frame de ref 
+        #J = adaptJacob(robot.computeFrameJacobian(q,IDX))
         X[i,:] =    adaptSituation(situationOT(robot.data.oMf[IDX]))
         dotXJac[i,:] = np.dot(J,dq)
         t[i] = i*dt
@@ -148,6 +153,14 @@ def simulateurVerif(N,robot):
         plt.plot(t[:len(t)-1],dotXDiff[:,1],".",label="avec différences finis en m/s")
         plt.title("position et dérivé situation OT selon axe z")
         plt.ylabel("m ou m/s")
+        plt.xlabel("seconde")
+        plt.legend()
+        plt.figure()
+        plt.plot(t,X[:,2],label="orientation selon axe z en rad")
+        plt.plot(t,dotXJac[:,2],label="avec Jacobienne en rad/s")
+        plt.plot(t[:len(t)-1],dotXDiff[:,2],".",label="avec différences finis en rad/s")
+        plt.title("orientation et dérivé situation OT selon repère LOCAL")
+        plt.ylabel("rad ou rad/s")
         plt.xlabel("seconde")
         plt.legend()
         plt.show()
