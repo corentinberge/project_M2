@@ -103,7 +103,8 @@ def calcCoeff(Vmax, robot, qf):
 
     return a0,a1,a2,a3,tf
 
-
+def loiPendule(t):
+    return np.array([0.1*np.cos(2*math.pi*t),0]),np.array([-0.2*math.pi*np.sin(2*math.pi*t),0])
 
 
 def simulateurVerif(N,robot):
@@ -118,8 +119,9 @@ def simulateurVerif(N,robot):
     for i in range(N-1):
         #J = pin.jacobianSubtreeCenterOfMass(robot.model,robot.data,2) # essais de pin.jacobianSubtreeCenterOfMass(robot.model,robot.data,2)
         #J = pin.jacobianCenterOfMass(robot.model,robot.data,q)
-        q = np.array([0.1*np.cos(2*math.pi*dt*i),0])
-        dq = np.array([-0.2*math.pi*np.sin(2*math.pi*dt*i),0])
+        #q = np.array([0.1*np.cos(2*math.pi*dt*i),0])
+        #dq = np.array([-0.2*math.pi*np.sin(2*math.pi*dt*i),0])
+        q,dq = loiPendule(i*dt)
         robot.forwardKinematics(q) #update joint 
         pin.updateFramePlacements(robot.model,robot.data) #update frame placement
         #J = adaptJacob(pin.computeFrameJacobian(robot.model,robot.data,q,IDX,LOCAL)) #essais de world, local comme frame de ref 
