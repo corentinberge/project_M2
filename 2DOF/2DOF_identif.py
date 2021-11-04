@@ -86,6 +86,7 @@ for i in tmp:
 
 (Q, R, P) = sp.qr(W_modified, pivoting=True)
 
+# P sort params as decreasing order of diagonal of R
 # print('shape of Q:\t', np.array(Q).shape)
 # print('shape of R:\t', np.array(R).shape)
 # print('shape of P:\t', np.array(P).shape)
@@ -119,13 +120,49 @@ beta = np.dot(np.linalg.inv(R1), R2)
 
 phi_base = np.dot(np.linalg.inv(R1), np.dot(Q1.T, tau))  # Base parameters
 W_base = np.dot(Q1, R1)                               # Base regressor
-
-# print('Shape of phi_m:\t', np.array(phi_modified).shape)
-# print('Shape of W_m:\t', np.array(W_modified).shape)
+print('shape of phi base',phi_base.shape)
+print('shape of W_base',W_base.shape)
 
 inertialParameters = {names_modified[i]: phi_base[i]
                       for i in range(len(phi_base))}
 print("Base parameters:\n", inertialParameters)
+
+
+params_rsortedphi = [] # P donne les indice des parametre par ordre decroissant 
+params_rsortedname=[]
+for ind in P:
+    params_rsortedphi.append(phi_modified[ind])
+    params_rsortedname.append(names_modified[ind])
+
+params_idp_val = params_rsortedphi[:tmp+1]
+params_rgp_val = params_rsortedphi[tmp+1]
+params_idp_name =params_rsortedname[:tmp+1]
+params_rgp_name = params_rsortedname[tmp+1]
+params_base = []
+params_basename=[]
+
+for i in range(tmp+1):
+    if beta[i] == 0:
+        params_base.append(params_idp_val[i])
+        params_basename.append(params_idp_name[i])
+
+    else:
+        params_base.append(str(params_idp_val[i]) + ' + '+str(round(float(beta[i]), 6)) + ' * ' + str(params_rgp_val))
+        params_basename.append(str(params_idp_name[i]) + ' + '+str(round(float(beta[i]), 6)) + ' * ' + str(params_rgp_name))
+
+print('base parameters and their identified values: \n')
+print(params_base)
+print('\n')
+table = [phi_base,params_base]
+print(table)
+print('\n')
+table1 = [names_modified,params_basename]
+print('base_parametre and equation \n')
+print(table1)
+    # print('valeurs base et calcul\t',table[i][i])
+# print('finale table shape \t', np.array(table).shape)
+# print(table)
+
 
 
 # ========== Step 9 - calcul de tau avec phi(paramaetre de base) et W_b le base regressor

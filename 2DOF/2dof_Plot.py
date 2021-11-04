@@ -93,11 +93,11 @@ tmp.sort(reverse=True)
 
 phi_base = phi[:]
 # inertialParameters_base = inertialParameters[:]
-
+names_modified=[]
 for i in tmp:
     W = np.delete(W, i, 1)
     phi = np.delete(phi, i, 0)
-
+    names_modified = np.delete(names_modified, i, 0)
 print('shape of Wb:\t', np.array(W_base).shape)
 print('shape of W:\t', W.shape)
 
@@ -139,24 +139,23 @@ W_b = np.dot(Q1, R1)  # base regressor
 print('shape of W_b \t',W_b.shape)
 
 
-# params_idp = params_rsorted[:tmp]
-# params_rgp = params_rsorted[tmp]
+params_idp = params_rsorted[:tmp]
+params_rgp = params_rsorted[tmp]
 
+params_base = []
+for i in range(tmp):
+    if beta[i] == 0:
+        params_base.append(params_idp[i])
 
+    else:
+        params_base.append(str(params_idp[i]) + ' + '+str(round(float(beta[i]), 6)) + ' * ' + str(params_rgp))
 
-# params_base = []
-# for i in range(tmp):
-#     if beta[i] == 0:
-#         params_base.append(params_idp[i])
+print('base parameters and their identified values: ')
+print(params_base)
+table = [params_base, phi]
+print('finale table shape \t', np.array(table).shape)
+print(table)
 
-#     else:
-#         params_base.append(params_idp[i] + ' + '+str(round(float(beta[i]), 6)) + ' * ' + str(params_rgp))
-
-# print('base parameters and their identified values: ')
-# table = [params_base, phi]
-# print('finale table shape \t', np.array(table).shape)
-    # print('')
-    # print(tabulate(table))
 
 ############################################################
 
