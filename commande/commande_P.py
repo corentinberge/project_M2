@@ -86,10 +86,6 @@ def loiPoly(robot,t,Vmax=10):
     return q,dq
 
 #Position initial du robot
-def PosInit():
-
-    return robot.q0.copy
-
 def calcCoeff(Vmax, robot, qf):
     a0 = np.zeros(robot.nq)
     a1 = np.zeros(robot.nq)
