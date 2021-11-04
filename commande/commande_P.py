@@ -53,7 +53,7 @@ def getTraj(N,robot,IDX,loi='P',V=10):
     dt = 1e-2
     a0,a1,a2 = 0,1,2
     X = np.zeros((N,3))
-    for i in range(N-1):
+    for i in range(N):
         if(loi == 'P'):
             q,dq = loiPoly(robot,i*dt,Vmax=V)
         else:
@@ -78,7 +78,7 @@ def loiPoly(robot,t,Vmax=10):
         print("a1 : \t",a1)
         print("a2 : \t",a2)
         print("a3 : \t",a3)
-        print(tf)
+        print("tf : \t",tf)
     q = np.zeros(robot.nq)
     dq = np.zeros(robot.nv)
     for i in range(robot.nq):
@@ -169,7 +169,6 @@ def simuLoiCommande(robot):
     Xc = getTraj(300,robot,IDX,loi='P',V=5)
     q = robot.q0 
     N = Xc.shape[0]
-    print(N)
     traj_OT = np.zeros(Xc.shape)
     t = np.zeros(N)
     for i in range(N):
@@ -178,13 +177,11 @@ def simuLoiCommande(robot):
         J = adaptJacob(pin.computeFrameJacobian(robot.model,robot.data,q,IDX,BASE)) #calcul de la jacobienne
         X= adaptSituation(situationOT(robot.data.oMf[IDX]),q)
         deltaX = computeError(Xc[i,:],X)
-        #print(deltaX)
         q = loiCommande(deltaX,1,J,q)
         traj_OT[i,:] = X
         t[i] = i*dt
         robot.display(q)
         time.sleep(dt)
-        print("I",i)
     robot.forwardKinematics(q) #update joint 
     pin.updateFramePlacements(robot.model,robot.data) #update frame placement
     X= adaptSituation(situationOT(robot.data.oMf[IDX]),q)
@@ -195,9 +192,9 @@ def simuLoiCommande(robot):
         plt.plot(t,traj_OT[:,0],label="position OT selon axe x")
         plt.plot(t,traj_OT[:,1],label="position OT selon axe y")
         plt.plot(t,traj_OT[:,2],label="orientation OT")
-        plt.plot(t,Xc[:,0],".",label="position consigne selon axe x")
-        plt.plot(t,Xc[:,1],".",label="position consigne selon axe y")
-        plt.plot(t,Xc[:,2],".",label="orientation consigne")
+        plt.plot(t,Xc[:,0],label="position consigne selon axe x")
+        plt.plot(t,Xc[:,1],label="position consigne selon axe y")
+        plt.plot(t,Xc[:,2],label="orientation consigne")
         plt.legend()
         plt.show()
     
