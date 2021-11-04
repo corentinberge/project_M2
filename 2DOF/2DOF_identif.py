@@ -38,7 +38,7 @@ phi = []
 for i in range(1, NJOINT):
     phi.extend(model.inertias[i].toDynamicParameters())
 
-print('shape of phi:\t', np.array(phi).shape)
+# print('shape of phi:\t', np.array(phi).shape)
 
 # ========== Step 3 - Generate input and output - 100 samples
 
@@ -118,7 +118,7 @@ beta = np.dot(np.linalg.inv(R1), R2)
 # ========== Step 8 - Calculate the Phi modified
 
 phi_base = np.dot(np.linalg.inv(R1), np.dot(Q1.T, tau))  # Base parameters
-W_base = np.dot(Q1, R1)                               # Base regressor
+W_base = np.dot(Q1, R1)                                  # Base regressor
 
 # print('Shape of phi_m:\t', np.array(phi_modified).shape)
 # print('Shape of W_m:\t', np.array(W_modified).shape)
@@ -175,10 +175,10 @@ plt.show()
 # ========== Step 11 - calcul l'err entre tau et tau_base calcule a partir de l'identification
 
 err = []
-for i in range(nbSamples*NQ):
-    err.append(abs(tau[i]-tau_base[i])*abs(tau[i]-tau_base)[i])
+for i in range(nbSamples * NQ):
+    err.append(abs(tau[i] - tau_base[i]) * abs(tau[i] - tau_base)[i])
 
-print(np.array(err).shape)
+# print(np.array(err).shape)
 plt.plot(samples, err, label="err")
 plt.title("erreur quadratique")
 plt.legend()
