@@ -169,7 +169,12 @@ def loiCommand(N,robot):
     J = adaptJacob(pin.computeFrameJacobian(robot.model,robot.data,q,IDX,BASE))
     Jetoile = pinv(J)
     for i in range(N):
+        robot.forwardKinematics(q) #update joint 
+        pin.updateFramePlacements(robot.model,robot.data) #update frame placement
+        J = adaptJacob(pin.computeFrameJacobian(robot.model,robot.data,q,IDX,BASE))
+        Jetoile = pinv(J)
         
+    
 #Jacobienne
 
 def jacobienneValidation(J,dq):
