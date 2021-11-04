@@ -1,5 +1,3 @@
-from numpy.core.defchararray import join
-from numpy.core.fromnumeric import transpose
 import pinocchio as pin
 from pinocchio.utils import *
 from pinocchio.visualize import GepettoVisualizer
@@ -42,13 +40,13 @@ def orientationEuler(R):
 def adaptSituation(X):
     """ cette fonction permets d'adapter la situation de l'organe terminal au plan, ressort un vecteur 3,3
     on enleve ey car il n'y a pas de translation selon ey, on enleve psi et phi car rotation constantes """
-    nX = np.array([X[0],X[2],X[4]]) # on enleve les colonnes 2,3 et 5 donc on enlève les lignes 2,3 et 5 de la jacobienne 
+    nX = np.array([X[0],X[2]])#,X[4]]) # on enleve les colonnes 2,3 et 5 donc on enlève les lignes 2,3 et 5 de la jacobienne et on enleve l'indice 4 car on travail en position pour l'insatnt
     return nX
 
 
 def adaptJacob(J):
-    """ cette fonction permets d'adapter la jacobienne, on enlève les lignes 1,3 et 5 """
-    nJ = np.array([J[0,:],J[2,:],J[4,:]])
+    """ cette fonction permets d'adapter la jacobienne, on enlève les lignes 1,3 et 5, ON travai avec la position donc on enlève l'indice 4 (on la garde si on veut l'orientation) """
+    nJ = np.array([J[0,:],J[2,:]])#,J[4,:]])
     return nJ
 
 def simulateurTraj(N,robot,IDX):
@@ -108,28 +106,28 @@ def calcCoeff(Vmax, robot, qf):
     return a0,a1,a2,a3,tf
 
 def loiPendule(t):
+    """retourne la loi avec série de fournier """
     return np.array([0.1*np.cos(2*math.pi*t),0]),np.array([-0.2*math.pi*np.sin(2*math.pi*t),0])
 
 
 def simulateurVerif(N,robot):
-    LOCAL,WORLD = pin.ReferenceFrame.LOCAL,pin.ReferenceFrame.WORLD
+    """ Simutalteur de vérification de la jacobienne """
+    BASE = pin.ReferenceFrame.LOCAL_WORLD_ALIGNED
     IDX = robot.model.getFrameId("tcp")
-    IDB = robot.model.getFrameId("base_link")
     dt = 1e-2
-    a0,a1,a2 = 0.1,0.02,-1
-    X = np.zeros((N-1,3))
+    X = np.zeros((N-1,2))
     t = np.zeros(N-1)
     dotXJac = np.zeros(X.shape)
-    for i in range(N-1):
-        q,dq = loiPendule(i*dt)
-        #q,dq = loiPoly(robot,i*dt,Vmax=4)
+    for i in range(N):
+        #q,dq = loiPendule(i*dt)
+        q,dq = loiPoly(robot,i*dt,Vmax=4)
         robot.forwardKinematics(q) #update joint 
         pin.updateFramePlacements(robot.model,robot.data) #update frame placement
         if(i*dt == 0.5):
             print("qpoint = \t",dq)
             print("q \t",q)
             print("J \t",J)
-        J = adaptJacob(pin.computeFrameJacobian(robot.model,robot.data,q,IDX,pin.ReferenceFrame.LOCAL_WORLD_ALIGNED)) #essais de world, local comme frame de ref 
+        J = adaptJacob(pin.computeFrameJacobian(robot.model,robot.data,q,IDX,BASE)) #essais de world, local comme frame de ref 
         #J = adaptJacob(robot.computeFrameJacobian(q,IDX))
         X[i,:] =    adaptSituation(situationOT(robot.data.oMf[IDX]))
         dotXJac[i,:] = np.dot(J,dq)
@@ -155,19 +153,23 @@ def simulateurVerif(N,robot):
         plt.ylabel("m ou m/s")
         plt.xlabel("seconde")
         plt.legend()
-        plt.figure()
-        plt.plot(t,X[:,2],label="orientation selon axe z en rad")
-        plt.plot(t,dotXJac[:,2],label="avec Jacobienne en rad/s")
-        plt.plot(t[:len(t)-1],dotXDiff[:,2],".",label="avec différences finis en rad/s")
-        plt.title("orientation et dérivé situation OT selon repère LOCAL")
-        plt.ylabel("rad ou rad/s")
-        plt.xlabel("seconde")
-        plt.legend()
         plt.show()
 
+def deltaX(Xconsigne,Xactuel):
+    """ Renvois l'erreur de la situation de l'organe terminal """
+    return Xconsigne-Xactuel
+
+def loiCommand(N,robot):
+    BASE = pin.ReferenceFrame.LOCAL_WORLD_ALIGNED
+    IDX = robot.model.getFrameId("tcp")
+    dt = 1e-2
+    X = np.zeros((N-1,3))
+    t = np.zeros(N-1)
+    q = robot.q0 #test
+    J = adaptJacob(pin.computeFrameJacobian(robot.model,robot.data,q,IDX,BASE))
+    Jetoile = pinv(J)
+    for i in range(N):
         
-
-
 #Jacobienne
 
 def jacobienneValidation(J,dq):
@@ -209,5 +211,5 @@ if Main:
     robot = RobotWrapper.BuildFromURDF(urdf_path,package_path,verbose=True)
     robot.initViewer(loadModel=True)
     robot.display(robot.q0)
-    simulateurVerif(300,robot)
-
+    #simulateurVerif(300,robot)
+    loiCommand(300,robot)
