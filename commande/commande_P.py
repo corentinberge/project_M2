@@ -31,7 +31,7 @@ def orientationEuler(R):
         theta = math.acos(R[2,2])
         phi = math.atan2(R[2,0],R[2,1])
     else :
-        print("attention psi et phi ne sont pas définis ici ils seront pris égaux")
+        #print("attention psi et phi ne sont pas définis ici ils seront pris égaux")
         a = math.atan2(R[0,1],R[0,0])/(1-R[2,2])
         psi = a
         theta = math.pi*(1-R[2,2])/2
@@ -66,41 +66,64 @@ def simulateurTraj(N,robot,IDX):
     print(X.shape)
         
 #Loi polynomial
-def loiPoly(a0,a1,a2,t):
+
+def loiPoly(robot,t,Vmax=10):
     """ Création de la loi polynomial, à modifier il manque la vrai valeur des coeff"""
-    tf = 1.5
-    q = np.array([a0 + a1*t + a2*(t**2) ,a0 + a1*t + a2*(t**2) ]) #2 dimension 
-    dq = np.array([ a1 + 2*a2*t , a1 + 2*a2*t ])
-    if(t>=tf):
-        q = np.array([a0 + a1*tf + a2*(tf**2) ,a0 + a1*tf + a2*(tf**2) ]) #2 dimension 
-        dq = np.array([ 0 , 0])
-    return q, dq
-   
+    qf = np.array([-math.pi/6, +math.pi/3])
+    a0, a1, a2, a3, tf = calcCoeff(Vmax, robot,qf) # a modifier pour le calculer seulement a la premiere itération
+    #print("t \t",t)
+    if(t == 0):
+        print("a0 : \t",a0)
+    q = np.zeros(robot.nq)
+    dq = np.zeros(robot.nv)
+    for i in range(robot.nq):
+        q[i] = a0[i] + a1[i]*t + a2[i]*(t**2) + a3[i]*(t**3) 
+        dq[i] = a1[i] + 2*a2[i]*t + 3*a3[i]*t**2
+        if(t>=tf[i]):
+            q[i] = a0[i] + a1[i]*tf[i] + a2[i]*(tf[i]**2) + a3[i]*(tf[i]**3) #2 dimension 
+            dq[i] = a1[i] + 2*a2[i]*tf[i] + 3*a3[i]*tf[i]**2
+        
+    return q,dq
 
 #Position initial du robot
 def PosInit():
 
     return robot.q0.copy
 
-def LoiMouvement():
-    print("en travaux")
+def calcCoeff(Vmax, robot, qf):
+    a0 = np.zeros(robot.nq)
+    a1 = np.zeros(robot.nq)
+    a2 = np.zeros(robot.nq)
+    a3 = np.zeros(robot.nq)
+    tf = np.zeros(robot.nq)
+    DeltaQ = qf - robot.q0
+    
+    for i in range(robot.nq):
+        tf[i] = (3/2)*(DeltaQ[i]/Vmax)
+        a0[i] = robot.q0[i]         # Contrainte position initiale = qinit
+        a1[i] = 0                   # Containte position initiale = 0
+        a2[i] = (3*DeltaQ[i])/(tf[i]**2) 
+        a3[i] = (-2*DeltaQ[i])/(tf[i]**3)
+
+    return a0,a1,a2,a3,tf
+
 
 
 
 def simulateurVerif(N,robot):
-
     LOCAL,WORLD = pin.ReferenceFrame.LOCAL,pin.ReferenceFrame.WORLD
     IDX = robot.model.getFrameId("tcp")
     IDB = robot.model.getFrameId("base_link")
-    dt = 1e-4
+    dt = 1e-2
     a0,a1,a2 = 0.1,0.02,-1
     X = np.zeros((N-1,3))
     t = np.zeros(N-1)
     dotXJac = np.zeros(X.shape)
     for i in range(N-1):
-        q,dq = loiPoly(a0,a1,a2,i*dt)
         #J = pin.jacobianSubtreeCenterOfMass(robot.model,robot.data,2) # essais de pin.jacobianSubtreeCenterOfMass(robot.model,robot.data,2)
         #J = pin.jacobianCenterOfMass(robot.model,robot.data,q)
+        q = np.array([0.1*np.cos(2*math.pi*dt*i),0])
+        dq = np.array([-0.2*math.pi*np.sin(2*math.pi*dt*i),0])
         robot.forwardKinematics(q) #update joint 
         pin.updateFramePlacements(robot.model,robot.data) #update frame placement
         #J = adaptJacob(pin.computeFrameJacobian(robot.model,robot.data,q,IDX,LOCAL)) #essais de world, local comme frame de ref 
@@ -117,8 +140,17 @@ def simulateurVerif(N,robot):
         plt.plot(t,dotXJac[:,0],label="avec Jacobienne")
         plt.plot(t[:len(t)-1],dotXDiff[:,0],".",label="avec différences finis")
         plt.plot(t,X[:,0],label="position OT selon l'axe X")
-        plt.title("vérification de la jacobienne")
-        plt.plot()
+        plt.title("position et dérivé situation OT selon axe x")
+        plt.ylabel("m ou m/s")
+        plt.xlabel("seconde")
+        plt.legend()
+        plt.figure()
+        plt.plot(t,X[:,1],label="position selon axe z en m")
+        plt.plot(t,dotXJac[:,1],label="avec Jacobienne en m/s")
+        plt.plot(t[:len(t)-1],dotXDiff[:,1],".",label="avec différences finis en m/s")
+        plt.title("position et dérivé situation OT selon axe z")
+        plt.ylabel("m ou m/s")
+        plt.xlabel("seconde")
         plt.legend()
         plt.show()
 
@@ -166,4 +198,5 @@ if Main:
     robot = RobotWrapper.BuildFromURDF(urdf_path,package_path,verbose=True)
     robot.initViewer(loadModel=True)
     robot.display(robot.q0)
-    simulateurVerif(20000,robot)
+    simulateurVerif(300,robot)
+
