@@ -24,44 +24,47 @@ def situationOT(M):
 def orientationEuler(R):
     """ Renvois l'orientation selon la valeurs des angles d'euler  
     prend une matrice de rotation 3x3 en entrée"""
-    if(R[2,2] != 1):
+    if(abs(R[2,2]) != 1):
         psi = math.atan2(R[0,2],-R[1,2])
         theta = math.acos(R[2,2])
         phi = math.atan2(R[2,0],R[2,1])
-    else :
+    else : # attention psi et phi ne sont pas définis ici phi = 2*psi => évite la division par 0 
         #print("attention psi et phi ne sont pas définis ici ils seront pris égaux")
-        a = math.atan2(R[0,1],R[0,0])/(1-R[2,2])
-        psi = a
+        a = math.atan2(R[0,1],R[0,0])
+        psi = a/(1-2*R[2,2])
         theta = math.pi*(1-R[2,2])/2
-        phi = a
+        phi = 2*psi
     return np.array([psi,theta,phi])
 
 
-def adaptSituation(X):
+def adaptSituation(X,q):
     """ cette fonction permets d'adapter la situation de l'organe terminal au plan, ressort un vecteur 3,3
     on enleve ey car il n'y a pas de translation selon ey, on enleve psi et phi car rotation constantes """
-    nX = np.array([X[0],X[2]])#,X[4]]) # on enleve les colonnes 2,3 et 5 donc on enlève les lignes 2,3 et 5 de la jacobienne et on enleve l'indice 4 car on travail en position pour l'insatnt
+    nX = np.array([X[0],X[2],q[0]+q[1]])#,X[4]]) # on enleve les colonnes 2,3 et 5 donc on enlève les lignes 2,3 et 5 de la jacobienne et on enleve l'indice 4 car on travail en position pour l'insatnt
     return nX
 
 
 def adaptJacob(J):
     """ cette fonction permets d'adapter la jacobienne, on enlève les lignes 1,3 et 5, ON travai avec la position donc on enlève l'indice 4 (on la garde si on veut l'orientation) """
-    nJ = np.array([J[0,:],J[2,:]])#,J[4,:]])
+    nJ = np.array([J[0,:],J[2,:],J[4,:]])
     return nJ
 
-def simulateurTraj(N,robot,IDX):
+def getTraj(N,robot,IDX,loi='P'):
     dt = 1e-2
     a0,a1,a2 = 0,1,2
     X = np.zeros((N,3))
     for i in range(N-1):
-        q,dq = loiPoly(a0,a1,a2,i*dt)
-        q = np.array(q)
+        if(loi == 'P'):
+            q,dq = loiPoly(robot,i*dt)
+        else:
+            q,dq = loiPendule(i*dt)
         robot.forwardKinematics(q) #update joint 
         pin.updateFramePlacements(robot.model,robot.data) #update frame placement  
-        X[i,:] =  adaptSituation(situationOT(robot.data.oMf[IDX]))
-        robot.display(q)
+        X[i,:] =  adaptSituation(situationOT(robot.data.oMf[IDX]),q)
+        #robot.display(q)
         time.sleep(dt)
-    print(X.shape)
+    #print(X.shape)
+    return X
         
 #Loi polynomial
 
@@ -115,8 +118,8 @@ def simulateurVerif(N,robot):
     BASE = pin.ReferenceFrame.LOCAL_WORLD_ALIGNED
     IDX = robot.model.getFrameId("tcp")
     dt = 1e-2
-    X = np.zeros((N-1,2))
-    t = np.zeros(N-1)
+    X = np.zeros((N,2))
+    t = np.zeros(N)
     dotXJac = np.zeros(X.shape)
     for i in range(N):
         #q,dq = loiPendule(i*dt)
@@ -136,7 +139,7 @@ def simulateurVerif(N,robot):
         time.sleep(dt)
     dotXDiff = calculDotX(X,dt)
     print("shape dotX avec différences finies\t ",dotXDiff.shape)
-
+    print(X[N-1,:])
     if PLOT:
         plt.plot(t,dotXJac[:,0],label="avec Jacobienne")
         plt.plot(t[:len(t)-1],dotXDiff[:,0],".",label="avec différences finis")
@@ -155,25 +158,46 @@ def simulateurVerif(N,robot):
         plt.legend()
         plt.show()
 
-def deltaX(Xconsigne,Xactuel):
+def computeError(Xconsigne,Xactuel):
     """ Renvois l'erreur de la situation de l'organe terminal """
     return Xconsigne-Xactuel
 
-def loiCommand(N,robot):
+def simuLoiCommande(robot):
     BASE = pin.ReferenceFrame.LOCAL_WORLD_ALIGNED
     IDX = robot.model.getFrameId("tcp")
     dt = 1e-2
-    X = np.zeros((N-1,3))
-    t = np.zeros(N-1)
-    q = robot.q0 #test
-    J = adaptJacob(pin.computeFrameJacobian(robot.model,robot.data,q,IDX,BASE))
-    Jetoile = pinv(J)
+    Xc = getTraj(300,robot,IDX,loi='P')
+    q = robot.q0 
+    N = Xc.shape[0]
+    traj_OT = np.zeros(Xc.shape)
+    t = np.zeros(N)
     for i in range(N):
         robot.forwardKinematics(q) #update joint 
         pin.updateFramePlacements(robot.model,robot.data) #update frame placement
-        J = adaptJacob(pin.computeFrameJacobian(robot.model,robot.data,q,IDX,BASE))
-        Jetoile = pinv(J)
-        
+        J = adaptJacob(pin.computeFrameJacobian(robot.model,robot.data,q,IDX,BASE)) #calcul de la jacobienne
+        X= adaptSituation(situationOT(robot.data.oMf[IDX]),q)
+        deltaX = computeError(Xc[i,:],X)
+        print(deltaX)
+        q = loiCommande(deltaX,1,J,q)
+        traj_OT[i,:] = X
+        t[i] = i*dt
+        robot.display(q)
+        time.sleep(dt)
+    robot.forwardKinematics(q) #update joint 
+    pin.updateFramePlacements(robot.model,robot.data) #update frame placement
+    X= adaptSituation(situationOT(robot.data.oMf[IDX]),q)
+    print("position x OT" + "\tposition consigne",X[0],Xc[N-1,:][0])
+    print("position x OT" + "\tposition consigne",X[1],Xc[N-1,:][1])
+    print("orientation OT" + "\torientation consigne",X[2],Xc[N-1,:][2])
+    if PLOT: 
+        plt.plot(t,traj_OT[:,0],label="position OT selon axe x")
+        #plt.plot(t,traj_OT[:,1],label="position OT selon axe y")
+        #plt.plot(t,traj_OT[:,2],label="orientation OT")
+        plt.plot(t,Xc[:,0],".",label="position consigne selon axe x")
+        #plt.plot(t,Xc[:,1],".",label="position consigne selon axe y")
+        #plt.plot(t,Xc[:,2],".",label="orientation consigne")
+        plt.legend()
+        plt.show()
     
 #Jacobienne
 
@@ -189,7 +213,12 @@ def calculDotX(X,dt):
     
     return dotX 
 
-
+def loiCommande(deltaX,Kp,J,q):
+    """ calcul du la boucle ouverte """
+    deltaQ = np.dot(pinv(J),Kp*deltaX)
+    #print(deltaQ)
+    q = moveRobot(q,deltaQ)
+    return q 
 #Passage de X dans un proportionnel
 def prop(X,p):
 	for i in X:
@@ -201,9 +230,10 @@ def jacob(X):
         if(j[i][0] != 0.):
             X[i] *= j[i]
 
-def mvt_Robot(X,Xd):
-    Xd = Xd + X
-
+def moveRobot(q,deltaQ):
+    """ fonction qui donne le mouvement du robot"""
+    q += deltaQ
+    return q
 
 Main = True
 workingDir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -217,4 +247,4 @@ if Main:
     robot.initViewer(loadModel=True)
     robot.display(robot.q0)
     #simulateurVerif(300,robot)
-    loiCommand(300,robot)
+    simuLoiCommande(robot)
