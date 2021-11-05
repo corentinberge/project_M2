@@ -161,7 +161,9 @@ def simulateurVerif(N,robot):
 
 def computeError(Xconsigne,Xactuel,dotXconsigne,dotXactuel):
     """ Renvois l'erreur de la situation de l'organe terminal et l'erreur de ça vitesse"""
-    return (Xconsigne-Xactuel),(dotXconsigne-dotXactuel)
+    epsX = (Xconsigne-Xactuel)
+    epsdotX = (dotXconsigne-dotXactuel)
+    return epsX,epsdotX
 
 def simuLoiCommande(robot):
     BASE = pin.ReferenceFrame.LOCAL_WORLD_ALIGNED
@@ -179,7 +181,7 @@ def simuLoiCommande(robot):
         pin.updateFramePlacements(robot.model,robot.data) #update frame placement
         J = adaptJacob(pin.computeFrameJacobian(robot.model,robot.data,q,IDX,BASE)) #calcul de la jacobienne
         X = adaptSituation(situationOT(robot.data.oMf[IDX]),q)
-        dotX = J*dq
+        dotX = np.dot(J,dq)
         print(dotX)
         deltaX,deltatDotX = computeError(Xc[i,:],X,dotXc[i,:],dotX)
         q,dq = loiCommande2(deltaX,1,J,q)
