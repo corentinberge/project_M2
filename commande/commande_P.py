@@ -53,6 +53,8 @@ def getTraj(N,robot,IDX,loi='P',V=10):
     dt = 1e-2
     a0,a1,a2 = 0,1,2
     X = np.zeros((N,3))
+    traj_dq = np.zeros(N,2)
+    t = np.zeros(N)
     for i in range(N):
         if(loi == 'P'):
             q,dq = loiPoly(robot,i*dt,Vmax=V)
@@ -61,8 +63,11 @@ def getTraj(N,robot,IDX,loi='P',V=10):
         robot.forwardKinematics(q) #update joint 
         pin.updateFramePlacements(robot.model,robot.data) #update frame placement  
         X[i,:] =  adaptSituation(situationOT(robot.data.oMf[IDX]),q)
+        traj_dq[i,:] = dq
+        t[i,:] = i*dt
     dotX = calculDotX(X,dt)
     dotX = np.append(dotX,[np.zeros(dotX.shape[1])],axis=0)
+   # plt.plot(t,traj_dq,"label vrai valeur de dq")
     #print("shape dotX",dotX.shape)
     #print("shape X",X.shape)
     return X,dotX
@@ -111,7 +116,7 @@ def calcCoeff(Vmax, robot, qf):
 
 def loiPendule(t):
     """retourne la loi avec série de fournier """
-    return np.array([0.1*np.cos(2*math.pi*t),0]),np.array([-0.2*math.pi*np.sin(2*math.pi*t),0])
+    return np.array([0.1*np.cos(2*math.pi*t),0.5*np.cos(2*math.pi*t)]),np.array([-0.2*math.pi*np.sin(2*math.pi*t),-1*math.pi*np.sin(2*math.pi*t)])
 
 
 def simulateurVerif(N,robot):
@@ -174,20 +179,24 @@ def simuLoiCommande(robot):
     dq = np.zeros(q.shape) #accélération des joint à l'instant initial
     N = Xc.shape[0]
     traj_OT = np.zeros(Xc.shape)
+    traj_dotOT = np.zeros(dotXc.shape)
     t = np.zeros(N)
-    deltaQ = np.zeros(q.shape)
+
     for i in range(N):
         robot.forwardKinematics(q) #update joint 
         pin.updateFramePlacements(robot.model,robot.data) #update frame placement
         J = adaptJacob(pin.computeFrameJacobian(robot.model,robot.data,q,IDX,BASE)) #calcul de la jacobienne
         X = adaptSituation(situationOT(robot.data.oMf[IDX]),q)
         dotX = np.dot(J,dq)
+        #print(dotX)
         deltaX,deltaDotX = computeError(Xc[i,:],X,dotXc[i,:],dotX)
-        q,dq = loiCommande2(deltaX,deltaDotX,1,1,J,q)
+        q,dq = loiCommande2(deltaDotX,1,J,q)
         traj_OT[i,:] = X
+        traj_dotOT[i,:] = dotX
         t[i] = i*dt
         robot.display(q)
         time.sleep(dt)
+
     robot.forwardKinematics(q) #update joint 
     pin.updateFramePlacements(robot.model,robot.data) #update frame placement
     X= adaptSituation(situationOT(robot.data.oMf[IDX]),q)
@@ -201,6 +210,7 @@ def simuLoiCommande(robot):
         plt.plot(t,Xc[:,0],label="position consigne selon axe x")
         plt.plot(t,Xc[:,1],label="position consigne selon axe y")
         plt.plot(t,Xc[:,2],label="orientation consigne")
+
         plt.legend()
         plt.show()
     
@@ -224,10 +234,15 @@ def loiCommande1(deltaX,Kp,J,q):
     q = moveRobot(q,deltaQ)
     return q 
 
-def loiCommande2(deltaX,deltaDotX,Kp,K,J,q):
-    delta = Kp*deltaX+K*deltaDotX
-    deltaQ = np.dot(pinv(J),delta)
+def loiCommande2(deltaDotX,K,J,q):
+    """ Commande Seulement en vitesse """
+    deltaDotQ = K*np.dot(pinv(J),deltaDotX)
+
+    #ça ce passe dans le robot 
+    deltaQ = deltaDotQ*1e-2 
+    print("deltaQ\t ",deltaQ)
     q = moveRobot(q,deltaQ)
+    #q = rob(q,deltaQ,1e-2,robot)
     return q,deltaQ
 
 #Passage de X dans un proportionnel
@@ -245,6 +260,15 @@ def moveRobot(q,deltaQ):
     """ fonction qui donne le mouvement du robot"""
     q += deltaQ
     return q
+
+def rob(q,vq,dt,robot):
+    q = pin.integrate(robot.model,q,vq*dt)
+    return q
+
+
+
+
+
 
 Main = True
 workingDir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
