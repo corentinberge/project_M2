@@ -451,7 +451,6 @@ def main():
     showPhiPlots()
 
     # ========== Step 11 - Calculate error between tau and tau_base based on the identification
-    # calcul l'err entre tau et tau_base calcule a partir de l'identification
     err = calculateError()
     showErrorPlot()
 
