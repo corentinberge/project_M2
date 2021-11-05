@@ -171,20 +171,19 @@ def simuLoiCommande(robot):
     dt = 1e-2
     Xc,dotXc = getTraj(300,robot,IDX,loi='R',V=5)
     q = robot.q0 
-    dq = 0 #accélération des joint à l'instant initial
+    dq = np.zeros(q.shape) #accélération des joint à l'instant initial
     N = Xc.shape[0]
     traj_OT = np.zeros(Xc.shape)
     t = np.zeros(N)
-    deltaQ = 0
+    deltaQ = np.zeros(q.shape)
     for i in range(N):
         robot.forwardKinematics(q) #update joint 
         pin.updateFramePlacements(robot.model,robot.data) #update frame placement
         J = adaptJacob(pin.computeFrameJacobian(robot.model,robot.data,q,IDX,BASE)) #calcul de la jacobienne
         X = adaptSituation(situationOT(robot.data.oMf[IDX]),q)
         dotX = np.dot(J,dq)
-        print(dotX)
-        deltaX,deltatDotX = computeError(Xc[i,:],X,dotXc[i,:],dotX)
-        q,dq = loiCommande2(deltaX,1,J,q)
+        deltaX,deltaDotX = computeError(Xc[i,:],X,dotXc[i,:],dotX)
+        q,dq = loiCommande2(deltaX,deltaDotX,1,1,J,q)
         traj_OT[i,:] = X
         t[i] = i*dt
         robot.display(q)
@@ -225,7 +224,7 @@ def loiCommande1(deltaX,Kp,J,q):
     q = moveRobot(q,deltaQ)
     return q 
 
-def loiCommande2(deltaX,deltaDotX,Kp,K,J,q,dq):
+def loiCommande2(deltaX,deltaDotX,Kp,K,J,q):
     delta = Kp*deltaX+K*deltaDotX
     deltaQ = np.dot(pinv(J),delta)
     q = moveRobot(q,deltaQ)
