@@ -11,14 +11,14 @@ import os
 
 
 def initialize():
-    """
+    '''
     Import and initialize the robot
 
     Returns
     -------
     robot: RoborWrapper
         Robot generated with urdf file
-    """
+    '''
     package_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     urdf_path = package_path + '/robots/urdf/planar_2DOF.urdf'
 
@@ -29,12 +29,14 @@ def initialize():
 
     return robot
 
+
 # =====================
 # |  Base functions   |
 # =====================
 
+
 def generateParameters(model, NJOINT):
-    """
+    '''
     Generate inertial parameters for all links (excepted the base link) and their associated names
 
     Parameters
@@ -51,7 +53,7 @@ def generateParameters(model, NJOINT):
             names of parameters
         phi: float array
             values of parameters
-    """
+    '''
     names = []
     for i in range(1, NJOINT):
         names += ['m'+str(i), 'mx'+str(i), 'my'+str(i), 'mz'+str(i), 'Ixx'+str(i),
@@ -65,7 +67,7 @@ def generateParameters(model, NJOINT):
 
 
 def generateRandomInputsAndTorque(model, data, NQ, nbSamples):
-    """
+    '''
     Generate a certain amount of random position, speed and aceleration and calculate torque for each joint and sample
 
     Parameters
@@ -86,7 +88,7 @@ def generateRandomInputsAndTorque(model, data, NQ, nbSamples):
             (position, speed, acceleration)
         tau: float array
             torque array (nbSamples*NQ)  
-    """
+    '''
     q = np.random.rand(NQ, nbSamples) * np.pi - np.pi/2  # -pi/2 < q < pi/2
     dq = np.random.rand(NQ, nbSamples) * 10              # 0 < dq  < 10
     ddq = np.ones((NQ, nbSamples))                       # ddq = 1
@@ -99,7 +101,7 @@ def generateRandomInputsAndTorque(model, data, NQ, nbSamples):
 
 
 def generateRegressor(model, data, inputs, nbSamples):
-    """
+    '''
     Generate regressor based on inputs and the number of samples
 
     Parameters
@@ -117,7 +119,7 @@ def generateRegressor(model, data, inputs, nbSamples):
     -------
     W: float array
         regressor
-    """
+    '''
     q, dq, ddq = inputs
     W = []  # Regression vector
     for i in range(nbSamples):
@@ -127,7 +129,7 @@ def generateRegressor(model, data, inputs, nbSamples):
 
 
 def removeZeroParameters(W, phi, names, threshold):
-    """
+    '''
     Remove zero parameters and update phi and names of parameters
 
     Parameters
@@ -151,7 +153,7 @@ def removeZeroParameters(W, phi, names, threshold):
         names: string array
             parameters names
 
-    """
+    '''
     W_modified = np.array(W[:])
     tmp = []
     for i in range(len(phi)):
@@ -170,7 +172,7 @@ def removeZeroParameters(W, phi, names, threshold):
 
 
 def calculateBaseParam(Q, R, P, names, threshold):
-    """
+    '''
     Calculate base parameters from the pivoted QR (and P) decomposition of the regressor
 
     Parameters
@@ -193,7 +195,7 @@ def calculateBaseParam(Q, R, P, names, threshold):
             matrix with only indemendant parameters.
         R2: float array
             dependant parameters  
-    """
+    '''
     tmp = 0
     for i in range(len(R[0])):
         if R[i, i] > threshold:
@@ -211,68 +213,31 @@ def calculateBaseParam(Q, R, P, names, threshold):
     return R1, R2, Q1
 
 
-def showTorquePlot(tau, tau_base, NQ, nbSamples):
-    """
-    Show torques and base torques plots
-
-    Parameters
-    ----------
-    tau: float array
-        initial torques
-    tau_base: float array
-        base torques
-    NQ: int
-        number of robot joints
-    nbSamples: int
-        number of samples
-    """
-    samples = []
-    for i in range(nbSamples * NQ):
-        samples.append(i)
-
-    # trace le resultat dans un graph
-    # les deux plot sur la memes figure
-    plt.plot(samples, tau_base, color='green', linewidth=2, label="tau_base")  # linewidth linestyle
-    plt.plot(samples, tau, color='blue', linewidth=1, label="tau")
-    plt.legend()
-    plt.title("graphe montrant tau et tau_base")
-
-    # les deux plot sur deux figures differentes
-    fig, axs = plt.subplots(2)
-    fig.suptitle('tau et tau_base separement')
-    axs[0].plot(samples, tau, color='blue', label="tau")
-    # plt.legend()
-    axs[1].plot(samples, tau_base, color='green', label="tau_base")
-    plt.legend()
-    # showing results
-    plt.show()
-
-
-def calculateEstimatedParam(W_base, tau):
-    """"
+def calculateEstimatedParam(baseW, tau):
+    ''''
     Calculate estimated parameters
 
     Parameters
     ----------
-    W_base: float array
+    baseW: float array
         base regressor
     tau: float array
         initial torques
-    """
-    AtA = np.linalg.inv(np.dot(W_base.T, W_base))
-    AtB = np.dot(W_base.T, tau)
+    '''
+    AtA = np.linalg.inv(np.dot(baseW.T, baseW))
+    AtB = np.dot(baseW.T, tau)
     return np.dot(AtA, AtB)
 
 
-def calculateError(tau, tau_base, NQ, nbSamples):
-    """
-    Calculate error between tau and tau_base based on the identification
+def calculateError(tau, baseTau, NQ, nbSamples):
+    '''
+    Calculate error between tau and baseTau based on the identification
 
     Parameters
     ----------
     tau: float array
         initial torques
-    tau_base: float array
+    baseTau: float array
         base torques
     NQ: int
         number of robot joints
@@ -283,18 +248,59 @@ def calculateError(tau, tau_base, NQ, nbSamples):
     -------
     err: float array
         Quadratic error
-    """
+    '''
     err = []
     for i in range(nbSamples * NQ):
-        err.append(abs(tau[i] - tau_base[i]) * abs(tau[i] - tau_base)[i])
+        err.append(abs(tau[i] - baseTau[i]) * abs(tau[i] - baseTau)[i])
     return np.array(err)
+
 
 # =====================
 # | Display functions |
 # =====================
 
-def showParametersAndEquationsPlot(R, P, phi, names, threshold, beta):
-    """
+
+def showTorquePlot(tau, baseTau, NQ, nbSamples):
+    '''
+    Show torques and base torques plots
+
+    Parameters
+    ----------
+    tau: float array
+        initial torques
+    baseTau: float array
+        base torques
+    NQ: int
+        number of robot joints
+    nbSamples: int
+        number of samples
+    '''
+    samples = []
+    for i in range(nbSamples * NQ):
+        samples.append(i)
+
+    # trace le resultat dans un graph
+    # les deux plot sur la memes figure
+    plt.figure('Torques on same graph')
+    plt.plot(samples, baseTau, 'g', linewidth=2, label='baseTau')
+    plt.plot(samples, tau, 'b:', linewidth=1, label='tau')
+    plt.title('BaseTau and Tau')
+    plt.xlabel('100 Samples | 0-100: q1 | 101-200: q2')
+    plt.ylabel('Torque (N/m)')
+    plt.legend()
+
+    # Both plots on differents figures
+    fig, axs = plt.subplots(2)
+    fig.canvas.set_window_title('Both torques on differents figures')
+    axs[0].plot(samples, tau, color='blue', label='tau')
+    axs[1].plot(samples, baseTau, color='green', label='baseTau')
+    plt.xlabel('100 Samples | 0-100: q1 | 101-200: q2')
+    plt.ylabel('Torque (N/m)')
+    plt.legend()
+
+
+def showParametersAndEquations(R, P, phi, names, threshold, beta):
+    '''
     Show base parameters names and values and the equations
 
     Parameters
@@ -309,16 +315,16 @@ def showParametersAndEquationsPlot(R, P, phi, names, threshold, beta):
         names of parameters
     threshold: float or double
         threshold below which parameters are considered as zero
-    beta: ???
+    beta: float array
         beta coefficient
 
-    """
+    '''
     tmp = 0
     for i in range(len(R[0])):
         if R[i, i] > threshold:
             tmp = i
 
-    params_rsortedphi = [] # P donne les indice des parametre par ordre decroissant 
+    params_rsortedphi = []  # P donne les indice des parametre par ordre decroissant
     params_rsortedname = []
     for ind in P:
         params_rsortedphi.append(phi[ind])
@@ -329,48 +335,61 @@ def showParametersAndEquationsPlot(R, P, phi, names, threshold, beta):
     params_idp_name = params_rsortedname[:tmp+1]
     params_rgp_name = params_rsortedname[tmp+1]
     params_base = []
-    params_basename=[]
+    params_basename = []
 
     for i in range(tmp+1):
         if beta[i] == 0:
             params_base.append(params_idp_val[i])
             params_basename.append(params_idp_name[i])
-
         else:
-            params_base.append(str(params_idp_val[i]) + ' + '+str(round(float(beta[i]), 6)) + ' * ' + str(params_rgp_val))
-            params_basename.append(str(params_idp_name[i]) + ' + '+str(round(float(beta[i]), 6)) + ' * ' + str(params_rgp_name))
+            params_base.append(str(params_idp_val[i]) + ' + ' + str(round(float(beta[i]), 6)) + ' * ' + str(params_rgp_val))
+            params_basename.append(str(params_idp_name[i]) + ' + ' + str(round(float(beta[i]), 6)) + ' * ' + str(params_rgp_name))
 
-    print('base parameters and their identified values: \n')
-    print(params_base)
-    print('\n')
-    table = [phi,params_base]
-    print(table)
-    print('\n')
-    table1 = [names,params_basename]
-    print('base_parametre and equation \n')
-    print(table1)
+    print('base parameters and their identified values:')
+    # print(params_base)
+    for i in range(len(params_base)):
+        print('\t', names[i], '\t:', params_base[i])
+    
+    # table = [phi, params_base]
+    # print(table)
+    # print('\n')
+    # table1 = [names, params_basename]
+    print('base_parametre and equation:')
+    # print(table1)
+    for i in range(len(params_basename)):
+        print('\t', names[i], '\t:', params_basename[i])
     # print('valeurs base et calcul\t',table[i][i])
     # print('finale table shape \t', np.array(table).shape)
     # print(table)
 
 
-def showPhiPlots(estimatedPhi, W_base):
-    """"
-    TODO: commenter
-    """
-    samples1 = []
-    for i in range(estimatedPhi.shape[0]):
-        samples1.append(i + 1)
+def showPhiPlots(estimatedPhi, basePhi):
+    ''''
+    Show phi and phi* plot
 
-    plt.scatter(samples1, W_base, color='green', linewidth=2, label="phi(base)")
-    plt.scatter(samples1, estimatedPhi, color='red', linewidth=1, label="phi etoile")
-    plt.title("graphe montrant phi et phi etoile")
+    Parameters
+    ----------
+    estimatedPhi: float array
+        values of parameters
+    basePhi: float array
+        base parameters
+    '''
+    samples = []
+    for i in range(estimatedPhi.shape[0]):
+        samples.append(i + 1)
+
+    plt.figure('Phi and phi*')
+    plt.scatter(samples, basePhi, color='green', linewidth=2, label='phi(base)')
+    plt.scatter(samples, estimatedPhi, color='blue', linewidth=1, label='phi*', marker='*')
+    plt.title('graphe montrant phi et phi etoile')
+    plt.xlabel('Parameter')
+    plt.ylabel('Value')
     plt.legend()
-    plt.show()
+    # plt.show()
 
 
 def showErrorPlot(err, NQ, nbSamples):
-    """
+    '''
     Show error plot
 
     Parameters
@@ -381,25 +400,30 @@ def showErrorPlot(err, NQ, nbSamples):
         number of robot joints
     nbSamples: int
         number of samples
-    """
+    '''
     samples = []
     for i in range(nbSamples * NQ):
         samples.append(i)
 
     # print(np.array(err).shape)
-    plt.plot(samples, err, label="err")
-    plt.title("erreur quadratique")
+    plt.figure('Quadratic error')
+    plt.plot(samples, err, 'b', label='err')
+    plt.title('Quadratic error')
+    plt.xlabel('100 Samples | 0-100: q1 | 101-200: q2')
+    plt.ylabel('Quadratic error value')
     plt.legend()
-    plt.show()
+    # plt.show()
+
 
 # =====================
 # |       Main        |
 # =====================
 
+
 def main():
-    """
+    '''
     Main function
-    """
+    '''
 
     # ========== Step 1 - Load model, create robot model and create robot data
     robot = initialize()
@@ -435,24 +459,28 @@ def main():
     # ========== Step 8 - Calculate the modified phi
     baseParameters = np.dot(np.linalg.inv(R1), np.dot(Q1.T, tau))  # Base parameters
     baseRegressor = np.dot(Q1, R1)                                 # Base regressor
-
     inertialParameters = {names[i]: baseParameters[i] for i in range(len(baseParameters))}
-    print("Base parameters:\n", inertialParameters)
-    showParametersAndEquationsPlot(R, P, phi, names, threshold, beta)
+
+    print('Base parameters:\n', inertialParameters)
+    showParametersAndEquations(R, P, phi, names, threshold, beta)
 
     # ========== Step 9 - Calculate tau with phi_base and base regressor
-    tau_base = np.dot(baseRegressor, baseParameters)
-    showTorquePlot(tau, tau_base, NQ, nbSamples)
+    baseTau = np.dot(baseRegressor, baseParameters)
+    showTorquePlot(tau, baseTau, NQ, nbSamples)
 
     # ========== Step 10 - Calculate phi* least square min abs(tau - phi* * W_base)^2.
     #                      We apply classic least square method by nullifying error gradient with Error Hes > 0
-    estimatedParameters = calculateEstimatedParam()
-    print('shape of phi_etoile \t', estimatedParameters.shape)
-    showPhiPlots()
+    estimatedParameters = calculateEstimatedParam(baseRegressor, tau)
 
-    # ========== Step 11 - Calculate error between tau and tau_base based on the identification
-    err = calculateError()
-    showErrorPlot()
+    print('shape of phi*:\t', estimatedParameters.shape)
+    showPhiPlots(estimatedParameters, baseParameters)
+
+    # ========== Step 11 - Calculate error between tau and baseTau based on the identification
+    err = calculateError(tau, baseTau, NQ, nbSamples)
+
+    showErrorPlot(err, NQ, nbSamples)
+
+    plt.show()
 
 
 if __name__ == '__main__':
