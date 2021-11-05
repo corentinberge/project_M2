@@ -53,7 +53,7 @@ def getTraj(N,robot,IDX,loi='P',V=10):
     dt = 1e-2
     a0,a1,a2 = 0,1,2
     X = np.zeros((N,3))
-    traj_dq = np.zeros(N,2)
+    traj_dq = np.zeros((N,2))
     t = np.zeros(N)
     for i in range(N):
         if(loi == 'P'):
@@ -64,7 +64,7 @@ def getTraj(N,robot,IDX,loi='P',V=10):
         pin.updateFramePlacements(robot.model,robot.data) #update frame placement  
         X[i,:] =  adaptSituation(situationOT(robot.data.oMf[IDX]),q)
         traj_dq[i,:] = dq
-        t[i,:] = i*dt
+        t[i] = i*dt
     dotX = calculDotX(X,dt)
     dotX = np.append(dotX,[np.zeros(dotX.shape[1])],axis=0)
    # plt.plot(t,traj_dq,"label vrai valeur de dq")
@@ -180,18 +180,19 @@ def simuLoiCommande(robot):
     N = Xc.shape[0]
     traj_OT = np.zeros(Xc.shape)
     traj_dotOT = np.zeros(dotXc.shape)
+    deltaX = np.zeros(Xc.shape[1])
     t = np.zeros(N)
 
     for i in range(N):
         robot.forwardKinematics(q) #update joint 
         pin.updateFramePlacements(robot.model,robot.data) #update frame placement
         J = adaptJacob(pin.computeFrameJacobian(robot.model,robot.data,q,IDX,BASE)) #calcul de la jacobienne
-        X = adaptSituation(situationOT(robot.data.oMf[IDX]),q)
+        X = adaptSituation(situationOT(robot.data.oMf[IDX]),q) #deltaX
         dotX = np.dot(J,dq)
         #print(dotX)
         deltaX,deltaDotX = computeError(Xc[i,:],X,dotXc[i,:],dotX)
         q,dq = loiCommande2(deltaDotX,1,J,q)
-        traj_OT[i,:] = X
+        traj_OT[i,:] = X+deltaX
         traj_dotOT[i,:] = dotX
         t[i] = i*dt
         robot.display(q)
@@ -210,7 +211,14 @@ def simuLoiCommande(robot):
         plt.plot(t,Xc[:,0],label="position consigne selon axe x")
         plt.plot(t,Xc[:,1],label="position consigne selon axe y")
         plt.plot(t,Xc[:,2],label="orientation consigne")
-
+        plt.legend()
+        plt.figure()
+        plt.plot(t,dotXc[:,0],label="vitesse consigne axe x")
+        plt.plot(t,traj_dotOT[:,0],label="vitesse OT axe x")
+        plt.plot(t,dotXc[:,1],label="vitesse consigne axe y")
+        plt.plot(t,traj_dotOT[:,1],label="vitesse OT axe y")
+        plt.plot(t,dotXc[:,2],label="vitesse angulaire de la consigne")
+        plt.plot(t,traj_dotOT[:,2],label="vitesse angulaire OT")
         plt.legend()
         plt.show()
     
@@ -261,9 +269,35 @@ def moveRobot(q,deltaQ):
     q += deltaQ
     return q
 
-def rob(q,vq,dt,robot):
+def robotDynamic(robot,input,q,vq,aq,dt):
+    """ 
+    Dynamic of the robot calculator for postion/speed control 
+    ------------------------------
+    IN
+    
+    robot   : a RobotWrapper object needed to compute gravity torque and other parameters
+    input   : input signal of the function equals to B*deltaDotQ-K*deltaQ
+    q       : current joint angle values
+    vq      : current joint velocities 
+    aq      : current joint acceleration values 
+    dt      : time step between each execution of this function
+    ---------------------------------
+
+    tau =  input + G
+
+    """
+    G = pin.computeGeneralizedGravity(robot.model,robot.data,q)
+    M = pin.crba(robot.model,robot.data,q) # compute mass matrix
+    b = pin.rnea(robot.model,robot.data,q,vq,aq)  # compute dynamic drift -- Coriolis, centrifugal, gravity
+    tau = input + G
+    aq = np.dot(inv(M),(tau-b))
+    vq += aq*dt
     q = pin.integrate(robot.model,q,vq*dt)
-    return q
+
+    return q,vq,aq
+
+
+
 
 
 
