@@ -61,10 +61,11 @@ def getTraj(N,robot,IDX,loi='P',V=10):
         robot.forwardKinematics(q) #update joint 
         pin.updateFramePlacements(robot.model,robot.data) #update frame placement  
         X[i,:] =  adaptSituation(situationOT(robot.data.oMf[IDX]),q)
-        #robot.display(q)
-        time.sleep(dt)
-    #print(X.shape)
-    return X
+    dotX = calculDotX(X,dt)
+    dotX = np.append(dotX,[np.zeros(dotX.shape[1])],axis=0)
+    #print("shape dotX",dotX.shape)
+    #print("shape X",X.shape)
+    return X,dotX
         
 #Loi polynomial
 
@@ -158,26 +159,30 @@ def simulateurVerif(N,robot):
         plt.legend()
         plt.show()
 
-def computeError(Xconsigne,Xactuel):
-    """ Renvois l'erreur de la situation de l'organe terminal """
-    return Xconsigne-Xactuel
+def computeError(Xconsigne,Xactuel,dotXconsigne,dotXactuel):
+    """ Renvois l'erreur de la situation de l'organe terminal et l'erreur de ça vitesse"""
+    return (Xconsigne-Xactuel),(dotXconsigne-dotXactuel)
 
 def simuLoiCommande(robot):
     BASE = pin.ReferenceFrame.LOCAL_WORLD_ALIGNED
     IDX = robot.model.getFrameId("tcp")
     dt = 1e-2
-    Xc = getTraj(300,robot,IDX,loi='P',V=5)
+    Xc,dotXc = getTraj(300,robot,IDX,loi='R',V=5)
     q = robot.q0 
+    dq = 0 #accélération des joint à l'instant initial
     N = Xc.shape[0]
     traj_OT = np.zeros(Xc.shape)
     t = np.zeros(N)
+    deltaQ = 0
     for i in range(N):
         robot.forwardKinematics(q) #update joint 
         pin.updateFramePlacements(robot.model,robot.data) #update frame placement
         J = adaptJacob(pin.computeFrameJacobian(robot.model,robot.data,q,IDX,BASE)) #calcul de la jacobienne
-        X= adaptSituation(situationOT(robot.data.oMf[IDX]),q)
-        deltaX = computeError(Xc[i,:],X)
-        q = loiCommande(deltaX,1,J,q)
+        X = adaptSituation(situationOT(robot.data.oMf[IDX]),q)
+        dotX = J*dq
+        print(dotX)
+        deltaX,deltatDotX = computeError(Xc[i,:],X,dotXc[i,:],dotX)
+        q,dq = loiCommande2(deltaX,1,J,q)
         traj_OT[i,:] = X
         t[i] = i*dt
         robot.display(q)
@@ -212,12 +217,18 @@ def calculDotX(X,dt):
     
     return dotX 
 
-def loiCommande(deltaX,Kp,J,q):
+def loiCommande1(deltaX,Kp,J,q):
     """ calcul du la boucle ouverte """
     deltaQ = np.dot(pinv(J),Kp*deltaX)
-    #print(deltaQ)
     q = moveRobot(q,deltaQ)
     return q 
+
+def loiCommande2(deltaX,deltaDotX,Kp,K,J,q,dq):
+    delta = Kp*deltaX+K*deltaDotX
+    deltaQ = np.dot(pinv(J),delta)
+    q = moveRobot(q,deltaQ)
+    return q,deltaQ
+
 #Passage de X dans un proportionnel
 def prop(X,p):
 	for i in X:
