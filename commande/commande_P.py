@@ -49,8 +49,7 @@ def adaptJacob(J):
     nJ = np.array([J[0,:],J[2,:],J[4,:]])
     return nJ
 
-def getTraj(N,robot,IDX,loi='P',V=10):
-    dt = 1e-2
+def getTraj(N,robot,IDX,dt,loi='P',V=10):
     a0,a1,a2 = 0,1,2
     X = np.zeros((N,3))
     traj_dq = np.zeros((N,2))
@@ -70,7 +69,7 @@ def getTraj(N,robot,IDX,loi='P',V=10):
    # plt.plot(t,traj_dq,"label vrai valeur de dq")
     #print("shape dotX",dotX.shape)
     #print("shape X",X.shape)
-    return X,dotX
+    return N,X,dotX
         
 #Loi polynomial
 
@@ -174,10 +173,9 @@ def simuLoiCommande(robot):
     BASE = pin.ReferenceFrame.LOCAL_WORLD_ALIGNED
     IDX = robot.model.getFrameId("tcp")
     dt = 1e-2
-    Xc,dotXc = getTraj(300,robot,IDX,loi='R',V=5)
+    N,Xc,dotXc = getTraj(300,robot,IDX,dt,loi='R',V=5) # on récupére la consigne 
     q = robot.q0 
-    dq = np.zeros(q.shape) #accélération des joint à l'instant initial
-    N = Xc.shape[0]
+    dq = np.zeros(robot.nq) #accélération des joint à l'instant initial
     traj_OT = np.zeros(Xc.shape)
     traj_dotOT = np.zeros(dotXc.shape)
     deltaX = np.zeros(Xc.shape[1])
@@ -272,18 +270,22 @@ def moveRobot(q,deltaQ):
 def robotDynamic(robot,input,q,vq,aq,dt):
     """ 
     Dynamic of the robot calculator for postion/speed control 
+    tau =  input + G
     ------------------------------
     IN
     
     robot   : a RobotWrapper object needed to compute gravity torque and other parameters
     input   : input signal of the function equals to B*deltaDotQ-K*deltaQ
-    q       : current joint angle values
-    vq      : current joint velocities 
-    aq      : current joint acceleration values 
+    q       : current joints angles values
+    vq      : current joints velocities 
+    aq      : current joints acceleration values 
     dt      : time step between each execution of this function
     ---------------------------------
+    OUT
 
-    tau =  input + G
+    q : calculated joint angles values 
+    q : calculated joint velocities values 
+    aq : calculated joint acceleration values 
 
     """
     G = pin.computeGeneralizedGravity(robot.model,robot.data,q)
@@ -296,7 +298,44 @@ def robotDynamic(robot,input,q,vq,aq,dt):
 
     return q,vq,aq
 
+def simulator(robot):
+    """
+    
+    """
+    BASE = pin.ReferenceFrame.LOCAL_WORLD_ALIGNED
+    IDX = robot.model.getFrameId("tcp")
+    dt = 1e-2
+    N,Xc,dotXc = getTraj(300,robot,IDX,dt,loi='R',V=5)
+    q = robot.q0 
+    dq = np.zeros(robot.nv) #accélération des joint à l'instant initial
+    aq = np.zeros(robot.nv)
 
+    for i in range(N):
+        
+        robot.forwardKinematics(q) #update joint 
+        pin.updateFramePlacements(robot.model,robot.data) #update frame placement
+        J = pin.computeFrameJacobian(robot.model,robot.data,q,IDX,BASE)
+        X = situationOT(robot.data.oMf[IDX])
+
+        # adapaptation en prenant en compte le plan 
+        J = adaptJacob(J) # adadptedJ
+        X = adaptSituation(X,q) #adaptedX
+
+        dotX = np.dot(J,dq)
+        deltaX,deltaDotX = computeError(Xc[i,:],X,dotXc[i,:],dotX)
+        inRobot = controller(deltaX,deltaDotX)
+
+
+def controller(deltaX,deltaDotX,Kp = 1,Kd = 1):
+    """ 
+    Compute the signal of the output of the controller which can be interpreted as a PD controller
+    ------------------------------
+    IN 
+
+    deltaX      : error of the situations
+    deltaDotX 
+    """
+    return Kp*deltaX+Kd*deltaDotX
 
 
 
