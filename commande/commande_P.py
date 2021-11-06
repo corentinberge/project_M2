@@ -190,7 +190,7 @@ def simuLoiCommande(robot):
         #print(dotX)
         deltaX,deltaDotX = computeError(Xc[i,:],X,dotXc[i,:],dotX)
         q,dq = loiCommande2(deltaDotX,1,J,q)
-        traj_OT[i,:] = X+deltaX
+        traj_OT[i,:] = X
         traj_dotOT[i,:] = dotX
         t[i] = i*dt
         robot.display(q)
@@ -308,7 +308,7 @@ def simulator(robot):
     N,Xc,dotXc = getTraj(300,robot,IDX,dt,loi='R',V=5)
     q = robot.q0 
     dq = np.zeros(robot.nv) #accélération des joint à l'instant initial
-    aq = np.zeros(robot.nv)
+    ddq = np.zeros(robot.nv)
 
     for i in range(N):
         
@@ -323,7 +323,14 @@ def simulator(robot):
 
         dotX = np.dot(J,dq)
         deltaX,deltaDotX = computeError(Xc[i,:],X,dotXc[i,:],dotX)
-        inRobot = controller(deltaX,deltaDotX)
+        outController = controller(deltaX,deltaDotX)
+        inRobot = np.dot(pinv(J),outController)
+        q,dq,ddq = robotDynamic(robot,inRobot,q,dq,ddq,dt)
+
+        # Display of the robot
+        robot.display(q)
+        time.sleep(dt)
+
 
 
 def controller(deltaX,deltaDotX,Kp = 1,Kd = 1):
@@ -333,7 +340,7 @@ def controller(deltaX,deltaDotX,Kp = 1,Kd = 1):
     IN 
 
     deltaX      : error of the situations
-    deltaDotX 
+    deltaDotX   : error of the situations velocities
     """
     return Kp*deltaX+Kd*deltaDotX
 
@@ -355,4 +362,4 @@ if Main:
     robot.initViewer(loadModel=True)
     robot.display(robot.q0)
     #simulateurVerif(300,robot)
-    simuLoiCommande(robot)
+    simulator(robot)
