@@ -6,6 +6,7 @@ import numpy as np
 import math
 import matplotlib.pyplot as plt
 from numpy.linalg import norm, inv, pinv
+from scipy.linalg import pinv2
 import time
 import os
 
@@ -284,16 +285,17 @@ def robotDynamic(robot,input,q,vq,aq,dt):
     OUT
 
     q : calculated joint angles values 
-    q : calculated joint velocities values 
+    dq : calculated joint velocities values 
     aq : calculated joint acceleration values 
 
     """
-    G = pin.computeGeneralizedGravity(robot.model,robot.data,q)
+    G = pin.computeGeneralizedGravity(robot.model,robot.data,q) #gravity matrix
     M = pin.crba(robot.model,robot.data,q) # compute mass matrix
     b = pin.rnea(robot.model,robot.data,q,vq,aq)  # compute dynamic drift -- Coriolis, centrifugal, gravity
     tau = input + G
     aq = np.dot(inv(M),(tau-b))
-    vq += aq*dt
+    vq = pin.integrate(robot.model,vq,aq*dt)
+    #vq += aq*dt
     q = pin.integrate(robot.model,q,vq*dt)
 
     return q,vq,aq
@@ -304,13 +306,15 @@ def simulator(robot):
     """
     BASE = pin.ReferenceFrame.LOCAL_WORLD_ALIGNED
     IDX = robot.model.getFrameId("tcp")
-    dt = 1e-2
-    N,Xc,dotXc = getTraj(300,robot,IDX,dt,loi='R',V=5)
+    dt = 1e-3
+    N,Xc,dotXc = getTraj(3000,robot,IDX,dt,loi='R',V=5)
     q = robot.q0 
     dq = np.zeros(robot.nv) #accélération des joint à l'instant initial
     ddq = np.zeros(robot.nv)
-
-    for i in range(N):
+    traj_OT = np.zeros((N+10000,3))
+    traj_dotOT = np.zeros((N+10000,3))
+    t = np.zeros(N+10000)
+    for i in range(N+10000):
         
         robot.forwardKinematics(q) #update joint 
         pin.updateFramePlacements(robot.model,robot.data) #update frame placement
@@ -322,15 +326,43 @@ def simulator(robot):
         X = adaptSituation(X,q) #adaptedX
 
         dotX = np.dot(J,dq)
-        deltaX,deltaDotX = computeError(Xc[i,:],X,dotXc[i,:],dotX)
-        outController = controller(deltaX,deltaDotX)
-        inRobot = np.dot(pinv(J),outController)
+        deltaX,deltaDotX = computeError(Xc[4,:],X,dotXc[4,:],dotX)
+        outController = controller(deltaX,deltaDotX,Kp=10,Kd=0)
+        print(q)
+        print(dq)
+        print(ddq)
+        print("J \n",J )
+        Jplus = pinv2(J)
+        inRobot = np.dot(Jplus,outController)
         q,dq,ddq = robotDynamic(robot,inRobot,q,dq,ddq,dt)
-
+        
+        traj_OT[i,:] = X
+        traj_dotOT[i,:] = dotX
+        t[i] = i*dt
         # Display of the robot
         robot.display(q)
         time.sleep(dt)
-
+    
+    print("position x OT" + "\tposition consigne",X[0],Xc[4][0])#Xc[N-1[0],:])
+    print("position x OT" + "\tposition consigne",X[1],Xc[4][1])#Xc[N-1,:][1])
+    print("orientation OT" + "\torientation consigne",X[2],Xc[4][2])#Xc[N-1,:][2])
+    if PLOT: 
+        plt.plot(t,traj_OT[:,0],label="position OT selon axe x")
+        plt.plot(t,traj_OT[:,1],label="position OT selon axe y")
+        plt.plot(t,traj_OT[:,2],label="orientation OT")
+        #plt.plot(t,Xc[:,0],label="position consigne selon axe x")
+        #plt.plot(t,Xc[:,1],label="position consigne selon axe y")
+        #plt.plot(t,Xc[:,2],label="orientation consigne")
+        plt.legend()
+        plt.figure()
+        #plt.plot(t,dotXc[:,0],label="vitesse consigne axe x")
+        plt.plot(t,traj_dotOT[:,0],label="vitesse OT axe x")
+        #plt.plot(t,dotXc[:,1],label="vitesse consigne axe y")
+        plt.plot(t,traj_dotOT[:,1],label="vitesse OT axe y")
+        #plt.plot(t,dotXc[:,2],label="vitesse angulaire de la consigne")
+        plt.plot(t,traj_dotOT[:,2],label="vitesse angulaire OT")
+        plt.legend()
+        plt.show()
 
 
 def controller(deltaX,deltaDotX,Kp = 1,Kd = 1):
