@@ -1,3 +1,4 @@
+from numpy.linalg.linalg import transpose
 import pinocchio as pin
 from pinocchio.utils import *
 from pinocchio.visualize import GepettoVisualizer
@@ -51,10 +52,25 @@ def adaptJacob(J):
     return nJ
 
 def getTraj(N,robot,IDX,dt,loi='P',V=10):
+    """
+        getTraj return a trajectory, choose a trajectory by changing loi
+        by default return a polynomial law, with "P" , with other walue than "P" return a fourier law
+
+        OUT 
+
+        X       : OT position shape (N,3)
+        dotX    : the dérivation of X (N,3)!! Warning, orientation can't be derivate
+        q traj  : trajectory of joint angle
+        dq traj  : trajectory of joint angle velocities
+        t        : time vector of the law
+
+    """
     a0,a1,a2 = 0,1,2
     X = np.zeros((N,3))
-    traj_dq = np.zeros((N,2))
+    traj_q = np.zeros((N,robot.nq))
+    traj_dq = np.zeros(traj_q.shape) 
     t = np.zeros(N)
+    dotX = np.zeros(X.shape)
     for i in range(N):
         if(loi == 'P'):
             q,dq = loiPoly(robot,i*dt,Vmax=V)
@@ -62,15 +78,17 @@ def getTraj(N,robot,IDX,dt,loi='P',V=10):
             q,dq = loiPendule(i*dt)
         robot.forwardKinematics(q) #update joint 
         pin.updateFramePlacements(robot.model,robot.data) #update frame placement  
+        J = adaptJacob(pin.computeFrameJacobian(robot.model,robot.data,q,IDX,pin.ReferenceFrame.LOCAL_WORLD_ALIGNED))
         X[i,:] =  adaptSituation(situationOT(robot.data.oMf[IDX]),q)
         traj_dq[i,:] = dq
+        traj_q[i,:] = q
         t[i] = i*dt
-    dotX = calculDotX(X,dt)
-    dotX = np.append(dotX,[np.zeros(dotX.shape[1])],axis=0)
+        dotX[i,:] = np.dot(J,dq)
+    print("shape dotX : \t",dotX.shape)
    # plt.plot(t,traj_dq,"label vrai valeur de dq")
     #print("shape dotX",dotX.shape)
     #print("shape X",X.shape)
-    return N,X,dotX
+    return X,dotX,traj_q,traj_dq,t
         
 #Loi polynomial
 
@@ -174,7 +192,8 @@ def simuLoiCommande(robot):
     BASE = pin.ReferenceFrame.LOCAL_WORLD_ALIGNED
     IDX = robot.model.getFrameId("tcp")
     dt = 1e-2
-    N,Xc,dotXc = getTraj(300,robot,IDX,dt,loi='R',V=5) # on récupére la consigne 
+    N = 300
+    Xc,dotXc = getTraj(N,robot,IDX,dt,loi='R',V=5) # on récupére la consigne 
     q = robot.q0 
     dq = np.zeros(robot.nq) #accélération des joint à l'instant initial
     traj_OT = np.zeros(Xc.shape)
@@ -288,68 +307,100 @@ def robotDynamic(robot,input,q,vq,aq,dt):
     dq : calculated joint velocities values 
     aq : calculated joint acceleration values 
 
+
+
+    system : 
+            Xp = Ax + Bu
+            Y = x
+            with u = tau, x = [q,vq], Xp = [vq,aq]
     """
-    G = pin.computeGeneralizedGravity(robot.model,robot.data,q) #gravity matrix
-    M = pin.crba(robot.model,robot.data,q) # compute mass matrix
-    b = pin.rnea(robot.model,robot.data,q,vq,aq)  # compute dynamic drift -- Coriolis, centrifugal, gravity
-    tau = input + G
-    aq = np.dot(inv(M),(tau-b))
-    vq = pin.integrate(robot.model,vq,aq*dt)
-    #vq += aq*dt
+    G = pin.rnea(robot.model, robot.data, q, np.zeros(robot.nv), np.zeros(robot.nv)) #grabity matrix
+    A = pin.crba(robot.model,robot.data,q) # compute mass matrix
+    H = pin.rnea(robot.model,robot.data,q,vq,aq)  # compute dynamic drift -- Coriolis, centrifugal, gravity
+    tau = input+G
+    X = np.array([q,vq])
+    Xp = np.array([vq,np.dot(pinv(A),(tau-H))])
+    X += Xp*dt
+
+    return X[0],X[1],Xp[0]
+"""
+    tau = input
+    print(tau)
+    #tau = np.dot(M,aq)+b
+    #tau_th = pin.rnea(robot.model,robot.data,q,vq,aq)
+    dotX = np.array([dq,(ta)])
+    aq = np.dot(pinv(M),(tau-b))
+    #vq = pin.integrate(robot.model,vq,aq*dt)
+    vq += aq*dt
     q = pin.integrate(robot.model,q,vq*dt)
+    
+    #print("tau   \t",tau)
+    #print("tau_verif \t",tau_th)
+"""
 
-    return q,vq,aq
-
-def simulator(robot):
+def simulator(robot,espace="Joint"):
     """
     
     """
+    N = 2000
     BASE = pin.ReferenceFrame.LOCAL_WORLD_ALIGNED
     IDX = robot.model.getFrameId("tcp")
-    dt = 1e-3
-    N,Xc,dotXc = getTraj(3000,robot,IDX,dt,loi='R',V=5)
+    dt = 1e-2
+    Xc,dotXc,qc,dqc,t = getTraj(N,robot,IDX,dt,loi='R',V=5)
     q = robot.q0 
     dq = np.zeros(robot.nv) #accélération des joint à l'instant initial
     ddq = np.zeros(robot.nv)
-    traj_OT = np.zeros((N+10000,3))
-    traj_dotOT = np.zeros((N+10000,3))
-    t = np.zeros(N+10000)
-    for i in range(N+10000):
+    traj_OT = np.zeros(Xc.shape)
+    traj_dotOT = np.zeros(dotXc.shape)
+    I = 0
+    for i in range(N):
         
         robot.forwardKinematics(q) #update joint 
         pin.updateFramePlacements(robot.model,robot.data) #update frame placement
         J = pin.computeFrameJacobian(robot.model,robot.data,q,IDX,BASE)
         X = situationOT(robot.data.oMf[IDX])
-
-        # adapaptation en prenant en compte le plan 
         J = adaptJacob(J) # adadptedJ
         X = adaptSituation(X,q) #adaptedX
-
         dotX = np.dot(J,dq)
-        deltaX,deltaDotX = computeError(Xc[4,:],X,dotXc[4,:],dotX)
-        outController = controller(deltaX,deltaDotX,Kp=10,Kd=0)
-        print(q)
-        print(dq)
-        print(ddq)
-        print("J \n",J )
-        Jplus = pinv2(J)
-        inRobot = np.dot(Jplus,outController)
-        q,dq,ddq = robotDynamic(robot,inRobot,q,dq,ddq,dt)
+
+        # adapaptation en prenant en compte le plan 
+        if espace == "OT":
+            deltaX,deltaDotX = computeError(Xc[4,:],X,np.zeros(dotXc[4,:].shape),dotX) #dotXc[4,:] 
+            print("erreur X \t" ,deltaDotX)
+            print("Xc \t",Xc[4,:])
+            print("X \t",X)
+            outController,I = controller(deltaX,deltaDotX,I,dt,Kp=1,Kd=0,Ki=1)
+            Jplus = pinv(J)
+            Jt = transpose(J)
+            inRobot = np.dot(Jplus,outController)
+        elif espace == "Joint":
+            #deltaQ,deltaDotQ = computeError(qc[100,:],q,np.zeros(dqc[100,:].shape),dq)
+            outController,I = controller((qc[100,:]-q),-dq,I,dt,Kp=1,Kd=1,Ki=0.001)
+            inRobot = outController
+            print("deltaQ = \t",qc[100,:]-q)
+
+
         
+        
+        #print(q)
+        #print(dq)
+        print("Joint acceleration =\t",ddq)
+        #print("J \n",J )
+
+        q,dq,ddq = robotDynamic(robot,inRobot,q,dq,ddq,dt)
         traj_OT[i,:] = X
         traj_dotOT[i,:] = dotX
-        t[i] = i*dt
         # Display of the robot
         robot.display(q)
-        time.sleep(dt)
+        #time.sleep(1e-3)
     
-    print("position x OT" + "\tposition consigne",X[0],Xc[4][0])#Xc[N-1[0],:])
-    print("position x OT" + "\tposition consigne",X[1],Xc[4][1])#Xc[N-1,:][1])
-    print("orientation OT" + "\torientation consigne",X[2],Xc[4][2])#Xc[N-1,:][2])
+    print("position x OT" + "\tposition consigne",X[0],Xc[10][0])#Xc[N-1[0],:])
+    print("position y OT" + "\tposition consigne",X[1],Xc[10][1])#Xc[N-1,:][1])
+    print("orientation OT" + "\torientation consigne",X[2],Xc[10][2])#Xc[N-1,:][2])
     if PLOT: 
         plt.plot(t,traj_OT[:,0],label="position OT selon axe x")
-        plt.plot(t,traj_OT[:,1],label="position OT selon axe y")
-        plt.plot(t,traj_OT[:,2],label="orientation OT")
+        plt.plot(t,traj_OT[:,1],label="position OT selon axe y")    
+        #plt.plot(t,traj_OT[:,2],label="orientation OT")
         #plt.plot(t,Xc[:,0],label="position consigne selon axe x")
         #plt.plot(t,Xc[:,1],label="position consigne selon axe y")
         #plt.plot(t,Xc[:,2],label="orientation consigne")
@@ -360,21 +411,23 @@ def simulator(robot):
         #plt.plot(t,dotXc[:,1],label="vitesse consigne axe y")
         plt.plot(t,traj_dotOT[:,1],label="vitesse OT axe y")
         #plt.plot(t,dotXc[:,2],label="vitesse angulaire de la consigne")
-        plt.plot(t,traj_dotOT[:,2],label="vitesse angulaire OT")
+        #plt.plot(t,traj_dotOT[:,2],label="vitesse angulaire OT")
         plt.legend()
         plt.show()
 
 
-def controller(deltaX,deltaDotX,Kp = 1,Kd = 1):
+def controller(delta,deltaDot,I,dt,Kp = 1,Kd = 1,Ki = 1):
     """ 
     Compute the signal of the output of the controller which can be interpreted as a PD controller
     ------------------------------
     IN 
 
-    deltaX      : error of the situations
-    deltaDotX   : error of the situations velocities
+    deltaX      : error 
+    deltaDotX   : error velocity
     """
-    return Kp*deltaX+Kd*deltaDotX
+    print("KP \t",Kp)
+    I += delta*dt
+    return (Kp*delta+Kd*deltaDot + Ki*I),I
 
 
 
