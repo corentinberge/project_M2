@@ -94,7 +94,7 @@ def getTraj(N,robot,IDX,dt,loi='P',V=10):
 
 def loiPoly(robot,t,Vmax=10):
     """ Création de la loi polynomial, à modifier il manque la vrai valeur des coeff"""
-    qf = np.array([-2*math.pi/3, +6*math.pi/4])
+    qf = np.array([math.pi/3, +6*math.pi/4])
     a0, a1, a2, a3, tf = calcCoeff(Vmax, robot,qf) # a modifier pour le calculer seulement a la premiere itération
     #print("t \t",t)
     if(t == 0):
@@ -369,15 +369,16 @@ def simulator(robot,espace="Joint"):
             print("erreur X \t" ,deltaDotX)
             print("Xc \t",Xc[4,:])
             print("X \t",X)
-            outController,I = controller(deltaX,deltaDotX,I,dt,Kp=1,Kd=0,Ki=1)
+            outController,I = controller(deltaX,deltaDotX,I,dt,Kp,Kd,Ki)
             Jplus = pinv(J)
             Jt = transpose(J)
             inRobot = np.dot(Jplus,outController)
         elif espace == "Joint":
             #deltaQ,deltaDotQ = computeError(qc[100,:],q,np.zeros(dqc[100,:].shape),dq)
-            outController,I = controller((qc[100,:]-q),-dq,I,dt,Kp=1,Kd=1,Ki=0.001)
+            Kp,Kd,Ki = calcGain(robot,1)
+            outController,I = controller((qc[i,:]-q),(dqc[i,:]-dq),I,dt,Kp=30,Kd=5,Ki=5)
             inRobot = outController
-            print("deltaQ = \t",qc[100,:]-q)
+            #print("deltaQ = \t",qc[100,:]-q)
 
 
         
@@ -392,7 +393,7 @@ def simulator(robot,espace="Joint"):
         traj_dotOT[i,:] = dotX
         # Display of the robot
         robot.display(q)
-        #time.sleep(1e-3)
+        #time.sleep(dt)
     
     print("position x OT" + "\tposition consigne",X[0],Xc[10][0])#Xc[N-1[0],:])
     print("position y OT" + "\tposition consigne",X[1],Xc[10][1])#Xc[N-1,:][1])
@@ -401,8 +402,8 @@ def simulator(robot,espace="Joint"):
         plt.plot(t,traj_OT[:,0],label="position OT selon axe x")
         plt.plot(t,traj_OT[:,1],label="position OT selon axe y")    
         #plt.plot(t,traj_OT[:,2],label="orientation OT")
-        #plt.plot(t,Xc[:,0],label="position consigne selon axe x")
-        #plt.plot(t,Xc[:,1],label="position consigne selon axe y")
+        plt.plot(t,Xc[:,0],label="position consigne selon axe x")
+        plt.plot(t,Xc[:,1],label="position consigne selon axe y")
         #plt.plot(t,Xc[:,2],label="orientation consigne")
         plt.legend()
         plt.figure()
@@ -427,10 +428,28 @@ def controller(delta,deltaDot,I,dt,Kp = 1,Kd = 1,Ki = 1):
     """
     print("KP \t",Kp)
     I += delta*dt
-    return (Kp*delta+Kd*deltaDot + Ki*I),I
+    return (np.dot(Kp,delta)+np.dot(Kd,deltaDot) + np.dot(Ki,I)),I
 
+def calcGain(robot,w):
+    A = robot.data.M
+    f = robot.model.friction
+    Kp = []
+    Kd = []
+    KI = []
+    print("\n\n\n Friction \n\n\n",f)
+    for i in range(robot.model.nq):
+        Kp.append(3*A[i,i]*w**2)
+        Kd.append(3*A[i,i]*w - f[i])
+        KI.append(A[i,i]*w**3)
 
-
+    Kp = np.diag(Kp)
+    Kd = np.diag(Kd)
+    KI = np.diag(KI)
+    print("gain Intégral \t",KI)
+    print("gain dériver \t",Kd)
+    print("gain prop \t",Kp)
+    return Kp,Kd,KI
+    
 
 
 
