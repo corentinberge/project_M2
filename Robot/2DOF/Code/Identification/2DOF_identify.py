@@ -1,4 +1,5 @@
 from numpy import linalg
+from qpsolvers import solve_qp
 from numpy.core.fromnumeric import shape
 from numpy.lib.nanfunctions import _nanmedian_small
 from pinocchio.visualize import GepettoVisualizer
@@ -390,7 +391,6 @@ def showParametersAndEquations(R, P, phi, names, threshold, beta):
     params_basename = []
 
     for i in range(tmp+1):
-        print(beta[i])
         if beta[i] == 0:
             params_base.append(params_idp_val[i])
             params_basename.append(params_idp_name[i])
@@ -488,7 +488,7 @@ def main():
     # gv = robot.viewer.gui # uncomment to run this in gepetto-gui
 
     # ========== Step 2 - Generate inertial parameters for all links (excepted the base link)
-    names, phi = generateParameters(model, NJOINT)
+    names_, phi_ = generateParameters(model, NJOINT)
 
     # ========== Step 3 - Generate input and output - 100 samples
     # nbSamples = 100  # number of samples
@@ -498,12 +498,12 @@ def main():
     inputs, tau, nbSamples = getInputsAndTorque('data_2dof.txt')
 
     # ========== Step 4 - Create IDM with pinocchio
-    regressor = generateRegressor(model, data, inputs, nbSamples)
+    regressor_ = generateRegressor(model, data, inputs, nbSamples)
 
     # ========== Step 5 - Remove non dynamic effect columns then remove zero value columns then remove the parameters
     #                     related to zero value columns at the end we will have a matix W_modified et Phi_modified
     threshold = 0.000001
-    regressor, phi, names = removeZeroParameters(regressor, phi, names, threshold)
+    regressor, phi, names = removeZeroParameters(regressor_, phi_, names_, threshold)
 
     # ========== Step 6 - QR decomposition + pivoting
     (Q, R, P) = sp.qr(regressor, pivoting=True)
@@ -517,7 +517,7 @@ def main():
     baseRegressor = np.dot(Q1, R1)                                 # Base regressor
     inertialParameters = {names[i]: baseParameters[i] for i in range(len(baseParameters))}
 
-    print('Base parameters:\n', inertialParameters)
+    print('Base parameters:\t', inertialParameters)
     # showParametersAndEquations(R, P, phi, names, threshold, beta)
 
     # ========== Step 9 - Calculate tau with phi_base and base regressor
@@ -528,7 +528,7 @@ def main():
     #                      We apply classic least square method by nullifying error gradient with Error Hes > 0
     estimatedParameters = calculateEstimatedParam(baseRegressor, tau)
 
-    print('Shape of phi*:\t', estimatedParameters.shape)
+    print('Shape of phi*:\t\t', estimatedParameters.shape)
     showPhiPlots(estimatedParameters, baseParameters)
 
     # ========== Step 11 - Calculate error between tau and baseTau based on the identification
@@ -538,9 +538,16 @@ def main():
 
     # ========== Step 12 - Calculate real parameters with constraints using QP-Solver
     # Without constraints
+    P = np.dot(regressor_, regressor_.T)
+    q = -2 * np.dot(regressor_.T, tau)
+    x = solve_qp(P, q)
+
+    print(np.linalg.eigvals(P))
+
+    print('x:\t\t\t', x)
     # with constraints
 
-    plt.show()
+    # plt.show()
 
 
 if __name__ == '__main__':
