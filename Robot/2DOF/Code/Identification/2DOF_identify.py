@@ -100,6 +100,56 @@ def generateRandomInputsAndTorque(model, data, NQ, nbSamples):
     return (q, dq, ddq), np.array(tau)
 
 
+def getInputsAndTorque(filename):
+    '''
+    Gent positions, speeds, acelerations and torques for each joint from a file
+
+    Parameters
+    ----------
+    model: RobotWrapper.model
+        robot model
+    data: RobotWrapper.data
+        robot data
+    NQ: int
+        number of robot joints
+    nbSamples: int
+        number of samples to generate
+
+    Returns
+    -------
+    (imputs, tau): tuple
+        imputs: tuple of arrays
+            (position, speed, acceleration)
+        tau: float array
+            torque array (nbSamples*NQ)  
+        i: int
+            number of samples
+    '''
+
+    q = []
+    dq = []
+    ddq = []
+    tau = []
+
+    i = 0
+
+    f = open(os.path.dirname(os.path.abspath(__file__)) + '/' + filename, 'r')
+    for l in f.readlines()[1:]:
+        line = np.array(l.split(), dtype='double')
+        q.append(line[:2])
+        dq.append(line[2:4])
+        ddq.append(line[4:6])
+        tau.extend(line[6:])
+        i+=1
+
+    q = np.transpose(q)
+    dq = np.transpose(dq)
+    ddq = np.transpose(ddq)
+    # tau = np.transpose(tau)
+
+    return (q, dq, ddq), np.array(tau), i
+
+
 def generateRegressor(model, data, inputs, nbSamples):
     '''
     Generate regressor based on inputs and the number of samples
@@ -200,6 +250,8 @@ def calculateBaseParam(Q, R, P, names, threshold):
     for i in range(len(R[0])):
         if R[i, i] > threshold:
             tmp = i
+    
+    print(tmp)
 
     R1 = R[:tmp+1, :tmp+1]
     R2 = R[:tmp+1, tmp+1:]
@@ -338,6 +390,7 @@ def showParametersAndEquations(R, P, phi, names, threshold, beta):
     params_basename = []
 
     for i in range(tmp+1):
+        print(beta[i])
         if beta[i] == 0:
             params_base.append(params_idp_val[i])
             params_basename.append(params_idp_name[i])
@@ -438,8 +491,11 @@ def main():
     names, phi = generateParameters(model, NJOINT)
 
     # ========== Step 3 - Generate input and output - 100 samples
-    nbSamples = 100  # number of samples
-    inputs, tau = generateRandomInputsAndTorque(model, data, NQ, nbSamples)
+    # nbSamples = 100  # number of samples
+    # inputs, tau = generateRandomInputsAndTorque(model, data, NQ, nbSamples)
+
+    # ===== Alternatively - Get inputs and outputs from specified file
+    inputs, tau, nbSamples = getInputsAndTorque('data_2dof.txt')
 
     # ========== Step 4 - Create IDM with pinocchio
     regressor = generateRegressor(model, data, inputs, nbSamples)
@@ -462,7 +518,7 @@ def main():
     inertialParameters = {names[i]: baseParameters[i] for i in range(len(baseParameters))}
 
     print('Base parameters:\n', inertialParameters)
-    showParametersAndEquations(R, P, phi, names, threshold, beta)
+    # showParametersAndEquations(R, P, phi, names, threshold, beta)
 
     # ========== Step 9 - Calculate tau with phi_base and base regressor
     baseTau = np.dot(baseRegressor, baseParameters)
@@ -472,13 +528,17 @@ def main():
     #                      We apply classic least square method by nullifying error gradient with Error Hes > 0
     estimatedParameters = calculateEstimatedParam(baseRegressor, tau)
 
-    print('shape of phi*:\t', estimatedParameters.shape)
+    print('Shape of phi*:\t', estimatedParameters.shape)
     showPhiPlots(estimatedParameters, baseParameters)
 
     # ========== Step 11 - Calculate error between tau and baseTau based on the identification
     err = calculateError(tau, baseTau, NQ, nbSamples)
 
     showErrorPlot(err, NQ, nbSamples)
+
+    # ========== Step 12 - Calculate real parameters with constraints using QP-Solver
+    # Without constraints
+    # with constraints
 
     plt.show()
 
