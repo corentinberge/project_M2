@@ -19,8 +19,8 @@ def initialize():
     robot: RoborWrapper
         Robot generated with urdf file
     '''
-    package_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    urdf_path = package_path + '/robots/urdf/planar_2DOF.urdf'
+    package_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) + '/Modeles/'
+    urdf_path = package_path + 'planar_2DOF/URDF/planar_2DOF.urdf'
 
     robot = RobotWrapper()
     robot.initFromURDF(urdf_path, package_path, verbose=True)
@@ -432,7 +432,7 @@ def main():
     NQ = robot.nq                 # joints angle
     NV = robot.nv                 # joints velocity
     NJOINT = robot.model.njoints  # number of links
-    # gv = robot.viewer.gui # uncomment tu run this in gepetto-gui
+    # gv = robot.viewer.gui # uncomment to run this in gepetto-gui
 
     # ========== Step 2 - Generate inertial parameters for all links (excepted the base link)
     names, phi = generateParameters(model, NJOINT)
