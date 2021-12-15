@@ -142,7 +142,7 @@ def simulateurVerif(N,robot):
     BASE = pin.ReferenceFrame.LOCAL_WORLD_ALIGNED
     IDX = robot.model.getFrameId("tcp")
     dt = 1e-2
-    X = np.zeros((N,2))
+    X = np.zeros((N,3))
     t = np.zeros(N)
     dotXJac = np.zeros(X.shape)
     for i in range(N):
@@ -156,7 +156,7 @@ def simulateurVerif(N,robot):
             print("J \t",J)
         J = adaptJacob(pin.computeFrameJacobian(robot.model,robot.data,q,IDX,BASE)) #essais de world, local comme frame de ref 
         #J = adaptJacob(robot.computeFrameJacobian(q,IDX))
-        X[i,:] =    adaptSituation(situationOT(robot.data.oMf[IDX]))
+        X[i,:] =    adaptSituation(situationOT(robot.data.oMf[IDX]),q)
         dotXJac[i,:] = np.dot(J,dq)
         t[i] = i*dt
         robot.display(q)
@@ -172,6 +172,7 @@ def simulateurVerif(N,robot):
         plt.ylabel("m ou m/s")
         plt.xlabel("seconde")
         plt.legend()
+        plt.savefig("jacobian_checkx")
         plt.figure()
         plt.plot(t,X[:,1],label="position selon axe z en m")
         plt.plot(t,dotXJac[:,1],label="avec Jacobienne en m/s")
@@ -180,7 +181,7 @@ def simulateurVerif(N,robot):
         plt.ylabel("m ou m/s")
         plt.xlabel("seconde")
         plt.legend()
-        plt.show()
+        plt.savefig("jacobian_check")
 
 def computeError(Xconsigne,Xactuel,dotXconsigne,dotXactuel):
     """ Renvois l'erreur de la situation de l'organe terminal et l'erreur de ça vitesse"""
@@ -193,7 +194,7 @@ def simuLoiCommande(robot):
     IDX = robot.model.getFrameId("tcp")
     dt = 1e-2
     N = 300
-    Xc,dotXc = getTraj(N,robot,IDX,dt,loi='R',V=5) # on récupére la consigne 
+    Xc,dotXc,qc,dqc,t  = getTraj(N,robot,IDX,dt,loi='R',V=5) # on récupére la consigne 
     q = robot.q0 
     dq = np.zeros(robot.nq) #accélération des joint à l'instant initial
     traj_OT = np.zeros(Xc.shape)
@@ -209,7 +210,8 @@ def simuLoiCommande(robot):
         dotX = np.dot(J,dq)
         #print(dotX)
         deltaX,deltaDotX = computeError(Xc[i,:],X,dotXc[i,:],dotX)
-        q,dq = loiCommande2(deltaDotX,1,J,q)
+        q = loiCommande1(deltaX,1,J,q)
+        #print("q\t",q)
         traj_OT[i,:] = X
         traj_dotOT[i,:] = dotX
         t[i] = i*dt
@@ -224,21 +226,23 @@ def simuLoiCommande(robot):
     print("orientation OT" + "\torientation consigne",X[2],Xc[N-1,:][2])
     if PLOT: 
         plt.plot(t,traj_OT[:,0],label="position OT selon axe x")
-        plt.plot(t,traj_OT[:,1],label="position OT selon axe y")
-        plt.plot(t,traj_OT[:,2],label="orientation OT")
+        plt.plot(t,traj_OT[:,1],label="position OT selon axe z")
+        #plt.plot(t,traj_OT[:,2],label="orientation OT")
         plt.plot(t,Xc[:,0],label="position consigne selon axe x")
-        plt.plot(t,Xc[:,1],label="position consigne selon axe y")
-        plt.plot(t,Xc[:,2],label="orientation consigne")
+        plt.plot(t,Xc[:,1],label="position consigne selon axe z")
+        #plt.plot(t,Xc[:,2],label="orientation consigne")
         plt.legend()
+        plt.savefig("asservissementPposition")
         plt.figure()
         plt.plot(t,dotXc[:,0],label="vitesse consigne axe x")
         plt.plot(t,traj_dotOT[:,0],label="vitesse OT axe x")
         plt.plot(t,dotXc[:,1],label="vitesse consigne axe y")
         plt.plot(t,traj_dotOT[:,1],label="vitesse OT axe y")
-        plt.plot(t,dotXc[:,2],label="vitesse angulaire de la consigne")
-        plt.plot(t,traj_dotOT[:,2],label="vitesse angulaire OT")
+        #plt.plot(t,dotXc[:,2],label="vitesse angulaire de la consigne")
+        #plt.plot(t,traj_dotOT[:,2],label="vitesse angulaire OT")
         plt.legend()
-        plt.show()
+        plt.savefig("asservissementPVit")
+        #plt.show()
     
 #Jacobienne
 
@@ -256,8 +260,10 @@ def calculDotX(X,dt):
 
 def loiCommande1(deltaX,Kp,J,q):
     """ calcul du la boucle ouverte """
+    print("q\t",q)
     deltaQ = np.dot(pinv(J),Kp*deltaX)
     q = moveRobot(q,deltaQ)
+    #print("q\t",q)
     return q 
 
 def loiCommande2(deltaDotX,K,J,q):
@@ -270,17 +276,6 @@ def loiCommande2(deltaDotX,K,J,q):
     q = moveRobot(q,deltaQ)
     #q = rob(q,deltaQ,1e-2,robot)
     return q,deltaQ
-
-#Passage de X dans un proportionnel
-def prop(X,p):
-	for i in X:
-		i = i*p
-
-def jacob(X):
-    j = pin.jacobianSubtreeCenterOfMass(model,data,2)
-    for i in range(3) :
-        if(j[i][0] != 0.):
-            X[i] *= j[i]
 
 def moveRobot(q,deltaQ):
     """ fonction qui donne le mouvement du robot"""
@@ -314,7 +309,7 @@ def robotDynamic(robot,input,q,vq,aq,dt):
             Y = x
             with u = tau, x = [q,vq], Xp = [vq,aq]
     """
-    G = pin.rnea(robot.model, robot.data, q, np.zeros(robot.nv), np.zeros(robot.nv)) #grabity matrix
+    G = pin.rnea(robot.model, robot.data, q, np.zeros(robot.nv), np.zeros(robot.nv)) #gravity matrix
     A = pin.crba(robot.model,robot.data,q) # compute mass matrix
     H = pin.rnea(robot.model,robot.data,q,vq,aq)  # compute dynamic drift -- Coriolis, centrifugal, gravity
     tau = input+G
@@ -323,31 +318,17 @@ def robotDynamic(robot,input,q,vq,aq,dt):
     X += Xp*dt
 
     return X[0],X[1],Xp[0]
-"""
-    tau = input
-    print(tau)
-    #tau = np.dot(M,aq)+b
-    #tau_th = pin.rnea(robot.model,robot.data,q,vq,aq)
-    dotX = np.array([dq,(ta)])
-    aq = np.dot(pinv(M),(tau-b))
-    #vq = pin.integrate(robot.model,vq,aq*dt)
-    vq += aq*dt
-    q = pin.integrate(robot.model,q,vq*dt)
-    
-    #print("tau   \t",tau)
-    #print("tau_verif \t",tau_th)
-"""
 
-def simulator(robot,espace="Joint"):
+def simulator(robot,espace="OT"):
     """
     
     """
-    N = 2000
+    N = 500
     BASE = pin.ReferenceFrame.LOCAL_WORLD_ALIGNED
     IDX = robot.model.getFrameId("tcp")
     dt = 1e-2
     Xc,dotXc,qc,dqc,t = getTraj(N,robot,IDX,dt,loi='R',V=5)
-    q = robot.q0 
+    q = robot.q0    
     dq = np.zeros(robot.nv) #accélération des joint à l'instant initial
     ddq = np.zeros(robot.nv)
     traj_OT = np.zeros(Xc.shape)
@@ -362,30 +343,28 @@ def simulator(robot,espace="Joint"):
         J = adaptJacob(J) # adadptedJ
         X = adaptSituation(X,q) #adaptedX
         dotX = np.dot(J,dq)
-
+        print("derivative Jacobian \n",robot.data.dJ)
+        print("\n\n\n")
         # adapaptation en prenant en compte le plan 
         if espace == "OT":
-            deltaX,deltaDotX = computeError(Xc[4,:],X,np.zeros(dotXc[4,:].shape),dotX) #dotXc[4,:] 
-            print("erreur X \t" ,deltaDotX)
-            print("Xc \t",Xc[4,:])
-            print("X \t",X)
-            outController,I = controller(deltaX,deltaDotX,I,dt,Kp,Kd,Ki)
+            deltaX,deltaDotX = computeError(Xc[i,:],X,dotXc[i,:],dotX) #dotXc[4,:] 
+            #Kp,Kd,Ki = calcGain(robot,3.3)
+
+            outController,I = controller(deltaX,deltaDotX,I,dt,Kp=62.5,Kd=20,Ki=0.2)
             Jplus = pinv(J)
             Jt = transpose(J)
-            inRobot = np.dot(Jplus,outController)
+            inRobot = np.dot(Jt,outController)
         elif espace == "Joint":
-            #deltaQ,deltaDotQ = computeError(qc[100,:],q,np.zeros(dqc[100,:].shape),dq)
-            Kp,Kd,Ki = calcGain(robot,1)
-            outController,I = controller((qc[i,:]-q),(dqc[i,:]-dq),I,dt,Kp=30,Kd=5,Ki=5)
+            deltaQ,deltaDotQ = computeError(qc[N-1,:],q,0,dq)
+            Kp,Kd,Ki = calcGain(robot,4)
+            outController,I = controller(deltaQ,deltaDotQ,I,dt,Kp,Kd,Ki)
             inRobot = outController
-            #print("deltaQ = \t",qc[100,:]-q)
-
 
         
         
         #print(q)
         #print(dq)
-        print("Joint acceleration =\t",ddq)
+        #print("Joint acceleration =\t",ddq)
         #print("J \n",J )
 
         q,dq,ddq = robotDynamic(robot,inRobot,q,dq,ddq,dt)
@@ -393,11 +372,11 @@ def simulator(robot,espace="Joint"):
         traj_dotOT[i,:] = dotX
         # Display of the robot
         robot.display(q)
-        #time.sleep(dt)
+        time.sleep(dt)
     
-    print("position x OT" + "\tposition consigne",X[0],Xc[10][0])#Xc[N-1[0],:])
-    print("position y OT" + "\tposition consigne",X[1],Xc[10][1])#Xc[N-1,:][1])
-    print("orientation OT" + "\torientation consigne",X[2],Xc[10][2])#Xc[N-1,:][2])
+    print("position x OT" + "\tposition consigne",X[0],Xc[N-1][0])#Xc[N-1[0],:])
+    print("position y OT" + "\tposition consigne",X[1],Xc[N-1][1])#Xc[N-1,:][1])
+    print("orientation OT" + "\torientation consigne",X[2],Xc[N-1][2])#Xc[N-1,:][2])
     if PLOT: 
         plt.plot(t,traj_OT[:,0],label="position OT selon axe x")
         plt.plot(t,traj_OT[:,1],label="position OT selon axe y")    
@@ -426,7 +405,7 @@ def controller(delta,deltaDot,I,dt,Kp = 1,Kd = 1,Ki = 1):
     deltaX      : error 
     deltaDotX   : error velocity
     """
-    print("KP \t",Kp)
+    #print("KP \t",Kp)
     I += delta*dt
     return (np.dot(Kp,delta)+np.dot(Kd,deltaDot) + np.dot(Ki,I)),I
 
@@ -436,7 +415,7 @@ def calcGain(robot,w):
     Kp = []
     Kd = []
     KI = []
-    print("\n\n\n Friction \n\n\n",f)
+    #print("\n\n\n Friction \n\n\n",f)
     for i in range(robot.model.nq):
         Kp.append(3*A[i,i]*w**2)
         Kd.append(3*A[i,i]*w - f[i])
@@ -445,9 +424,9 @@ def calcGain(robot,w):
     Kp = np.diag(Kp)
     Kd = np.diag(Kd)
     KI = np.diag(KI)
-    print("gain Intégral \t",KI)
-    print("gain dériver \t",Kd)
-    print("gain prop \t",Kp)
+#    print("gain Intégral \t",KI)
+#    print("gain dériver \t",Kd)
+#    print("gain prop \t",Kp)
     return Kp,Kd,KI
     
 
@@ -455,15 +434,15 @@ def calcGain(robot,w):
 
 
 Main = True
-workingDir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-print(workingDir)
-# urdf directory path
-package_path = workingDir
-urdf_path = package_path + '/robots/urdf/planar_2DOF_TCP.urdf'
+package_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) + '/Modeles/'
+urdf_path = package_path + 'planar_2DOF/URDF/planar_2DOF_TCP.urdf'
+
 robot = RobotWrapper()
-if Main: 
+if __name__ == '__main__':
     robot = RobotWrapper.BuildFromURDF(urdf_path,package_path,verbose=True)
     robot.initViewer(loadModel=True)
     robot.display(robot.q0)
     #simulateurVerif(300,robot)
     simulator(robot)
+    #simuLoiCommande(robot)
+    #simuLoiCommande(robot)

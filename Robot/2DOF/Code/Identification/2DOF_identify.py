@@ -443,7 +443,7 @@ def main():
 
     # ========== Step 4 - Create IDM with pinocchio
     regressor = generateRegressor(model, data, inputs, nbSamples)
-
+    print("regressor shape", regressor.shape)
     # ========== Step 5 - Remove non dynamic effect columns then remove zero value columns then remove the parameters
     #                     related to zero value columns at the end we will have a matix W_modified et Phi_modified
     threshold = 0.000001
@@ -481,6 +481,8 @@ def main():
     showErrorPlot(err, NQ, nbSamples)
 
     plt.show()
+
+    # ========== Step 12 - Calculate real parameters with constraints using QP-Solver
 
 
 if __name__ == '__main__':
