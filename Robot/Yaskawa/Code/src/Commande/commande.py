@@ -160,7 +160,7 @@ def simulator(robot):
     IDX = robot.model.getFrameId("tool0")
     dt = 1e-3
     N = 20000
-    Xc,dotXc,qc,dqc,t = getTraj(N,robot,IDX,dt,law='P',V=1)
+    Xc,dotXc,qc,dqc,t = getTraj(N,robot,IDX,dt,law='R',V=1)
 
     for i in range(N):
         robot.forwardKinematics(qc[i])
@@ -168,7 +168,9 @@ def simulator(robot):
         robot.display(qc[i])
         time.sleep(dt)
 
-
+""" 
+    Control Law
+"""
 if __name__ == "__main__":
     workingDir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
     workingDir += '/Modeles'

@@ -429,7 +429,8 @@ def calcGain(robot,w):
 #    print("gain prop \t",Kp)
     return Kp,Kd,KI
     
-
+def computeJacobianDerivative():
+    
 
 
 

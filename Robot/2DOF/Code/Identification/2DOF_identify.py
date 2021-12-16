@@ -1,4 +1,5 @@
 from numpy import linalg
+from qpsolvers import solve_qp
 from numpy.core.fromnumeric import shape
 from numpy.lib.nanfunctions import _nanmedian_small
 from pinocchio.visualize import GepettoVisualizer
@@ -98,6 +99,56 @@ def generateRandomInputsAndTorque(model, data, NQ, nbSamples):
         tau.extend(pin.rnea(model, data, q[:, i], dq[:, i], ddq[:, i]))
 
     return (q, dq, ddq), np.array(tau)
+
+
+def getInputsAndTorque(filename):
+    '''
+    Gent positions, speeds, acelerations and torques for each joint from a file
+
+    Parameters
+    ----------
+    model: RobotWrapper.model
+        robot model
+    data: RobotWrapper.data
+        robot data
+    NQ: int
+        number of robot joints
+    nbSamples: int
+        number of samples to generate
+
+    Returns
+    -------
+    (imputs, tau): tuple
+        imputs: tuple of arrays
+            (position, speed, acceleration)
+        tau: float array
+            torque array (nbSamples*NQ)  
+        i: int
+            number of samples
+    '''
+
+    q = []
+    dq = []
+    ddq = []
+    tau = []
+
+    i = 0
+
+    f = open(os.path.dirname(os.path.abspath(__file__)) + '/' + filename, 'r')
+    for l in f.readlines()[1:]:
+        line = np.array(l.split(), dtype='double')
+        q.append(line[:2])
+        dq.append(line[2:4])
+        ddq.append(line[4:6])
+        tau.extend(line[6:])
+        i+=1
+
+    q = np.transpose(q)
+    dq = np.transpose(dq)
+    ddq = np.transpose(ddq)
+    # tau = np.transpose(tau)
+
+    return (q, dq, ddq), np.array(tau), i
 
 
 def generateRegressor(model, data, inputs, nbSamples):
@@ -200,6 +251,8 @@ def calculateBaseParam(Q, R, P, names, threshold):
     for i in range(len(R[0])):
         if R[i, i] > threshold:
             tmp = i
+    
+    print(tmp)
 
     R1 = R[:tmp+1, :tmp+1]
     R2 = R[:tmp+1, tmp+1:]
@@ -435,19 +488,25 @@ def main():
     # gv = robot.viewer.gui # uncomment to run this in gepetto-gui
 
     # ========== Step 2 - Generate inertial parameters for all links (excepted the base link)
-    names, phi = generateParameters(model, NJOINT)
+    names_, phi_ = generateParameters(model, NJOINT)
 
     # ========== Step 3 - Generate input and output - 100 samples
-    nbSamples = 100  # number of samples
-    inputs, tau = generateRandomInputsAndTorque(model, data, NQ, nbSamples)
+    # nbSamples = 100  # number of samples
+    # inputs, tau = generateRandomInputsAndTorque(model, data, NQ, nbSamples)
+
+    # ===== Alternatively - Get inputs and outputs from specified file
+    inputs, tau, nbSamples = getInputsAndTorque('data_2dof.txt')
 
     # ========== Step 4 - Create IDM with pinocchio
+
     regressor = generateRegressor(model, data, inputs, nbSamples)
     print("regressor shape", regressor.shape)
+    regressor_ = generateRegressor(model, data, inputs, nbSamples)
+
     # ========== Step 5 - Remove non dynamic effect columns then remove zero value columns then remove the parameters
     #                     related to zero value columns at the end we will have a matix W_modified et Phi_modified
     threshold = 0.000001
-    regressor, phi, names = removeZeroParameters(regressor, phi, names, threshold)
+    regressor, phi, names = removeZeroParameters(regressor_, phi_, names_, threshold)
 
     # ========== Step 6 - QR decomposition + pivoting
     (Q, R, P) = sp.qr(regressor, pivoting=True)
@@ -461,8 +520,8 @@ def main():
     baseRegressor = np.dot(Q1, R1)                                 # Base regressor
     inertialParameters = {names[i]: baseParameters[i] for i in range(len(baseParameters))}
 
-    print('Base parameters:\n', inertialParameters)
-    showParametersAndEquations(R, P, phi, names, threshold, beta)
+    print('Base parameters:\t', inertialParameters)
+    # showParametersAndEquations(R, P, phi, names, threshold, beta)
 
     # ========== Step 9 - Calculate tau with phi_base and base regressor
     baseTau = np.dot(baseRegressor, baseParameters)
@@ -472,7 +531,7 @@ def main():
     #                      We apply classic least square method by nullifying error gradient with Error Hes > 0
     estimatedParameters = calculateEstimatedParam(baseRegressor, tau)
 
-    print('shape of phi*:\t', estimatedParameters.shape)
+    print('Shape of phi*:\t\t', estimatedParameters.shape)
     showPhiPlots(estimatedParameters, baseParameters)
 
     # ========== Step 11 - Calculate error between tau and baseTau based on the identification
@@ -480,7 +539,19 @@ def main():
 
     showErrorPlot(err, NQ, nbSamples)
 
-    plt.show()
+    # ========== Step 12 - Calculate real parameters with constraints using QP-Solver
+    # Without constraints
+    P = np.dot(regressor_, regressor_.T)
+    q = -2 * np.dot(regressor_.T, tau)
+    x = solve_qp(P, q)
+
+    #print("eig value ",np.linalg.eigvals(P))
+    print("rank P\t", np.linalg.matrix_rank(P))
+    print("Regressor Size \t ",regressor_.size)
+    print('x:\t\t\t', x)
+    # with constraints
+
+    # plt.show()
 
     # ========== Step 12 - Calculate real parameters with constraints using QP-Solver
 
