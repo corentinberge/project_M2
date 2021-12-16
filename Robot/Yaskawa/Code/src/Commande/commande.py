@@ -117,6 +117,9 @@ def loiPoly(robot,t,qf,Vmax=10):
     return q,dq
 
 def calcCoeff(Vmax, robot, qf):
+    """
+        This function compute coefficient of the polynomial law
+    """
     a0 = np.zeros(robot.nq)
     a1 = np.zeros(robot.nq)
     a2 = np.zeros(robot.nq)
@@ -157,6 +160,9 @@ def loiPendule(robot,t):
 """
 
 def simulator(robot):
+    """
+        Simulator for robot Control law, movement test etc...
+    """
     IDX = robot.model.getFrameId("tool0")
     dt = 1e-3
     N = 20000
