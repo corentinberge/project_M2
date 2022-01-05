@@ -22,7 +22,7 @@ You will need to install Docker and Nvidia CUDA container to run it. All the ins
 
 Clone this repository to your home folder.
 
-Build the Docker with
+Build the Docker with (this will take a few minutes):
 ```bash
 bash project_M2/Docker/launch.sh
 ```
