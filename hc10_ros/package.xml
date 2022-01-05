@@ -1,0 +1,17 @@
+<package>
+  <name>hc10_ros</name>
+  <version>0.5.0</version>
+
+  <description>This package contains a number of URDF tutorials.</description>
+  <license>Project M2</license>
+  <maintainer email="corentinberge@gmail.com">Corentin Bergé</maintainer>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>roslaunch</build_depend>
+  <run_depend>joint_state_publisher</run_depend>
+  <run_depend>joint_state_publisher_gui</run_depend>
+  <run_depend>robot_state_publisher</run_depend>
+  <run_depend>rviz</run_depend>
+  <run_depend>xacro</run_depend>
+
+</package>
