@@ -26,7 +26,7 @@ RUN apt-get update
 RUN apt-get install -y ros-noetic-desktop-full robotpkg-py38-pinocchio robotpkg-py38-crocoddyl robotpkg-py38-qt5-gepetto-viewer-corba
 
 # Create new user and switch on it
-RUN useradd -m linux && echo "linux:linux" | chpasswd && adduser linux sudo
+RUN useradd -ms /bin/bash linux && echo "linux:linux" | chpasswd && adduser linux sudo
 RUN usermod -aG sudo linux
 RUN echo "linux  ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/linux
 RUN echo "linux ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
@@ -44,7 +44,7 @@ RUN echo "export CMAKE_PREFIX_PATH=/opt/openrobots:$CMAKE_PREFIX_PATH" >> $HOME/
 RUN mkdir -p $HOME/catkin_ws/src
 
 # Initialize directory and rosdep
-RUN git clone -b kinetic-devel https://github.com/ros-industrial/motoman.git $HOME/catkin_ws/src/motoman
+# RUN git clone -b kinetic-devel https://github.com/ros-industrial/motoman.git $HOME/catkin_ws/src/motoman
 RUN cd $HOME/catkin_ws && rosdep update
 
 # Build ROS packages
