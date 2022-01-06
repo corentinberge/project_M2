@@ -78,25 +78,30 @@ for line in f:
     tau1.append(data_split[6])
     tau2.append(data_split[7])
 f.close()
-
+## the data file was modified so we eliminate the first line who dont contain numbers
+##put all the q in one array and convert to double
 q.append(q1)
 q.append(q2)
 q=np.array(q)
 q=np.double(q)
-print('shape of q',q.shape)
+print('shape of q ',q.shape)
 
+##put all the dq in one array and convert to double
 dq.append(dq1)
 dq.append(dq2)
 dq=np.array(dq)
 dq=np.double(dq)
 print('shape of dq',dq.shape)
 
+##put all the ddq in one array and convert to double
 ddq.append(ddq1)
 ddq.append(ddq2)
 ddq=np.array(ddq)
 ddq=np.double(ddq)
 print('shape of ddq',ddq.shape)
 
+
+##put all the torque values in one array and convert to double
 tau.extend(tau1)
 tau.extend(tau2)
 tau=np.array(tau)
@@ -105,7 +110,7 @@ print('shape of tau',tau.shape)
 
 nbSamples = 1000  # number of samples
 
-# # Generate inputs with pin
+# # Generate inputs with pin (pin as pinocchio)
 q_pin = np.random.rand(NQ, nbSamples) * np.pi - np.pi/2  # -pi/2 < q < pi/2
 dq_pin = np.random.rand(NQ, nbSamples) * 10              # 0 < dq  < 10
 ddq_pin = np.random.rand(NQ, nbSamples) * 2               # 0 < dq  < 2
@@ -129,40 +134,35 @@ w = []  # Regression vector
 w_pin=[]
 for i in range(nbSamples):
     w_pin.extend(pin.computeJointTorqueRegressor(model, data, q_pin[:, i], dq_pin[:, i], ddq_pin[:, i]))
-print('Shape of W_pin:\t', np.array(w_pin).shape)
 w_pin=np.array(w_pin)
+
+
 
 for i in range(nbSamples):
      w.extend(pin.computeJointTorqueRegressor(model, data, q[:, i], dq[:, i], ddq[:, i]))
+w=np.array(w)
 
-print('Shape of W succee  :\t', np.array(w).shape)
+
+## modifier W pour quelle contient dq et singe(dq) pour ajouter les parametres de frotements Fv et Fs
+dq_stack=[]
+dq_stack.extend(dq[0])
+dq_stack.extend(dq[1])
+dq_stack=np.array([dq_stack])
+dq_stack=dq_stack.T
+
+# calcule de signe(dq)
+dq_sign=np.sign(dq_stack)
+
+w=np.concatenate([w,dq_stack], axis=1)
+w=np.concatenate([w,dq_sign], axis=1)
+
+#affichage
+print('Shape of W_pin:\t',w_pin.shape)
+print('Shape of dq_stack  :\t',dq_stack.shape)
+print('Shape of W regresseur  :\t',w.shape)
 print('\n')
 
-w=np.array(w)
-# w=np.double(w)
-
-
-
-## phi_etoile a la main
-# phi_etoile_pin=np.dot(w_pin.T,w_pin)
-# phi_etoile_pin=np.linalg.pinv(phi_etoile_pin)
-# phi_etoile_pin=np.dot(phi_etoile_pin,np.dot(w_pin.T,tau_pin))
-# print('tst phi w \t',np.array(phi_etoile_pin).shape)
-
-# phi_etoile=np.dot(w.T,w)
-# phi_etoile=np.linalg.pinv(phi_etoile)
-# phi_etoile=np.dot(phi_etoile,np.dot(w.T,tau))
-# print('tst phi w avec than\t',np.array(phi_etoile).shape)
-
-
-# print('shape w_test',w_test.shape)
-# print('shape w_test transpose',w_test.transpose().shape)
-# w = 0.5 * (w + w.transpose())
-p_pin=np.dot(w_pin.transpose(),w_pin)
-q_pin= -np.dot(tau_pin.transpose(),w_pin)
-P = np.dot(w.transpose(),w)
-q = -np.dot(tau.transpose(),w)
-
+## calcule pour une matrice definie positive
 def nearestPD(A):
     """Find the nearest positive-definite matrix to input
 
@@ -216,18 +216,23 @@ def isPD(B):
         return False
 
 
+p_pin=np.dot(w_pin.transpose(),w_pin)
+q_pin= -np.dot(tau_pin.transpose(),w_pin)
+P = np.dot(w.transpose(),w)
+q = -np.dot(tau.transpose(),w)
+
 
 P=nearestPD(P)
 p_pin=nearestPD(p_pin)
 print('je suis avant qp solver')
-G=([-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-   [0,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-   [0,0,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-   [0,0,0,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-   [0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0,0,0,0,0],
-   [0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0,0,0,0],
-   [0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0,0,0],
-   [0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0,0])
+G=([-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+   [0,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+   [0,0,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+   [0,0,0,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+   [0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0,0,0,0,0,0,0],
+   [0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0,0,0,0,0,0],
+   [0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0,0,0,0,0],
+   [0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0,0,0,0])
 
 # G=([1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
 #    [0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
@@ -274,38 +279,55 @@ phi_etoile_pin=qpsolvers.solve_qp(
             initvals=None,
             sym_proj=True
             )
-phi_etoile_pin=qpsolvers.solve_qp(
-            P,
-            q,
-            G=None,#G Linear inequality matrix.
-            h=None,#Linear inequality vector.
-            A=None,
-            b=None,
-            lb=None,
-            ub=None,
-            solver="quadprog",
-            initvals=None,
-            sym_proj=True
-            )
+
 print('*****************************************')
 print('phi_etoile',phi_etoile.shape)
 print('*****************************************')
+
+## calcule du torque estime 
+tau_estime=np.dot(w,phi_etoile)
+tau_estime_pin=np.dot(w_pin,phi_etoile_pin)
+
+# samples = []
+# for i in range(20):
+#         samples.append(i)
+# # variation of the parameters
+# # trace le resultat dans un graph 
+# # les deux plot sur la memes figure
+# plt.figure('phi et phi etoile')
+# plt.plot(samples, phi, 'g', linewidth=1, label='phi')
+# plt.plot(samples, phi_etoile, 'b:', linewidth=2, label='phi etoile')
+# plt.plot(samples, phi_etoile_pin, 'r:', linewidth=1, label='phi etoile_sans Contraintes')
+# plt.title('phi and phi etoile(M>0) and phi_etoile sans contraintes')
+# plt.xlabel('20 Samples')
+# plt.ylabel('parametres')
+# plt.legend()
+# plt.show()
+
+## Plot the torques values
 samples = []
-for i in range(20):
+for i in range(2*nbSamples):
         samples.append(i)
 
-# trace le resultat dans un graph
-# les deux plot sur la memes figure
-plt.figure('phi et phi etoile')
-plt.plot(samples, phi, 'g', linewidth=1, label='phi')
-plt.plot(samples, phi_etoile, 'b:', linewidth=2, label='phi etoile')
-plt.plot(samples, phi_etoile_pin, 'r:', linewidth=1, label='phi etoile_sans Contraintes')
-plt.title('phi and phi etoile(M>0) and phi_etoile sans contraintes')
-plt.xlabel('20 Samples')
+plt.figure('torque et torque estime')
+plt.plot(samples, tau, 'g', linewidth=1, label='tau')
+plt.plot(samples,tau_estime, 'b:', linewidth=2, label='tau estime')
+# plt.plot(samples, tau_estime_pin, 'r:', linewidth=1, label='phi etoile_sans Contraintes')
+plt.title('tau and tau_estime')
+plt.xlabel('2000 Samples')
 plt.ylabel('parametres')
 plt.legend()
 plt.show()
 
+plt.figure('torque pin et torque pin estime')
+plt.plot(samples, tau_pin, 'g', linewidth=2, label='tau_pin')
+plt.plot(samples,tau_estime_pin, 'b:', linewidth=1, label='tau_pin estime')
+# plt.plot(samples, tau_estime_pin, 'r:', linewidth=1, label='phi etoile_sans Contraintes')
+plt.title('tau pin tau_estime pin ')
+plt.xlabel('2000 Samples')
+plt.ylabel('parametres')
+plt.legend()
+plt.show()
 
 '''
 pour le calcule des paramètres standard il n y a pas besoin des paramètres de base (en tout cas poru le moment). Vous devez trouver Phi* (8x1) le vecteur contenant tous les paramètres inertiels.
