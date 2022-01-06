@@ -150,11 +150,21 @@ dq_stack.extend(dq[1])
 dq_stack=np.array([dq_stack])
 dq_stack=dq_stack.T
 
+dq_stack_pin=[]
+dq_stack_pin.extend(dq_pin[0])
+dq_stack_pin.extend(dq_pin[1])
+dq_stack_pin=np.array([dq_stack_pin])
+dq_stack_pin=dq_stack_pin.T
+
 # calcule de signe(dq)
 dq_sign=np.sign(dq_stack)
+dq_sign_pin=np.sign(dq_stack_pin)
 
 w=np.concatenate([w,dq_stack], axis=1)
 w=np.concatenate([w,dq_sign], axis=1)
+
+w_pin=np.concatenate([w_pin,dq_stack_pin], axis=1)
+w_pin=np.concatenate([w_pin,dq_sign_pin], axis=1)
 
 #affichage
 print('Shape of W_pin:\t',w_pin.shape)
@@ -225,29 +235,70 @@ q = -np.dot(tau.transpose(),w)
 P=nearestPD(P)
 p_pin=nearestPD(p_pin)
 print('je suis avant qp solver')
+
+# #contrainte masse positive
+# G=([-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+#    [0,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+#    [0,0,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+#    [0,0,0,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+#    [0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0,0,0,0,0,0,0],
+#    [0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0,0,0,0,0,0],
+#    [0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0,0,0,0,0],
+#    [0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0,0,0,0])
+#h=[0,0,0,0,0,0,0,0]
+# #contrainte masse (m1,m2) positive 0.15<mx,my,mz<0.3
+# G=([-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+#    [0,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+#    [0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],   
+#    [0,0,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+#    [0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+#    [0,0,0,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+#    [0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+#    [0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0,0,0,0,0,0,0],
+#    [0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0,0,0,0,0,0],
+#    [0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0],
+#    [0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0,0,0,0,0],
+#    [0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0],
+#    [0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0,0,0,0],
+#    [0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0])
+
+# h=[0,-0.15,0.3,-0.15,0.3,-0.15,0.3,0,-0.15,0.3,-0.15,0.3,-0.15,0.3]
+
+#contrainte masse (m1,m2) positive 0.15<mx,my,mz<0.3 parametres de base >0 et frottements >0
 G=([-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
    [0,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+   [0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],   
    [0,0,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+   [0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
    [0,0,0,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+   [0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
    [0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0,0,0,0,0,0,0],
    [0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0,0,0,0,0,0],
+   [0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0],
    [0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0,0,0,0,0],
-   [0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0,0,0,0])
+   [0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0],
+   [0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0,0,0,0],
+   [0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0],
+   [0,0,0,-1,0,0,0,0,0,0,-0.25,0,0,0,0,0,0,0,0,0,0,0],
+   [0,-1,0,0,0,0,0,0,0,0,-0.5,0,0,0,0,0,0,0,0,0,0,0],
+   [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0],
+   [0,0,0,0,0,0,-1,0,0,0,-0.3125,0,0,0,0,0,0,0,0,0,0,0],
+   [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1],
+   [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0],
+   )
+G1=G
+h=[0,-0.15,0.3,-0.15,0.3,-0.15,0.3,0,-0.15,0.3,-0.15,0.3,-0.15,0.3,0,0,0,0,0,0]
+h1=[0,-0.2,0.3,-0.2,0.3,-0.2,0.3,0,-0.2,0.2,-0.2,0.3,-0.2,0.3,0,0,0,0,0,0]
 
-# G=([1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-#    [0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-#    [0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-#    [0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-#    [0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0],
-#    [0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0],
-#    [0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0],
-#    [0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0])
-
-h=[0,0,0,0,0,0,0,0]
 G=np.array(G)
 h=np.array(h)
 G=np.double(G)
 h=np.double(h)
+
+G1=np.array(G1)
+h1=np.array(h1)
+G1=np.double(G1)
+h1=np.double(h1)
 #Any constraints that are >= must be multiplied by -1 to become a <=.
 # phi_etoile=qpsolvers.solve_ls(P,q,None,None)
 phi_etoile=qpsolvers.solve_qp(
@@ -255,6 +306,19 @@ phi_etoile=qpsolvers.solve_qp(
             q,
             G,#G Linear inequality matrix.
             h,#Linear inequality vector.
+            A=None,
+            b=None,
+            lb=None,
+            ub=None,
+            solver="quadprog",
+            initvals=None,
+            sym_proj=True
+            )
+phi_etoile1=qpsolvers.solve_qp(
+            P,
+            q,
+            G1,#G Linear inequality matrix.
+            h1,#Linear inequality vector.
             A=None,
             b=None,
             lb=None,
@@ -282,10 +346,12 @@ phi_etoile_pin=qpsolvers.solve_qp(
 
 print('*****************************************')
 print('phi_etoile',phi_etoile.shape)
+print('phi_etoile_pin',phi_etoile_pin.shape)
 print('*****************************************')
 
 ## calcule du torque estime 
 tau_estime=np.dot(w,phi_etoile)
+tau_estime1=np.dot(w,phi_etoile1)
 tau_estime_pin=np.dot(w_pin,phi_etoile_pin)
 
 # samples = []
@@ -306,28 +372,42 @@ tau_estime_pin=np.dot(w_pin,phi_etoile_pin)
 
 ## Plot the torques values
 samples = []
-for i in range(2*nbSamples):
+for i in range(NQ*nbSamples):
         samples.append(i)
 
 plt.figure('torque et torque estime')
-plt.plot(samples, tau, 'g', linewidth=1, label='tau')
-plt.plot(samples,tau_estime, 'b:', linewidth=2, label='tau estime')
-# plt.plot(samples, tau_estime_pin, 'r:', linewidth=1, label='phi etoile_sans Contraintes')
+plt.plot(samples, tau, 'g', linewidth=2, label='tau')
+plt.plot(samples,tau_estime, 'b', linewidth=1.5, label='tau estime')
+plt.plot(samples, tau_estime1, 'r', linewidth=1, label='tau estime 1')
 plt.title('tau and tau_estime')
 plt.xlabel('2000 Samples')
 plt.ylabel('parametres')
 plt.legend()
 plt.show()
 
-plt.figure('torque pin et torque pin estime')
-plt.plot(samples, tau_pin, 'g', linewidth=2, label='tau_pin')
-plt.plot(samples,tau_estime_pin, 'b:', linewidth=1, label='tau_pin estime')
-# plt.plot(samples, tau_estime_pin, 'r:', linewidth=1, label='phi etoile_sans Contraintes')
-plt.title('tau pin tau_estime pin ')
-plt.xlabel('2000 Samples')
-plt.ylabel('parametres')
+err = []
+err1 = []
+for i in range(nbSamples * NQ):
+    err.append(abs(tau[i] - tau_estime[i]) * abs(tau[i] - tau_estime[i]))
+    err1.append(abs(tau[i] - tau_estime1[i]) * abs(tau[i] - tau_estime1[i]))
+
+
+# print(np.array(err).shape)
+plt.plot(samples, err, linewidth=2, label="err")
+plt.plot(samples, err1,linewidth=1, label="err1")
+plt.title("erreur quadratique")
 plt.legend()
 plt.show()
+
+# plt.figure('torque pin et torque pin estime')
+# plt.plot(samples, tau_pin, 'g', linewidth=2, label='tau_pin')
+# plt.plot(samples,tau_estime_pin, 'b', linewidth=1, label='tau_pin estime')
+# # plt.plot(samples, tau_estime_pin, 'r:', linewidth=1, label='phi etoile_sans Contraintes')
+# plt.title('tau pin tau_estime pin ')
+# plt.xlabel('2000 Samples')
+# plt.ylabel('parametres')
+# plt.legend()
+# plt.show()
 
 '''
 pour le calcule des paramètres standard il n y a pas besoin des paramètres de base (en tout cas poru le moment). Vous devez trouver Phi* (8x1) le vecteur contenant tous les paramètres inertiels.
@@ -507,50 +587,3 @@ plt.show()
 gv.deleteNode('world', True)  # name, all=True
 
 """
-
-
-
-
-# w_ab = ([0,1],
-#         [1,1],
-#         [2,1],
-#         [3,1],
-#         [4,1],
-#         [5,1],
-#         [6,1],
-#         [7,1],
-#         [8,1],
-#         [9,1],
-#         [10,1])
-# w_ab=np.array(w_ab)
-# w_ab=np.double(w_ab)
-# print('shape of w_ab',w_ab.shape)
-# # print('w_ab \t',w_ab)
-# tau_ab =double ([1,3,5,7,9,11,13,15,17,19,21])
-# tau_ab=np.array(tau_ab)
-# tau_ab=np.double(tau_ab)
-# # tau_ab=tau_ab.T
-# print('shape of tau_ab',tau_ab.shape)
-
-
-# P = np.dot(w_ab.transpose(),w_ab)
-# q = -np.dot(tau_ab.transpose(),w_ab)
-# phi_etoile_qp=qpsolvers.solve_qp(
-#             P,
-#             q,
-#             G=None,
-#             h=None,
-#             A=None,
-#             b=None,
-#             lb=None,
-#             ub=None,
-#             solver="quadprog",
-#             initvals=None,
-#             sym_proj=True
-#             )
-
-
-# # phi_etoile_qp=qpsolvers.solve_ls(P,q,None,None)
-# print('\n')
-# print('phi_ab \n',phi_etoile_qp)
-# print('\n')
