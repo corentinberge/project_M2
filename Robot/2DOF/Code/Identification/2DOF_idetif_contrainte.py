@@ -9,9 +9,6 @@ import pinocchio as pin
 import numpy as np
 import os
 from typing import Optional
-
-# from typing import Matrix, Vector
-
 from typing import Optional
 import qpsolvers
 
@@ -21,6 +18,7 @@ import qpsolvers
 
 package_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) + '/Modeles/'
 urdf_path = package_path + 'planar_2DOF/URDF/planar_2DOF.urdf'
+
 # ========== Step 1 - load model, create robot model and create robot data
 
 robot = RobotWrapper()
@@ -34,6 +32,7 @@ NQ = robot.nq                 # joints angle
 NV = robot.nv                 # joints velocity
 NJOINT = robot.model.njoints  # number of links
 gv = robot.viewer.gui
+
 
 # ========== Step 2 - generate inertial parameters for all links (excepted the base link)
 
@@ -63,10 +62,10 @@ dq=[]
 ddq=[]
 tau=[]
 
-# ouvrir le fichier data_2dof
+# ouvrir le fichier data_2dof 
 f = open('/home/fadi/projet_cobot_master2/project_M2/Robot/2DOF/Code/Identification/data_2dof.txt','r')
 # f = open('data_2dof.txt','r')
-# getting data from file
+# getting data from file getting q dq ddq experimentelly from than
 for line in f:
     data_split = line.strip().split('\t')
     q1.append(data_split[0])
@@ -179,14 +178,16 @@ def nearestPD(A):
     A Python/Numpy port of John D'Errico's `nearestSPD` MATLAB code [1], which
     credits [2].
 
-    [1] https://www.mathworks.com/matlabcentral/fileexchange/42885-nearestspd
+    [1] https://www.mathworks.com/matlabcentral/fileexchange/42885-nearestspd 
+
+    spd=symmetric positive semidefinite
 
     [2] N.J. Higham, "Computing a nearest symmetric positive semidefinite
     matrix" (1988): https://doi.org/10.1016/0024-3795(88)90223-6
     """
 
     B = (A + A.T) / 2
-    _, s, V = np.linalg.svd(B)
+    _, s, V = np.linalg.svd(B)#provides another way to factorize a matrix, into singular vectors and singular values
 
     H = np.dot(V.T, np.dot(np.diag(s), V))
 
@@ -197,7 +198,7 @@ def nearestPD(A):
     if isPD(A3):
         return A3
 
-    spacing = np.spacing(np.linalg.norm(A))
+    spacing = np.spacing(np.linalg.norm(A))#Return the distance between norm(A) and the nearest adjacent number
     # The above is different from [1]. It appears that MATLAB's `chol` Cholesky
     # decomposition will accept matrixes with exactly 0-eigenvalue, whereas
     # Numpy's will not. So where [1] uses `eps(mineig)` (where `eps` is Matlab
@@ -221,6 +222,10 @@ def isPD(B):
     """Returns true when input is positive-definite, via Cholesky"""
     try:
         _ = np.linalg.cholesky(B)
+        #Cholesky's method serves a test of positive definiteness
+        # The Cholesky decomposition (or the Cholesky factorization) 
+        # is the factorization of a matrix A into the product of a lower triangular matrix L and its transpose. 
+        # We can rewrite this decomposition in mathematical notation as: A = L·LT .
         return True
     except np.linalg.LinAlgError:
         return False
@@ -288,7 +293,7 @@ G=([-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
    )
 G1=G
 h=[0,-0.15,0.3,-0.15,0.3,-0.15,0.3,0,-0.15,0.3,-0.15,0.3,-0.15,0.3,0,0,0,0,0,0]
-h1=[0,-0.2,0.3,-0.2,0.3,-0.2,0.3,0,-0.2,0.2,-0.2,0.3,-0.2,0.3,0,0,0,0,0,0]
+h1=[0,-0.4,0.5,-0.4,0.5,-0.4,0.5,0,-0.4,0.5,-0.4,0.5,-0.4,0.5,0,0,0,0,0,0]
 
 G=np.array(G)
 h=np.array(h)
