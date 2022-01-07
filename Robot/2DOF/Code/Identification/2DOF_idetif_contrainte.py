@@ -110,10 +110,12 @@ print('shape of tau',tau.shape)
 nbSamples = 1000  # number of samples
 
 # # Generate inputs with pin (pin as pinocchio)
+#l'idee d'avoir plusieure input/output afin de mieux tester la methode d'identification
 q_pin = np.random.rand(NQ, nbSamples) * np.pi - np.pi/2  # -pi/2 < q < pi/2
 dq_pin = np.random.rand(NQ, nbSamples) * 10              # 0 < dq  < 10
 ddq_pin = np.random.rand(NQ, nbSamples) * 2               # 0 < dq  < 2
 tau_pin = []
+
 # Generate ouput with pin
 for i in range(nbSamples):
     tau_pin.extend(pin.rnea(model, data, q_pin[:, i], dq_pin[:, i], ddq_pin[:, i]))
@@ -121,22 +123,16 @@ print('Shape of tau_pin:\t', np.array(tau_pin).shape)
 tau_pin=np.array(tau_pin)
 tau_pin=np.double(tau_pin)
 
-
-
-#print('Shape of tau_test_q_than:\t', np.array(tau).shape)
-
-
-
-
-# # ========== Step 4 - Create IDM with pinocchio
+# # ========== Step 4 - Create IDM with pinocchio (regression matrix)
 w = []  # Regression vector
 w_pin=[]
+## w pour I/O generer par pinocchio
 for i in range(nbSamples):
     w_pin.extend(pin.computeJointTorqueRegressor(model, data, q_pin[:, i], dq_pin[:, i], ddq_pin[:, i]))
 w_pin=np.array(w_pin)
 
 
-
+## w pour I/O generer par experience
 for i in range(nbSamples):
      w.extend(pin.computeJointTorqueRegressor(model, data, q[:, i], dq[:, i], ddq[:, i]))
 w=np.array(w)
@@ -159,9 +155,10 @@ dq_stack_pin=dq_stack_pin.T
 dq_sign=np.sign(dq_stack)
 dq_sign_pin=np.sign(dq_stack_pin)
 
+# modification de w
 w=np.concatenate([w,dq_stack], axis=1)
 w=np.concatenate([w,dq_sign], axis=1)
-
+# modification de w_pin
 w_pin=np.concatenate([w_pin,dq_stack_pin], axis=1)
 w_pin=np.concatenate([w_pin,dq_sign_pin], axis=1)
 
@@ -230,16 +227,17 @@ def isPD(B):
     except np.linalg.LinAlgError:
         return False
 
+# QP_solver
 
 p_pin=np.dot(w_pin.transpose(),w_pin)
 q_pin= -np.dot(tau_pin.transpose(),w_pin)
 P = np.dot(w.transpose(),w)
 q = -np.dot(tau.transpose(),w)
 
-
+# tester P defini positive si p nest pas definie positive p=spd
 P=nearestPD(P)
 p_pin=nearestPD(p_pin)
-print('je suis avant qp solver')
+# print('je suis avant qp solver')
 
 # #contrainte masse positive
 # G=([-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
@@ -295,6 +293,7 @@ G1=G
 h=[0,-0.15,0.3,-0.15,0.3,-0.15,0.3,0,-0.15,0.3,-0.15,0.3,-0.15,0.3,0,0,0,0,0,0]
 h1=[0,-0.4,0.5,-0.4,0.5,-0.4,0.5,0,-0.4,0.5,-0.4,0.5,-0.4,0.5,0,0,0,0,0,0]
 
+# passage en double
 G=np.array(G)
 h=np.array(h)
 G=np.double(G)
@@ -305,6 +304,7 @@ h1=np.array(h1)
 G1=np.double(G1)
 h1=np.double(h1)
 #Any constraints that are >= must be multiplied by -1 to become a <=.
+
 # phi_etoile=qpsolvers.solve_ls(P,q,None,None)
 phi_etoile=qpsolvers.solve_qp(
             P,
@@ -404,15 +404,15 @@ plt.title("erreur quadratique")
 plt.legend()
 plt.show()
 
-# plt.figure('torque pin et torque pin estime')
-# plt.plot(samples, tau_pin, 'g', linewidth=2, label='tau_pin')
-# plt.plot(samples,tau_estime_pin, 'b', linewidth=1, label='tau_pin estime')
-# # plt.plot(samples, tau_estime_pin, 'r:', linewidth=1, label='phi etoile_sans Contraintes')
-# plt.title('tau pin tau_estime pin ')
-# plt.xlabel('2000 Samples')
-# plt.ylabel('parametres')
-# plt.legend()
-# plt.show()
+plt.figure('torque pin et torque pin estime')
+plt.plot(samples, tau_pin, 'g', linewidth=2, label='tau_pin')
+plt.plot(samples,tau_estime_pin, 'b', linewidth=1, label='tau_pin estime')
+# plt.plot(samples, tau_estime_pin, 'r:', linewidth=1, label='phi etoile_sans Contraintes')
+plt.title('tau pin tau_estime pin ')
+plt.xlabel('2000 Samples')
+plt.ylabel('parametres')
+plt.legend()
+plt.show()
 
 '''
 pour le calcule des paramètres standard il n y a pas besoin des paramètres de base (en tout cas poru le moment). Vous devez trouver Phi* (8x1) le vecteur contenant tous les paramètres inertiels.
