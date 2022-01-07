@@ -10,9 +10,10 @@ import numpy as np
 import os
 
 # urdf directory path
-package_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-urdf_path = package_path + '/robots/urdf/planar_2DOF.urdf'
-
+# package_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# urdf_path = package_path + '/robots/urdf/planar_2DOF.urdf'
+package_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) + '/Modeles/'
+urdf_path = package_path + 'planar_2DOF/URDF/planar_2DOF.urdf'
 # ========== Step 1 - load model, create robot model and create robot data
 
 robot = RobotWrapper()
@@ -42,7 +43,7 @@ for i in range(1, NJOINT):
 
 # ========== Step 3 - Generate input and output - 100 samples
 
-nbSamples = 100  # number of samples
+nbSamples = 1000  # number of samples
 
 # Generate 100 inputs
 q = np.random.rand(NQ, nbSamples) * np.pi - np.pi/2  # -pi/2 < q < pi/2
@@ -79,8 +80,8 @@ for i in tmp:
     phi_modified = np.delete(phi_modified, i, 0)
     names_modified = np.delete(names_modified, i, 0)
 
-# print('shape of W_m:\t', W_modified.shape)
-# print('shape of phi_m:\t', np.array(phi_modified).shape)
+print('shape of W_m:\t', W_modified.shape)
+print('shape of phi_m:\t', np.array(phi_modified).shape)
 
 # ========== Step 6 - QR decomposition + pivoting
 
@@ -150,26 +151,21 @@ for i in range(tmp+1):
     else:
         params_base.append(str(params_idp_val[i]) + ' + '+str(round(float(beta[i]), 6)) + ' * ' + str(params_rgp_val))
         params_basename.append(str(params_idp_name[i]) + ' + '+str(round(float(beta[i]), 6)) + ' * ' + str(params_rgp_name))
-
-print('base parameters and their identified values: \n')
+print('\n')
+print('base parameters and their identified values:')
+print(params_basename)
 print(params_base)
 print('\n')
-table = [phi_base,params_base]
-print(table)
-print('\n')
-table1 = [names_modified,params_basename]
-print('base_parametre and equation \n')
-print(table1)
-    # print('valeurs base et calcul\t',table[i][i])
-# print('finale table shape \t', np.array(table).shape)
-# print(table)
+
 
 
 
 # ========== Step 9 - calcul de tau avec phi(paramaetre de base) et W_b le base regressor
-
+print(phi_base)
+print('w de base ',np.array(W_base).shape)
+print('phi de base ',np.array(phi_base).shape)
 tau_base = np.dot(W_base, phi_base)
-
+print('tau de base',np.array(tau_base).shape)
 samples = []
 for i in range(nbSamples * NQ):
     samples.append(i)

@@ -131,11 +131,133 @@ for i in range(nbSamples):
     w_pin.extend(pin.computeJointTorqueRegressor(model, data, q_pin[:, i], dq_pin[:, i], ddq_pin[:, i]))
 w_pin=np.array(w_pin)
 
-
+# W_PIN=w_pin
 ## w pour I/O generer par experience
 for i in range(nbSamples):
      w.extend(pin.computeJointTorqueRegressor(model, data, q[:, i], dq[:, i], ddq[:, i]))
 w=np.array(w)
+
+
+# ========== Step 5 - Remove non dynamic effect columns then remove zero value columns then remove the parameters related to zero value columns at the end we will have a matix W_modified et Phi_modified
+
+threshold = 0.000001
+W_modified = np.array(w[:])
+# W_modified = np.array(w_pin[:])
+
+tmp = []
+for i in range(len(phi)):
+    if (np.dot([W_modified[:, i]], np.transpose([W_modified[:, i]]))[0][0] <= threshold):
+        tmp.append(i)
+tmp.sort(reverse=True)
+
+phi_modified = phi[:]
+names_modified = names[:]
+for i in tmp:
+    W_modified = np.delete(W_modified, i, 1)
+    phi_modified = np.delete(phi_modified, i, 0)
+    names_modified = np.delete(names_modified, i, 0)
+
+print('shape of W_m:\t', W_modified.shape)
+print('shape of phi_m:\t', np.array(phi_modified).shape)
+
+
+# ========== Step 6 - QR decomposition + pivoting
+
+(Q, R, P) = sp.qr(W_modified, pivoting=True)
+
+# P sort params as decreasing order of diagonal of R
+# print('shape of Q:\t', np.array(Q).shape)
+# print('shape of R:\t', np.array(R).shape)
+# print('shape of P:\t', np.array(P).shape)
+
+# ========== Step 7 - Calculate base parameters
+tmp = 0
+
+for i in range(np.diag(R).shape[0]):
+        if abs(np.diag(R)[i]) < threshold:
+            tmp = i
+
+# for i in range(len(R[0])):
+#     if R[i, i] > threshold:
+#         tmp = i
+
+# R1 = R[:tmp+1, :tmp+1]
+# R2 = R[:tmp+1, tmp+1:]
+
+# Q1 = Q[:, :tmp+1]
+R1 = R[:tmp, :tmp]
+R2 = R[:tmp, tmp:]
+
+Q1 = Q[:, :tmp]
+# for i in (tmp+1, len(P)-1):
+#     names.pop(P[i])
+for i in (tmp, len(P)-1):
+    names.pop(P[i])
+# print('Shape of R1:\t', np.array(R1).shape)
+# print('Shape of R2:\t', np.array(R2).shape)
+# print('Shape of Q1:\t', np.array(Q1).shape)
+
+beta = np.dot(np.linalg.inv(R1), R2)
+print('Shape of beta:\t', np.array(beta).shape)
+
+# beta = np.round(res, 6)
+# print(res)
+
+# ========== Step 8 - Calculate the Phi modified
+
+phi_base = np.dot(np.linalg.inv(R1), np.dot(Q1.T, tau))  # Base parameters
+W_base = np.dot(Q1, R1)                             # Base regressor
+print('Shape of W_base:\t', np.array(W_base).shape)
+
+# print('Shape of phi_m:\t', np.array(phi_modified).shape)
+# print('Shape of W_m:\t', np.array(W_modified).shape)
+
+inertialParameters = {names_modified[i]: phi_base[i]
+                      for i in range(len(phi_base))}
+# print("Base parameters:\n", inertialParameters)
+
+
+params_rsortedphi = [] # P donne les indice des parametre par ordre decroissant 
+params_rsortedname=[]
+for ind in P:
+    params_rsortedphi.append(phi_modified[ind])
+    params_rsortedname.append(names_modified[ind])
+
+# params_idp_val = params_rsortedphi[:tmp+1]
+# params_rgp_val = params_rsortedphi[tmp+1]
+# params_idp_name =params_rsortedname[:tmp+1]
+# params_rgp_name = params_rsortedname[tmp+1]
+params_idp_val = params_rsortedphi[:tmp]
+params_rgp_val = params_rsortedphi[tmp]
+params_idp_name =params_rsortedname[:tmp]
+params_rgp_name = params_rsortedname[tmp]
+params_base = []
+params_basename=[]
+for i in range(tmp):
+# for i in range(tmp+1):
+    if beta[i] == 0:
+        params_base.append(params_idp_val[i])
+        params_basename.append(params_idp_name[i])
+
+    else:
+        params_base.append(params_idp_val[i] +  ((round(float(beta[i]), 6))*params_rgp_val))
+        # params_base.append(str(params_idp_val[i]) + ' + '+str(round(float(beta[i]), 6)) + ' * ' + str(params_rgp_val))
+        params_basename.append(str(params_idp_name[i]) + ' + '+str(round(float(beta[i]), 6)) + ' * ' + str(params_rgp_name))
+print('\n')
+print('base parameters and their identified values:')
+print(params_basename)
+print(params_base)
+print('\n')
+
+tau_pin_avec_param_base=np.dot(W_base,params_base)
+
+
+
+####################################################################################################
+
+
+
+
 
 
 ## modifier W pour quelle contient dq et singe(dq) pour ajouter les parametres de frotements Fv et Fs
@@ -405,8 +527,8 @@ plt.legend()
 plt.show()
 
 plt.figure('torque pin et torque pin estime')
-plt.plot(samples, tau_pin, 'g', linewidth=2, label='tau_pin')
-plt.plot(samples,tau_estime_pin, 'b', linewidth=1, label='tau_pin estime')
+plt.plot(samples, tau, 'g', linewidth=2, label='tau')
+plt.plot(samples,tau_pin_avec_param_base, 'b', linewidth=1, label='tau base param ')
 # plt.plot(samples, tau_estime_pin, 'r:', linewidth=1, label='phi etoile_sans Contraintes')
 plt.title('tau pin tau_estime pin ')
 plt.xlabel('2000 Samples')
@@ -421,174 +543,3 @@ Notez que si vous multipliez le regresseur R par phi vous obtenez tau=RPhi
 vous cherchez donc à déterminer Phi* qui minimise l’erreur quadratique ||tau_m-RPhi  ||^2 avec tau_m le couple mesuré (celui donné par Thanh). Déjà faites cela avec qp-solvers ensuite rajouter la contrainte que les masses (elements 1 et 5 du vecteur phi) M>=0
 '''
 
-
-
-
-
-# ========== Step 5 - Remove non dynamic effect columns then remove zero value columns then remove the parameters related to zero value columns at the end we will have a matix W_modified et Phi_modified
-""""
-threshold = 0.000001
-W_modified = np.array(W[:])
-tmp = []
-for i in range(len(phi)):
-    if (np.dot([W_modified[:, i]], np.transpose([W_modified[:, i]]))[0][0] <= threshold):
-        tmp.append(i)
-tmp.sort(reverse=True)
-
-phi_modified = phi[:]
-names_modified = names[:]
-for i in tmp:
-    W_modified = np.delete(W_modified, i, 1)
-    phi_modified = np.delete(phi_modified, i, 0)
-    names_modified = np.delete(names_modified, i, 0)
-
-# print('shape of W_m:\t', W_modified.shape)
-# print('shape of phi_m:\t', np.array(phi_modified).shape)
-
-# ========== Step 6 - QR decomposition + pivoting
-
-(Q, R, P) = sp.qr(W_modified, pivoting=True)
-
-# P sort params as decreasing order of diagonal of R
-# print('shape of Q:\t', np.array(Q).shape)
-# print('shape of R:\t', np.array(R).shape)
-# print('shape of P:\t', np.array(P).shape)
-
-# ========== Step 7 - Calculate base parameters
-
-tmp = 0
-for i in range(len(R[0])):
-    if R[i, i] > threshold:
-        tmp = i
-
-R1 = R[:tmp+1, :tmp+1]
-R2 = R[:tmp+1, tmp+1:]
-
-Q1 = Q[:, :tmp+1]
-
-for i in (tmp+1, len(P)-1):
-    names.pop(P[i])
-
-# print('Shape of R1:\t', np.array(R1).shape)
-# print('Shape of R2:\t', np.array(R2).shape)
-# print('Shape of Q1:\t', np.array(Q1).shape)
-
-beta = np.dot(np.linalg.inv(R1), R2)
-# print('Shape of res:\t', beta.shape)
-
-# beta = np.round(res, 6)
-# print(res)
-
-# ========== Step 8 - Calculate the Phi modified
-
-phi_base = np.dot(np.linalg.inv(R1), np.dot(Q1.T, tau))  # Base parameters
-W_base = np.dot(Q1, R1)                                  # Base regressor
-
-# print('Shape of phi_m:\t', np.array(phi_modified).shape)
-# print('Shape of W_m:\t', np.array(W_modified).shape)
-
-inertialParameters = {names_modified[i]: phi_base[i]
-                      for i in range(len(phi_base))}
-print("Base parameters:\n", inertialParameters)
-
-
-params_rsortedphi = [] # P donne les indice des parametre par ordre decroissant 
-params_rsortedname=[]
-for ind in P:
-    params_rsortedphi.append(phi_modified[ind])
-    params_rsortedname.append(names_modified[ind])
-
-params_idp_val = params_rsortedphi[:tmp+1]
-params_rgp_val = params_rsortedphi[tmp+1]
-params_idp_name =params_rsortedname[:tmp+1]
-params_rgp_name = params_rsortedname[tmp+1]
-params_base = []
-params_basename=[]
-
-for i in range(tmp+1):
-    if(beta[i] == 0):
-        params_base.append(params_idp_val[i])
-        params_basename.append(params_idp_name[i])
-
-    else:
-        params_base.append(str(params_idp_val[i]) + ' + '+str(round(float(beta[i]), 6)) + ' * ' + str(params_rgp_val))
-        params_basename.append(str(params_idp_name[i]) + ' + '+str(round(float(beta[i]), 6)) + ' * ' + str(params_rgp_name))
-
-print('base parameters and their identified values: \n')
-print(params_base)
-print('\n')
-table = [phi_base,params_base]
-print(table)
-print('\n')
-table1 = [params_basename,names_modified]
-print('base_parametre and equation \n')
-print(table1)
-    # print('valeurs base et calcul\t',table[i][i])
-# print('finale table shape \t', np.array(table).shape)
-# print(table)
-
-
-
-# ========== Step 9 - calcul de tau avec phi(paramaetre de base) et W_b le base regressor
-
-tau_base = np.dot(W_base, phi_base)
-
-samples = []
-for i in range(nbSamples * NQ):
-    samples.append(i)
-
-# trace le resultat dans un graph
-# les deux plot sur la memes figure
-plt.plot(samples, tau_base, color='green', linewidth=2,
-         label="tau_base")  # linewidth linestyle
-plt.plot(samples, tau, color='blue', linewidth=1, label="tau")
-plt.legend()
-plt.title("graphe montrant tau et tau_base")
-
-# les deux plot sur deux figures differentes
-fig, axs = plt.subplots(2)
-fig.suptitle('tau et tau_base separement')
-axs[0].plot(samples, tau, color='blue', label="tau")
-# plt.legend()
-axs[1].plot(samples, tau_base, color='green', label="tau_base")
-plt.legend()
-# showing results
-plt.show()
-
-# ========== Step 10 - calcul phi_etoile moindre carre min abs(tau - phi_etoile * W_b)^2.On applique le raisonement de moindre carre classique en annulant le gradien de l'erreur avec une Hes>0
-# print('W\t',np.array(W).shape,'\t W_base \t',W_base.shape)
-# wtw=np.dot(W.T,W)
-# # wtw=np.array(wtw)
-# w_btw_b = np.linalg.inv(wtw)
-# w_bt_tau = np.dot(W.T, tau)
-# phi_etoile = np.dot(w_btw_b, w_bt_tau)
-# print('shape of phi_etoile \t', phi_etoile.shape)
-# affichage de phi et phi_etoile
-
-# samples1 = []
-# for i in range(phi_etoile.shape[0]):
-#     samples1.append(i + 1)
-
-# plt.scatter(samples1, phi_base, color='green', linewidth=2, label="phi(base)")
-# plt.scatter(samples1, phi_etoile, color='red', linewidth=1, label="phi etoile")
-# plt.title("graphe montrant phi et phi etoile")
-# plt.legend()
-# plt.show()
-
-# ========== Step 11 - calcul l'err entre tau et tau_base calcule a partir de l'identification
-
-err = []
-for i in range(nbSamples * NQ):
-    err.append(abs(tau[i] - tau_base[i]) * abs(tau[i] - tau_base)[i])
-
-# print(np.array(err).shape)
-plt.plot(samples, err, label="err")
-plt.title("erreur quadratique")
-plt.legend()
-plt.show()
-
-# print("press enter to continue")
-# input()
-gv.deleteNode('world', True)  # name, all=True
-
-"""
