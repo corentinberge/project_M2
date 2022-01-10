@@ -1,3 +1,5 @@
+from numpy.core.fromnumeric import shape
+from numpy.core.numeric import ones
 from numpy.linalg.linalg import transpose
 import pinocchio as pin
 from pinocchio.utils import *
@@ -19,13 +21,15 @@ def situationOT(M):
     """ cette fonction permets à partir d'un objet SE3, d'obtenir un vecteur X contenant la transaltion et la rotation de L'OT (situation de l'OT)
     avec les angles d'euler classique, M est l'objet SE3, out = [ex ey ez psi theta phi] """
     p = M.translation
-    delta = orientationEuler(M.rotation)
+    #delta = orientationEuler(M.rotation)
+    delta = np.zeros(3)
     return np.concatenate((p,delta),axis=0)
-        
+       
 
 def orientationEuler(R):
     """ Renvois l'orientation selon la valeurs des angles d'euler  
     prend une matrice de rotation 3x3 en entrée"""
+    print("R22 = ",R[2,2])
     if(abs(R[2,2]) != 1):
         psi = math.atan2(R[0,2],-R[1,2])
         theta = math.acos(R[2,2])
@@ -44,7 +48,12 @@ def adaptSituation(X,q):
     on enleve ey car il n'y a pas de translation selon ey, on enleve psi et phi car rotation constantes """
     nX = np.array([X[0],X[2],q[0]+q[1]])#,X[4]]) # on enleve les colonnes 2,3 et 5 donc on enlève les lignes 2,3 et 5 de la jacobienne et on enleve l'indice 4 car on travail en position pour l'insatnt
     return nX
-
+def adaptPlanarRotation(R):
+    """
+        Adapt the rotation matrix, with respect of the Plan(0,x,z)
+    """
+    new_R = np.array([[R[0,0],R[0,2]],[R[2,0],R[2,2]]])
+    return new_R
 
 def adaptJacob(J):
     """ cette fonction permets d'adapter la jacobienne, on enlève les lignes 1,3 et 5, ON travai avec la position donc on enlève l'indice 4 (on la garde si on veut l'orientation) """
@@ -66,29 +75,31 @@ def getTraj(N,robot,IDX,dt,loi='P',V=10):
 
     """
     a0,a1,a2 = 0,1,2
-    X = np.zeros((N,3))
+    X = np.zeros((N,6))
     traj_q = np.zeros((N,robot.nq))
     traj_dq = np.zeros(traj_q.shape) 
     t = np.zeros(N)
     dotX = np.zeros(X.shape)
+    ddX = np.zeros(X.shape)
+    IDX = robot.model.getFrameId("tcp")
+
     for i in range(N):
         if(loi == 'P'):
-            q,dq = loiPoly(robot,i*dt,Vmax=V)
+            q,dq,ddq = loiPoly(robot,i*dt,Vmax=V)
         else:
-            q,dq = loiPendule(i*dt)
-        robot.forwardKinematics(q) #update joint 
+            q,dq,ddq = loiPendule(i*dt)
+        robot.forwardKinematics(q,dq,0*ddq)
+        dJv = np.hstack( (pin.getFrameAcceleration(robot.model,robot.data,IDX,pin.ReferenceFrame.LOCAL_WORLD_ALIGNED).linear ,pin.getFrameAcceleration(robot.model,robot.data,IDX,pin.ReferenceFrame.LOCAL_WORLD_ALIGNED).angular)) 
+        robot.forwardKinematics(q,dq,ddq) #update joint 
         pin.updateFramePlacements(robot.model,robot.data) #update frame placement  
-        J = adaptJacob(pin.computeFrameJacobian(robot.model,robot.data,q,IDX,pin.ReferenceFrame.LOCAL_WORLD_ALIGNED))
-        X[i,:] =  adaptSituation(situationOT(robot.data.oMf[IDX]),q)
+        J = pin.computeFrameJacobian(robot.model,robot.data,q,IDX,pin.ReferenceFrame.LOCAL_WORLD_ALIGNED)
+        X[i,:] = situationOT(robot.data.oMf[IDX])
         traj_dq[i,:] = dq
         traj_q[i,:] = q
         t[i] = i*dt
         dotX[i,:] = np.dot(J,dq)
-    print("shape dotX : \t",dotX.shape)
-   # plt.plot(t,traj_dq,"label vrai valeur de dq")
-    #print("shape dotX",dotX.shape)
-    #print("shape X",X.shape)
-    return X,dotX,traj_q,traj_dq,t
+        ddX[i,:] = dJv + np.dot(J,ddq)
+    return X,dotX,ddX,traj_q,traj_dq,t
         
 #Loi polynomial
 
@@ -105,14 +116,16 @@ def loiPoly(robot,t,Vmax=10):
         print("tf : \t",tf)
     q = np.zeros(robot.nq)
     dq = np.zeros(robot.nv)
+    ddq = np.zeros(robot.nv)
     for i in range(robot.nq):
         q[i] = a0[i] + a1[i]*t + a2[i]*(t**2) + a3[i]*(t**3) 
         dq[i] = a1[i] + 2*a2[i]*t + 3*a3[i]*t**2
+        ddq[i] = 2*a2[i] + 6*a3[i]*t
         if(t>=tf[i]):
             q[i] = a0[i] + a1[i]*tf[i] + a2[i]*(tf[i]**2) + a3[i]*(tf[i]**3) #2 dimension 
             dq[i] = a1[i] + 2*a2[i]*tf[i] + 3*a3[i]*tf[i]**2
-        
-    return q,dq
+            ddq[i] = 0
+    return q,dq,ddq
 
 #Position initial du robot
 def calcCoeff(Vmax, robot, qf):
@@ -134,27 +147,35 @@ def calcCoeff(Vmax, robot, qf):
 
 def loiPendule(t):
     """retourne la loi avec série de fournier """
-    return np.array([0.1*np.cos(2*math.pi*t),0.5*np.cos(2*math.pi*t)]),np.array([-0.2*math.pi*np.sin(2*math.pi*t),-1*math.pi*np.sin(2*math.pi*t)])
+    return np.array([0.1*np.cos(2*math.pi*t),0.5*np.cos(2*math.pi*t)]),np.array([-0.2*math.pi*np.sin(2*math.pi*t),-1*math.pi*np.sin(2*math.pi*t)]),np.array([-0.4*math.pi**2*np.cos(2*math.pi*t),-2*math.pi**2*np.cos(2*math.pi*t)])
 
 
 def simulateurVerif(N,robot):
     """ Simutalteur de vérification de la jacobienne """
     BASE = pin.ReferenceFrame.LOCAL_WORLD_ALIGNED
     IDX = robot.model.getFrameId("tcp")
-    dt = 1e-2
+    #IDX = robot.model.getFrameId(robot.model.names[robot.model.njoints-1])
+    dt = 1e-4
     X = np.zeros((N,3))
     t = np.zeros(N)
     dotXJac = np.zeros(X.shape)
+    ddX_traj = np.zeros(X.shape)
     for i in range(N):
         #q,dq = loiPendule(i*dt)
         q,dq = loiPoly(robot,i*dt,Vmax=4)
         robot.forwardKinematics(q) #update joint 
         pin.updateFramePlacements(robot.model,robot.data) #update frame placement
+        DJ = pin.computeJointJacobiansTimeVariation(robot.model,robot.data,q,dq)
         if(i*dt == 0.5):
             print("qpoint = \t",dq)
             print("q \t",q)
             print("J \t",J)
-        J = adaptJacob(pin.computeFrameJacobian(robot.model,robot.data,q,IDX,BASE)) #essais de world, local comme frame de ref 
+        #ddx = ComputedotJTimesdotQ(robot,dq)
+        ddx = np.dot(DJ,dq)
+        print("acceleration OT : ",ddx)
+        #print("acceleration ot :", ddx)
+        ddX_traj[i,:] = np.array([ddx[0],ddx[2],ddx[4]])
+        J = adaptJacob(pin.computeFrameJacobian(robot.model,robot.data,q,IDX,BASE))
         #J = adaptJacob(robot.computeFrameJacobian(q,IDX))
         X[i,:] =    adaptSituation(situationOT(robot.data.oMf[IDX]),q)
         dotXJac[i,:] = np.dot(J,dq)
@@ -162,6 +183,8 @@ def simulateurVerif(N,robot):
         robot.display(q)
         time.sleep(dt)
     dotXDiff = calculDotX(X,dt)
+    ddXDiff = calculDotX(dotXDiff,dt)
+
     print("shape dotX avec différences finies\t ",dotXDiff.shape)
     print(X[N-1,:])
     if PLOT:
@@ -172,7 +195,7 @@ def simulateurVerif(N,robot):
         plt.ylabel("m ou m/s")
         plt.xlabel("seconde")
         plt.legend()
-        plt.savefig("jacobian_checkx")
+        #plt.savefig("jacobian_checkx")
         plt.figure()
         plt.plot(t,X[:,1],label="position selon axe z en m")
         plt.plot(t,dotXJac[:,1],label="avec Jacobienne en m/s")
@@ -181,7 +204,17 @@ def simulateurVerif(N,robot):
         plt.ylabel("m ou m/s")
         plt.xlabel("seconde")
         plt.legend()
-        plt.savefig("jacobian_check")
+        plt.figure()
+        plt.plot(t,ddX_traj[:,0],label="accélération linéaire selon x")
+        plt.plot(t,ddX_traj[:,1],label="accélération linéaire selon z")
+        plt.plot(t,ddX_traj[:,2],label="accélération angulaire selon y")
+        plt.plot(t[:len(t)-2],ddXDiff[:,0],".",label="x avec différences finis en m/s")
+        plt.ylabel("m/s2 ou rad/s2")
+        plt.xlabel("seconde")
+        plt.title("acceleration de l'ot")
+        plt.legend()
+        plt.show()
+        #plt.savefig("jacobian_check")
 
 def computeError(Xconsigne,Xactuel,dotXconsigne,dotXactuel):
     """ Renvois l'erreur de la situation de l'organe terminal et l'erreur de ça vitesse"""
@@ -250,6 +283,71 @@ def jacobienneValidation(J,dq):
     dotX = np.dot(J,dq)
     return dotX
 
+def ComputeAngularVelocities(dq):
+    """
+        This function compute the angular velocities using the recursive equation
+            wj = wj-1 + sigLinej*dotqjzj0 wher z0j is the axis of frame j in the frame 0
+        w0 = 0
+        sigLinej = 1 always beacause the joint robot are all revolutional
+    """
+
+    w = [np.zeros((3))]
+    for j in range(1,robot.model.njoints):
+        jointIndex = robot.model.getFrameId(robot.model.names[j])
+        zj0 = robot.data.oMf[jointIndex].rotation[:,2]
+        wj0 = w[j-1] + zj0*dq[j-1]
+        w.append(wj0)
+    #print(w)
+    return np.array(w)
+
+def getdjv(robot,q,v,a):
+    """this function return the product of the derivative Jacobian times the joint velocities """ 
+    IDX = robot.model.getFrameId("tcp")
+    robot.forwardKinematics(q,v,0*a)
+    dJv = np.hstack( (pin.getFrameClassicalAcceleration(robot.model,robot.data,IDX,pin.ReferenceFrame.LOCAL_WORLD_ALIGNED).linear ,pin.getFrameAcceleration(robot.model,robot.data,IDX,pin.ReferenceFrame.LOCAL_WORLD_ALIGNED).angular))
+    robot.forwardKinematics(q,v,a)
+    return dJv
+
+
+def ComputedotJTimesdotQ(robot,dq):
+    """
+        this function compute the multiplication dJdq and return the current OT acceleration using a recursive algorithm derived form second kinematic model
+        Appendix 10.3 form Modeling, Indetification and Control written by khalil
+
+        aij var i in frame j 
+    """
+    IDX = robot.model.getFrameId("tcp")
+    psiprec0 = np.zeros(3)
+    deltaprec0 = np.zeros(3)
+    Uprec0 = np.zeros((3,3))
+    #q = np.array([math.pi/3, 0])
+    #robot.display(q)
+    #robot.forwardKinematics(q) #update joint 
+    pin.updateFramePlacements(robot.model,robot.data) #update frame placement
+    w = ComputeAngularVelocities(dq)
+    #print("shape w ",w[0].shape)
+
+    for i in range(1,robot.model.njoints): #start to 1 because of joint 0, is the base link
+        #print("joint :" + str(i) + " names " +robot.model.names[i] + " Frame Index : " + str(robot.model.getFrameId(robot.model.names[i])) )
+        jointIndex = robot.model.getFrameId(robot.model.names[i])#to get the frame index of joint i
+        zi0 = robot.data.oMf[jointIndex].rotation[:,2]# unite vecteur zi in the frame 0, (base workd)
+        #print(" unite vector zi0 \t",zi0)
+        #print("vitesse angulaire ",w)
+        #print("produit vect ",np.cross(w[i],dq[i-1]*zi0)) 
+        psii0 = np.dot(robot.data.oMf[jointIndex].rotation,psiprec0) + np.cross(w[i],dq[i-1]*zi0)
+        Ui0 = skew(psii0) + np.dot(skew(w[i]),skew(w[i]))
+        deltai0 = np.dot(robot.data.oMf[jointIndex].rotation,(deltaprec0 + np.dot(Uprec0,-robot.data.oMf[jointIndex].translation)))
+       #print(" acceleration 0 ",psii0)
+        Uprec0 = Ui0
+        deltaprec0 = deltai0
+        psiprec0 = psii0
+    #psiOT = robot.data.oMf[IDX]
+    #print("acceleration OT",accLini0)
+    #print(accAngi0)
+    #print("concatenation : ",np.concatenate( (accLini0,accAngi0)))
+    return np.concatenate( (deltai0,psii0))
+        
+
 def calculDotX(X,dt):
     """ Calcul de Xpoint avec les différences finis, Xpoint = DeltaX/Dt en [m/s m/s rad/s ] """
     dotX = np.zeros((X.shape[0]-1,X.shape[1]))
@@ -309,15 +407,29 @@ def robotDynamic(robot,input,q,vq,aq,dt):
             Y = x
             with u = tau, x = [q,vq], Xp = [vq,aq]
     """
-    G = pin.rnea(robot.model, robot.data, q, np.zeros(robot.nv), np.zeros(robot.nv)) #gravity matrix
+    #G = pin.rnea(robot.model, robot.data, q, np.zeros(robot.nv), np.zeros(robot.nv)) #gravity matrix
     A = pin.crba(robot.model,robot.data,q) # compute mass matrix
     H = pin.rnea(robot.model,robot.data,q,vq,aq)  # compute dynamic drift -- Coriolis, centrifugal, gravity
-    tau = input+G
+    tau = input#+G
     X = np.array([q,vq])
     Xp = np.array([vq,np.dot(pinv(A),(tau-H))])
     X += Xp*dt
 
     return X[0],X[1],Xp[0]
+
+
+
+def skew(v):
+    """ 
+        take the 3x1 vector and return the skew-symetric matrix
+    """
+    if(v.size != 3 ):
+        print(" v need to be a 3x1 vector")
+        return None
+    else:
+        return np.array([[0,-v[2],v[1]],
+                        [v[2],0,-v[0]],
+                        [-v[1],v[0],0]])
 
 def simulator(robot,espace="OT"):
     """
@@ -340,24 +452,26 @@ def simulator(robot,espace="OT"):
         pin.updateFramePlacements(robot.model,robot.data) #update frame placement
         J = pin.computeFrameJacobian(robot.model,robot.data,q,IDX,BASE)
         X = situationOT(robot.data.oMf[IDX])
+        print(adaptPlanarRotation(robot.data.oMf[IDX].rotation))
         J = adaptJacob(J) # adadptedJ
         X = adaptSituation(X,q) #adaptedX
         dotX = np.dot(J,dq)
-        print("derivative Jacobian \n",robot.data.dJ)
-        print("\n\n\n")
+        #print("derivative Jacobian \n",robot.data.dJ)
+        #print("\n\n\n")
         # adapaptation en prenant en compte le plan 
         if espace == "OT":
             deltaX,deltaDotX = computeError(Xc[i,:],X,dotXc[i,:],dotX) #dotXc[4,:] 
             #Kp,Kd,Ki = calcGain(robot,3.3)
 
-            outController,I = controller(deltaX,deltaDotX,I,dt,Kp=62.5,Kd=20,Ki=0.2)
+            outController,I = controllerPID(deltaX,deltaDotX,I,dt,Kp=62.5,Kd=20,Ki=0.2)
+            print("output of controller \t ", outController)
             Jplus = pinv(J)
             Jt = transpose(J)
             inRobot = np.dot(Jt,outController)
         elif espace == "Joint":
             deltaQ,deltaDotQ = computeError(qc[N-1,:],q,0,dq)
             Kp,Kd,Ki = calcGain(robot,4)
-            outController,I = controller(deltaQ,deltaDotQ,I,dt,Kp,Kd,Ki)
+            outController,I = controllerPID(deltaQ,deltaDotQ,I,dt,Kp,Kd,Ki)
             inRobot = outController
 
         
@@ -396,9 +510,9 @@ def simulator(robot,espace="OT"):
         plt.show()
 
 
-def controller(delta,deltaDot,I,dt,Kp = 1,Kd = 1,Ki = 1):
+def controllerPID(delta,deltaDot,I,dt,Kp = 1,Kd = 1,Ki = 1):
     """ 
-    Compute the signal of the output of the controller which can be interpreted as a PD controller
+    Compute the signal of the output of the controller which can be interpreted as a PID controller
     ------------------------------
     IN 
 
@@ -429,9 +543,185 @@ def calcGain(robot,w):
 #    print("gain prop \t",Kp)
     return Kp,Kd,KI
     
-def computeJacobianDerivative():
+
+def PCLT(eps,eps_vel,eps_acc,I,dt,Kp = 1,Kd = 1,Ki = 1):
+    return controllerPID(eps,eps_vel,I,dt,Kp,Kd,Ki)
+
+
+def computeSelectionMatrix():
+    Sf = np.eye(2) # Rotation Matrix Rf0
+    Stau =np.eye(2)  #Rotation Matrix Rtau0
+    Epsf = np.eye(2)  #matrix for position
+    Epstau = np.eye(2)  #matrix for moment
+
+    pos_selection = np.dot(np.dot(Sf.T,Epsf),Sf)
+    moment_seltection = np.dot(np.dot(Stau.T,Epstau),Stau)
+    position_matrix = np.concatenate( (np.concatenate((pos_selection,np.zeros(pos_selection.shape)),axis=1),np.concatenate((np.zeros(moment_seltection.shape),moment_seltection),axis=1)),axis = 0)
+    force_matrix = (np.eye(position_matrix.shape[0],M=position_matrix.shape[1])-position_matrix)
+    return position_matrix,force_matrix
     
 
+
+def carthesianPolynomialLaw(t,x0,xf,Vmax=10):
+    """
+        Polynomial Law in the carthesian space
+    """
+    a0, a1, a2, a3, tf = calcCoeffCarthesianLaw(Vmax, robot,xf,x0) # a modifier pour le calculer seulement a la premiere itération
+    if(t == 0):
+        print("a0 : \t",a0)
+        print("a1 : \t",a1)
+        print("a2 : \t",a2)
+        print("a3 : \t",a3)
+       # print("a4 : \t",a4)
+       # print("a5 : \t",a5)
+        print("tf : \t",tf)
+    X = np.zeros(6)
+    Xpoint = np.zeros(6)
+    Xpointpoint = np.zeros(6)
+    for i in range(6):
+        X[i] = a0[i] + a1[i]*t + a2[i]*(t**2) + a3[i]*(t**3) #+ a4[i]*(t**4) + a5[i]*(t**5)
+        Xpoint[i] = a1[i] + 2*a2[i]*t + 3*a3[i]*t**2 #+ 4*a4[i]*t**3 + 5*a5[i]*t**4
+        Xpointpoint[i] = 2*a2[i] + 6*a3[i]*t #+ 12*a4[i]*t**2 + 20*a5[i]*t**3
+        if(t>=tf[i]):
+            X[i] = a0[i] + a1[i]*tf[i] + a2[i]*(tf[i]**2) + a3[i]*(tf[i]**3) #+ a4[i]*(tf[i]**4) + a5[i]*(tf[i]**5)
+            Xpoint[i] = a1[i] + 2*a2[i]*tf[i] + 3*a3[i]*tf[i]**2 #+ 4*a4[i]*tf[i]**3 + 5*a5[i]*tf[i]**4
+            Xpointpoint[i] = 2*a2[i] + 6*a3[i]*tf[i] #+ 12*a4[i]*tf[i]**2 + 20*a5[i]*tf[i]**3  
+    return X,Xpoint,Xpointpoint
+
+
+def calcCoeffCarthesianLaw(Vmax, robot, xf,x0):
+    a0 = np.zeros(6)
+    a1 = np.zeros(6)
+    a2 = np.zeros(6)
+    a3 = np.zeros(6)
+    #a4 = np.zeros(6)
+    #a5 = np.zeros(6)
+    tf = np.zeros(6)
+    DeltaX = xf - x0 #robot.data.oMf[0]
+    
+    for i in range(6):
+        tf[i] = (3/2)*(DeltaX[i]/Vmax)
+        if(tf[i] != 0):
+            a0[i] = x0[i]                  # Contrainte position initiale = qinit
+            a1[i] = 0                   # Containte position initiale = 0
+            a2[i] = (3*DeltaX[i])/(tf[i]**2) 
+            a3[i] = (-2*DeltaX[i])/(tf[i]**3)
+            #a4[i] = ?
+            #a5[i] = ?
+        
+
+    return a0,a1,a2,a3,tf
+
+def getCarthesianTraj(robot,N,dt):
+    """
+        This function return the carthesian polinomial law in the carthesian space
+
+        out is a 6xN vector 
+    """
+    X0 = situationOT(robot.data.oMf[robot.model.getFrameId("tcp")])
+    Xf = np.array([1.25,0,0.6,0,0,0])
+    X = np.zeros((6,N))
+    dX = np.zeros((6,N))
+    ddX = np.zeros((6,N))
+    t = np.zeros(N)
+    for i in range(N):
+        X[:,i],dX[:,i],ddX[:,i] = carthesianPolynomialLaw(i*dt,X0,Xf)
+        t[i] = i*dt
+    
+    return X,dX,ddX
+    
+
+
+def run(robot):
+    """
+        simulate the computed torque control law
+
+
+    """
+    dt = 1e-4
+    N = 300000
+
+    BASE = pin.ReferenceFrame.LOCAL_WORLD_ALIGNED
+    IDX = robot.model.getFrameId("tcp")
+    
+    q = robot.q0
+    vq = np.zeros(robot.nv)
+    aq = np.zeros(robot.nv)
+
+
+    robot.forwardKinematics(q) #update joint 
+    pin.updateFramePlacements(robot.model,robot.data) #update frame placement
+    Xdesired,dXdesired,ddXdesired = getCarthesianTraj(robot,N,dt)
+    trajX = np.zeros(Xdesired.shape)
+    t = np.zeros(N)
+
+    Xinit = situationOT(robot.data.oMf[robot.model.getFrameId("tcp")])
+    print(Xinit)
+    Xf = np.array([1.15,0,0.85,0,0,0])
+    dXf = np.zeros(Xf.shape)
+    ddXf = np.zeros(Xf.shape)
+    for i in range(N):
+        X = situationOT(robot.data.oMf[IDX])
+        print("X = ",X)
+        robot.forwardKinematics(q) #update joint 
+        pin.updateFramePlacements(robot.model,robot.data) #update frame placement
+        J = pin.computeFrameJacobian(robot.model,robot.data,q,IDX,BASE)
+        G = pin.rnea(robot.model, robot.data, q, np.zeros(robot.nv), np.zeros(robot.nv)) #gravity matrix
+        A = pin.crba(robot.model,robot.data,q) # compute mass matrix
+        H = pin.rnea(robot.model,robot.data,q,vq,aq)  # compute dynamic drift -- Coriolis, centrifugal, gravity
+        pin.computeJointJacobiansTimeVariation(robot.model,robot.data,q,vq)
+        DJ = pin.getJointJacobianTimeVariation(robot.model,robot.data, robot.model.getJointId('joint2'),pin.ReferenceFrame.LOCAL_WORLD_ALIGNED)
+        #print("Xinit = ",Xinit)
+        Jp = pinv(J)
+        dX = np.dot(J,vq)
+        ddXn = np.dot(DJ,vq)
+        
+        
+        trajX[:,i] = X
+        t[i] = i*dt
+        
+        
+        
+        #tau = computedTorqueController(Xdesired[:,i],X,dXdesired[:,i],dX,ddXdesired[:,i],ddXn,Jp,A,H)
+        tau = computedTorqueController(Xf,X,dXf,dX,ddXf,ddXn,Jp,A,H)
+        #print("tau-h bis = ",tau-H)
+        q,vq,aq = robotDynamic(robot,tau,q,vq,aq,dt)
+        #print("aq = ",aq)
+        #print("vq = ",vq)
+        #print("q = ",q)
+        robot.display(q)
+    plt.figure()
+    plt.plot(t,Xf[0]*ones(N),'r--',label="la consigne sur x")
+    plt.plot(t,trajX[0,:],label="trajectoire OT sur x")
+    plt.legend()
+    plt.show()
+        
+def main(robot):
+    N = 10000
+    dt = 1e-4
+
+    IDX = robot.model.getFrameId("tcp")
+    X,dotX,ddX,traj_q,traj_dq,t = getTraj(N,robot,IDX,dt,loi='P')
+    ddXdiff = calculDotX(dotX,dt)
+
+    plt.figure()
+    plt.plot(t[0:len(t)-1],ddXdiff[:,2],label="accélération sur z de l'Ot avec différences finis")
+    plt.plot(t,ddX[:,2],'r--',label="accélération sur z de l'OT avec Jpoint ")
+    #plt.plot(t[0:len(t)-1],(ddXdiff[:,0]-ddX[0:len(t)-1,0]))
+    plt.legend()
+    plt.title("validation Jpoint")
+    plt.xlabel("temps en seconde")
+    plt.ylabel("accélération en m/s2")
+    plt.show()
+
+def computedTorqueController(Xd,X,dXd,dX,ddXd,ddXn,Jp,A,H):
+    kp = 0.1
+    kd = 0
+    ex = Xd-X
+    edx = dXd-dX
+    W = kp*ex+kd*edx+ddXd-ddXn
+    a = np.dot(Jp,W)
+    return tau
 
 
 Main = True
@@ -443,7 +733,18 @@ if __name__ == '__main__':
     robot = RobotWrapper.BuildFromURDF(urdf_path,package_path,verbose=True)
     robot.initViewer(loadModel=True)
     robot.display(robot.q0)
-    #simulateurVerif(300,robot)
-    simulator(robot)
+    S, S_ = computeSelectionMatrix()
+    #print("S matrix \n",S)
+    #print("S_ matrix \n",S_)
+    #IDX = robot.model.getFrameId("tcp")
+    #print(IDX)
+    #pin.updateFramePlacements(robot.model,robot.data) #update frame placement
+    #print(robot.data.oMf[IDX])
+    #print(robot.data.oMf[IDX].rotation)
+    #print(adaptPlanarRotation(robot.data.oMf[IDX].rotation))
+    #simulateurVerif(10000,robot)
+    #simulator(robot)
     #simuLoiCommande(robot)
-    #simuLoiCommande(robot)
+    #ComputedotJTimesdotQ(robot,np.ones(2))
+    #run(robot)
+    main(robot)
