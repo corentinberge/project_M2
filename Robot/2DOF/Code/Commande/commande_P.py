@@ -386,7 +386,46 @@ def robotDynamic(robot,input,q,vq,aq,dt):
             Y = x
             with u = tau, x = [q,vq], Xp = [vq,aq]
     """
-    G = pin.rnea(robot.model, robot.data, q, np.zeros(robot.nv), np.zeros(robot.nv)) #gravity matrix
+    A = pin.crba(robot.model,robot.data,q) # compute mass matrix
+    H = pin.rnea(robot.model,robot.data,q,vq,aq)  # compute dynamic drift -- Coriolis, centrifugal, gravity
+    tau = input
+    X = np.array([q,vq])
+    Xp = np.array([vq,np.dot(pinv(A),(tau-H))])
+    X += Xp*dt
+    
+    return X[0],X[1],Xp[1] #Xp[0] avant
+
+def robotDynamicWithForce(robot,input,q,vq,aq,dt,IDX):
+    """ 
+    Dynamic of the robot calculator for postion/speed control 
+    tau =  input + G
+
+    tau_new = J't.f
+    ------------------------------
+    IN
+    
+    robot   : a RobotWrapper object needed to compute gravity torque and other parameters
+    input   : input signal of the function equals to B*deltaDotQ-K*deltaQ
+    q       : current joints angles values
+    vq      : current joints velocities 
+    aq      : current joints acceleration values 
+    dt      : time step between each execution of this function
+    ---------------------------------
+    OUT
+
+    q : calculated joint angles values 
+    dq : calculated joint velocities values 
+    aq : calculated joint acceleration values 
+    f : the force exerted by the manipulator 
+
+    system : 
+            Xp = Ax + Bu
+            Y = x
+            with u = tau, x = [q,vq], Xp = [vq,aq]
+
+            f = pinv(Jt)tau_new
+    """
+
     A = pin.crba(robot.model,robot.data,q) # compute mass matrix
     H = pin.rnea(robot.model,robot.data,q,vq,aq)  # compute dynamic drift -- Coriolis, centrifugal, gravity
     tau = input
@@ -394,15 +433,56 @@ def robotDynamic(robot,input,q,vq,aq,dt):
     Xp = np.array([vq,np.dot(pinv(A),(tau-H))])
     X += Xp*dt
 
-    #robot.forwardKinematics(X[0],X[1],Xp[0]) #update joint 
-    #pin.updateFramePlacements(robot.model,robot.data) #update frame placement
-    #G = pin.rnea(robot.model, robot.data, q, np.zeros(robot.nv), np.zeros(robot.nv)) #gravity matrix
-    #A = pin.crba(robot.model,robot.data,q) # compute mass matrix
-    #H = pin.rnea(robot.model,robot.data,q,vq,aq)  # compute dynamic drift -- Coriolis, centrifugal, gravity
+    q = X[0]
+    vq = X[1]
+    aq = Xp[1]
+
+    robot.forwardKinematics(q) #update joint 
+    pin.updateFramePlacements(robot.model,robot.data) #update frame placement
+
+
+    A = pin.crba(robot.model,robot.data,q) # compute mass matrix
+    H = pin.rnea(robot.model,robot.data,q,vq,aq)  # compute dynamic drift -- Coriolis, centrifugal, gravity
+
+    J = pin.computeFrameJacobian(robot.model,robot.data,q,IDX,pin.ReferenceFrame.LOCAL_WORLD_ALIGNED)
+    tau_next = np.dot(A,aq) + H
+    f = np.dot(pinv(np.transpose(J)),np.dot(A,aq) + H) 
+
+    return q,vq,aq,f
     
 
-    
-    return X[0],X[1],Xp[1] #Xp[0] avant
+
+
+
+
+def run_efort_control(robot):
+    """
+        this function implement the efort control scheme and run it 
+
+
+    """
+    N = 3000
+    dt = 1e-3
+    IDX = robot.model.getFrameId("tcp")
+    Xdesired,dXdesired,ddXdesired,traj_q,traj_dq,t = getTraj(N,robot,IDX,dt,loi='F'
+    )
+    q = traj_q[:,0]
+    vq = np.zeros(robot.nv)
+    aq = np.zeros(robot.nv)
+    trajX = np.zeros(Xdesired.shape)
+
+    robot.forwardKinematics(q) #update joints
+    pin.updateFramePlacements(robot.model,robot.data) #update frame placement
+    Xinit = situationOT(robot.data.oMf[robot.model.getFrameId("tcp")])
+    Xf = np.array([1.15,0,0.85,0,0,0])
+    dXf = np.zeros(Xf.shape)
+    ddXf = np.zeros(Xf.shape)
+
+    for i in range(N):
+        print("ntm")
+
+def effort_control():
+    return None
 
 
 
@@ -519,20 +599,14 @@ def PCLT(eps,eps_vel,eps_acc,I,dt,Kp = 1,Kd = 1,Ki = 1):
     return controllerPID(eps,eps_vel,I,dt,Kp,Kd,Ki)
 
 
-def computeSelectionMatrix():
+def computeSelectionMatrix(s1,s2,s3,s4,s5,s6):
     """ 
         Compute the selection Matrix useful for the effort control
     """
-    Sf = np.eye(2) # Rotation Matrix Rf0
-    Stau =np.eye(2)  #Rotation Matrix Rtau0
-    Epsf = np.eye(2)  #matrix for position
-    Epstau = np.eye(2)  #matrix for moment
 
-    pos_selection = np.dot(np.dot(Sf.T,Epsf),Sf)
-    moment_seltection = np.dot(np.dot(Stau.T,Epstau),Stau)
-    position_matrix = np.concatenate( (np.concatenate((pos_selection,np.zeros(pos_selection.shape)),axis=1),np.concatenate((np.zeros(moment_seltection.shape),moment_seltection),axis=1)),axis = 0)
-    force_matrix = (np.eye(position_matrix.shape[0],M=position_matrix.shape[1])-position_matrix)
-    return position_matrix,force_matrix
+    if(s1 == s4 or s2 == s5 or s3 == s6):
+        print("Warning we can't control position and force along the same axis")
+    return np.diag(s1,s2,s3,s4,s5,s6)
     
 
 
@@ -603,11 +677,6 @@ def getCarthesianTraj(robot,N,dt):
     
     return X,dX,ddX
     
-def effort_control():
-
-
-
-    return None
 
 def run(robot):
     """
@@ -713,6 +782,7 @@ if __name__ == '__main__':
     robot = RobotWrapper.BuildFromURDF(urdf_path,package_path,verbose=True)
     robot.initViewer(loadModel=True)
     robot.display(robot.q0)
-    S, S_ = computeSelectionMatrix()
-    run(robot)
+    #run(robot)
+    print(np.diag([0,1,0,0,1,0]))
+    
     #main(robot)
