@@ -76,6 +76,8 @@ for line in f:
     ddq2.append(data_split[5])
     tau1.append(data_split[6])
     tau2.append(data_split[7])
+    tau.append(data_split[6])
+    tau.append(data_split[7])
 f.close()
 ## the data file was modified so we eliminated the first line who dont contain numbers 
 # so we avoid prob with stind to double conversion
@@ -103,8 +105,8 @@ print('shape of ddq',ddq.shape)
 
 
 ##put all the torque values in one array and convert to double
-tau.extend(tau1)
-tau.extend(tau2)
+# tau.extend(tau1)
+# tau.extend(tau2)
 tau=np.array(tau)
 tau=np.double(tau)
 print('shape of tau',tau.shape)
@@ -272,7 +274,7 @@ plt.figure('torque pin/than et torque base parameters')
 # plt.plot(samples, tau_pin, 'g', linewidth=2, label='tau')
 plt.plot(samples, tau, 'g', linewidth=2, label='tau')
 plt.plot(samples,tau_param_base, 'b', linewidth=1, label='tau base param ')
-plt.title('tau pin tau_estime pin ')
+plt.title('tau tau_estime with base param ')
 plt.xlabel('2000 Samples')
 plt.ylabel('parametres')
 plt.legend()
@@ -399,25 +401,7 @@ p_pin=nearestPD(p_pin)
 #    [0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0,0,0,0])
 #h=[0,0,0,0,0,0,0,0]
 
-# #constraint masse (m1,m2) positive 0.15<mx,my,mz<0.3
-# G=([-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-#    [0,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-#    [0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],   
-#    [0,0,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-#    [0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-#    [0,0,0,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-#    [0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-#    [0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0,0,0,0,0,0,0],
-#    [0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0,0,0,0,0,0],
-#    [0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0],
-#    [0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0,0,0,0,0],
-#    [0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0],
-#    [0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0,0,0,0],
-#    [0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0])
-
-# h=[0,-0.15,0.3,-0.15,0.3,-0.15,0.3,0,-0.15,0.3,-0.15,0.3,-0.15,0.3]
-
-#constraints masse (m1,m2) positive 0.15<mx,my,mz<0.3  base_parametres >0 et friction >0
+#constraint masse (m1,m2) positive 0.15<mx,my,mz<0.3
 G=([-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
    [0,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
    [0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],   
@@ -431,17 +415,35 @@ G=([-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
    [0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0,0,0,0,0],
    [0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0],
    [0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0,0,0,0],
-   [0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0],
-   [0,0,0,-1,0,0,0,0,0,0,-0.25,0,0,0,0,0,0,0,0,0,0,0],
-   [0,-1,0,0,0,0,0,0,0,0,-0.5,0,0,0,0,0,0,0,0,0,0,0],
-   [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0],
-   [0,0,0,0,0,0,-1,0,0,0,-0.3125,0,0,0,0,0,0,0,0,0,0,0],
-   [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1],
-   [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0],
-   )
-G1=G
-h=[0,-0.15,0.3,-0.15,0.3,-0.15,0.3,0,-0.15,0.3,-0.15,0.3,-0.15,0.3,0,0,0,0,0,0]
-h1=[0,-0.4,0.5,-0.4,0.5,-0.4,0.5,0,-0.4,0.5,-0.4,0.5,-0.4,0.5,0,0,0,0,0,0]
+   [0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0])
+
+h=[0,-0.05,0.3,-0.05,0.3,-0.05,0.3,0,-0.05,0.3,-0.05,0.3,-0.05,0.3]
+
+# #constraints masse (m1,m2) positive 0.15<mx,my,mz<0.3  base_parametres >0 et friction >0
+# G=([-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+#    [0,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+#    [0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],   
+#    [0,0,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+#    [0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+#    [0,0,0,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+#    [0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+#    [0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0,0,0,0,0,0,0],
+#    [0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0,0,0,0,0,0],
+#    [0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0],
+#    [0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0,0,0,0,0],
+#    [0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0],
+#    [0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0,0,0,0],
+#    [0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0],
+#    [0,0,0,-1,0,0,0,0,0,0,-0.25,0,0,0,0,0,0,0,0,0,0,0],
+#    [0,-1,0,0,0,0,0,0,0,0,-0.5,0,0,0,0,0,0,0,0,0,0,0],
+#    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0],
+#    [0,0,0,0,0,0,-1,0,0,0,-0.3125,0,0,0,0,0,0,0,0,0,0,0],
+#    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1],
+#    [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0],
+#    )
+#  G1=G
+# h=[0,-0.15,0.3,-0.15,0.3,-0.15,0.3,0,-0.15,0.3,-0.15,0.3,-0.15,0.3,0,0,0,0,0,0]
+# h1=[0,-0.4,0.5,-0.4,0.5,-0.4,0.5,0,-0.4,0.5,-0.4,0.5,-0.4,0.5,0,0,0,0,0,0]
 # h1 is used to change the bound(uper lower) of the inequality
 
 # converting to double
@@ -450,10 +452,10 @@ h=np.array(h)
 G=np.double(G)
 h=np.double(h)
 
-G1=np.array(G1)
-h1=np.array(h1)
-G1=np.double(G1)
-h1=np.double(h1)
+# G1=np.array(G1)
+# h1=np.array(h1)
+# G1=np.double(G1)
+# h1=np.double(h1)
 #Any constraints that are >= must be multiplied by -1 to become a <=.
 
 # phi_etoile=qpsolvers.solve_ls(P,q,None,None)
@@ -470,19 +472,19 @@ phi_etoile=qpsolvers.solve_qp(
             initvals=None,
             sym_proj=True
             )
-phi_etoile1=qpsolvers.solve_qp(
-            P,
-            q,
-            G1,#G Linear inequality matrix.
-            h1,#Linear inequality vector.
-            A=None,
-            b=None,
-            lb=None,
-            ub=None,
-            solver="quadprog",
-            initvals=None,
-            sym_proj=True
-            )
+# phi_etoile1=qpsolvers.solve_qp(
+#             P,
+#             q,
+#             G1,#G Linear inequality matrix.
+#             h1,#Linear inequality vector.
+#             A=None,
+#             b=None,
+#             lb=None,
+#             ub=None,
+#             solver="quadprog",
+#             initvals=None,
+#             sym_proj=True
+#             )
 
 
 phi_etoile_pin=qpsolvers.solve_qp(
@@ -507,7 +509,7 @@ print('*****************************************')
 
 ## calulation of the estimated torque  
 tau_estime=np.dot(w,phi_etoile)
-tau_estime1=np.dot(w,phi_etoile1)
+# tau_estime1=np.dot(w,phi_etoile1)
 tau_estime_pin=np.dot(w_pin,phi_etoile_pin)
 
 # samples = []
@@ -533,8 +535,8 @@ for i in range(NQ*nbSamples):
 
 plt.figure('torque et torque estime')
 plt.plot(samples, tau, 'g', linewidth=2, label='tau')
-plt.plot(samples,tau_estime, 'b', linewidth=1.5, label='tau estime')
-plt.plot(samples, tau_estime1, 'r', linewidth=1, label='tau estime 1')
+plt.plot(samples,tau_estime, 'b:', linewidth=1, label='tau estime')
+# plt.plot(samples, tau_estime1, 'r', linewidth=1, label='tau estime 1')
 plt.title('tau and tau_estime')
 plt.xlabel('2000 Samples')
 plt.ylabel('parametres')
@@ -546,12 +548,12 @@ err = []
 err1 = []
 for i in range(nbSamples * NQ):
     err.append(abs(tau[i] - tau_estime[i]) * abs(tau[i] - tau_estime[i]))
-    err1.append(abs(tau[i] - tau_estime1[i]) * abs(tau[i] - tau_estime1[i]))
+    # err1.append(abs(tau[i] - tau_estime1[i]) * abs(tau[i] - tau_estime1[i]))
 
 
 # print(np.array(err).shape)
 plt.plot(samples, err, linewidth=2, label="err")
-plt.plot(samples, err1,linewidth=1, label="err1")
+# plt.plot(samples, err1,linewidth=1, label="err1")
 plt.title("erreur quadratique")
 plt.legend()
 plt.show()
