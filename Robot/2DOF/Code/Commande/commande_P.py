@@ -360,6 +360,8 @@ def robotDynamic(robot,input,q,vq,aq,dt):
     """ 
     Dynamic of the robot calculator for postion/speed control 
     tau =  input + G
+
+    tau = J't.f
     ------------------------------
     IN
     
@@ -375,6 +377,7 @@ def robotDynamic(robot,input,q,vq,aq,dt):
     q : calculated joint angles values 
     dq : calculated joint velocities values 
     aq : calculated joint acceleration values 
+    f : the force exerted by the manipulator 
 
 
 
@@ -386,12 +389,20 @@ def robotDynamic(robot,input,q,vq,aq,dt):
     G = pin.rnea(robot.model, robot.data, q, np.zeros(robot.nv), np.zeros(robot.nv)) #gravity matrix
     A = pin.crba(robot.model,robot.data,q) # compute mass matrix
     H = pin.rnea(robot.model,robot.data,q,vq,aq)  # compute dynamic drift -- Coriolis, centrifugal, gravity
-    tau = input+G
+    tau = input
     X = np.array([q,vq])
     Xp = np.array([vq,np.dot(pinv(A),(tau-H))])
     X += Xp*dt
 
-    return X[0],X[1],Xp[0]
+    #robot.forwardKinematics(X[0],X[1],Xp[0]) #update joint 
+    #pin.updateFramePlacements(robot.model,robot.data) #update frame placement
+    #G = pin.rnea(robot.model, robot.data, q, np.zeros(robot.nv), np.zeros(robot.nv)) #gravity matrix
+    #A = pin.crba(robot.model,robot.data,q) # compute mass matrix
+    #H = pin.rnea(robot.model,robot.data,q,vq,aq)  # compute dynamic drift -- Coriolis, centrifugal, gravity
+    
+
+    
+    return X[0],X[1],Xp[1] #Xp[0] avant
 
 
 
@@ -592,7 +603,11 @@ def getCarthesianTraj(robot,N,dt):
     
     return X,dX,ddX
     
+def effort_control():
 
+
+
+    return None
 
 def run(robot):
     """
@@ -634,8 +649,8 @@ def run(robot):
         ddXn = getdjv(robot,q,vq,aq)
         
         trajX[:,i] = X
-        #tau = computedTorqueController(Xdesired[:,i],X,dXdesired[:,i],dX,ddXdesired[:,i],ddXn,Jp,A,H) #tracking
-        tau = computedTorqueController(Xdesired[:,100],X,0*dXdesired[:,i],dX,0*ddXdesired[:,i],ddXn,Jp,A,H) #constant position 
+        tau = computedTorqueController(Xdesired[:,i],X,dXdesired[:,i],dX,ddXdesired[:,i],ddXn,Jp,A,H) #tracking
+        #tau = computedTorqueController(Xdesired[:,100],X,0*dXdesired[:,i],dX,0*ddXdesired[:,i],ddXn,Jp,A,H) #constant position 
 
         q,vq,aq = robotDynamic(robot,tau,q,vq,aq,dt)
         robot.display(q)
@@ -644,7 +659,7 @@ def run(robot):
 
     plt.figure()
     plt.title("suivi de trajectoire sur l'axe z, avec une position constante")
-    plt.plot(t,Xdesired[2,100]*np.ones(N),'r--',linewidth= 2,label="la consigne sur z")
+    plt.plot(t,Xdesired[2,:],'r--',linewidth= 2,label="la consigne sur z")
     plt.plot(t,trajX[2,:],label="trajectoire OT sur z")
     plt.xlabel('temps en seconde')
     plt.ylabel('position en m')
