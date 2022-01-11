@@ -9,7 +9,7 @@ RUN apt-get update
 
 # Install dependencies for all the Docker
 RUN apt-get install -qqy lsb-release gnupg2 curl git ipython3 python3-pip freeglut3 python3-matplotlib python3-pil.imagetk jupyter python3-scipy python3-matplotlib jupyter python3-scipy python3-numpy libqt5gui5 qt5-default wget software-properties-common ssh
-RUN pip3 install meshcat qpsolvers
+RUN pip3 install meshcat qpsolvers minidom-ext
 
 # Install vscode
 RUN wget -q https://packages.microsoft.com/keys/microsoft.asc -O- | apt-key add - && add-apt-repository "deb [arch=amd64] https://packages.microsoft.com/repos/vscode stable main"

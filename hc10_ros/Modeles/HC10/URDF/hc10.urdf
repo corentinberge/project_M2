@@ -61,7 +61,7 @@
     </visual>
     <collision>
       <geometry>
-        <mesh filename=":package://hc10_ros/Modeles/HC10/meshes/collision/link_3_u.stl"/>
+        <mesh filename="package://hc10_ros/Modeles/HC10/meshes/collision/link_3_u.stl"/>
       </geometry>
     </collision>
   </link>
@@ -106,7 +106,7 @@
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://package://hc10_ros/Modeles/HC10/meshes/collision/link_6_t.stl"/>
+        <mesh filename="package://hc10_ros/Modeles/HC10/meshes/collision/link_6_t.stl"/>
       </geometry>
     </collision>
   </link>
