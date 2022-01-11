@@ -1,5 +1,15 @@
 <launch>
 
+  <arg name="model" default="$(find hc10_ros)/Modeles/HC10/URDF/hc10.urdf"/>
+  <arg name="gui" default="true" />
+  
+  <param name="robot_description" command="$(find xacro)/xacro $(arg model)" />  
+  
+  <!-- Include gazebo launch file rrbot_world.launch -->
+  <include file="$(find hc10_ros)/launch/world.launch" />
+
+  <!-- Include ros_control launch file to load joint position controllers -->
+
   <!-- Load joint controller configurations from YAML file to parameter server -->
   <rosparam file="$(find hc10_ros)/config/control.yaml" command="load"/>
 
@@ -18,5 +28,10 @@
 	respawn="false" output="screen">
     <remap from="/joint_states" to="/motoman_hc10/joint_states" /> 
   </node>
+
+  <!-- <node name="rviz" pkg="rviz" type="rviz" args="-d $(find hc10_ros)/config/urdf.rviz" required="true" /> -->
+
+  <!-- Create node to control joint positions using joint controller 
+  <node name="joint_positions_node" pkg="hc10_ros" type="position_controller.py" output="screen" respawn="true" /> -->
 
 </launch>

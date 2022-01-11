@@ -2,11 +2,6 @@
 <!-- This URDF was automatically created by SolidWorks to URDF Exporter! Originally created by Stephen Brawner (brawner@gmail.com)
      Commit Version: 1.5.1-0-g916b5db  Build Version: 1.5.7152.31018
      For more information, please see http://wiki.ros.org/sw_urdf_exporter -->
-<gazebo>
-    <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
-      <robotNamespace>/rrbot</robotNamespace>
-    </plugin>
-  </gazebo>
 <robot
   name="parallelepiped">
   <link
@@ -31,7 +26,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="package://planar_2DOF/meshes/parallelepiped.stl" />
+          filename="package://hc10_ros/Modeles/planar_2DOF/meshes/parallelepiped.stl" />
       </geometry>
       <material
         name="">
@@ -45,7 +40,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="package://planar_2DOF/meshes/parallelepiped.stl" />
+          filename="package://hc10_ros/Modeles/planar_2DOF/meshes/parallelepiped.stl" />
       </geometry>
     </collision>
   </link>
@@ -71,7 +66,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="package://planar_2DOF/meshes/parallelepiped.stl" />
+          filename="package://hc10_ros/Modeles/planar_2DOF/meshes/parallelepiped.stl" />
       </geometry>
       <material
         name="">
@@ -85,7 +80,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="package://planar_2DOF/meshes/parallelepiped.stl" />
+          filename="package://hc10_ros/Modeles/planar_2DOF/meshes/parallelepiped.stl" />
       </geometry>
     </collision>
   </link>
@@ -132,7 +127,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="package://planar_2DOF/meshes/parallelepiped.stl" />
+          filename="package://hc10_ros/Modeles/planar_2DOF/meshes/parallelepiped.stl" />
       </geometry>
       <material
         name="">
@@ -146,7 +141,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="package://planar_2DOF/meshes/parallelepiped.stl" />
+          filename="package://hc10_ros/Modeles/planar_2DOF/meshes/parallelepiped.stl" />
       </geometry>
     </collision>
   </link>
