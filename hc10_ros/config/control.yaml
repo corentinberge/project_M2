@@ -1,0 +1,4 @@
+type: "position_controllers/JointGroupPositionController"
+joints:
+ - joint1
+ - joint2
