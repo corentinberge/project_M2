@@ -1,5 +1,6 @@
 from numpy.core.fromnumeric import shape
 from numpy.core.numeric import ones
+from numpy.lib.index_tricks import ix_
 from numpy.linalg.linalg import transpose
 import pinocchio as pin
 from pinocchio.utils import *
@@ -386,6 +387,7 @@ def robotDynamic(robot,input,q,vq,aq,dt):
             Y = x
             with u = tau, x = [q,vq], Xp = [vq,aq]
     """
+
     A = pin.crba(robot.model,robot.data,q) # compute mass matrix
     H = pin.rnea(robot.model,robot.data,q,vq,aq)  # compute dynamic drift -- Coriolis, centrifugal, gravity
     tau = input
@@ -430,7 +432,7 @@ def robotDynamicWithForce(robot,input,q,vq,aq,dt,IDX):
     H = pin.rnea(robot.model,robot.data,q,vq,aq)  # compute dynamic drift -- Coriolis, centrifugal, gravity
     tau = input
     X = np.array([q,vq])
-    Xp = np.array([vq,np.dot(pinv(A),(tau-H))])
+    Xp = np.array([vq,np.dot(pinv(A),(tau-H))]) # rajout d'un fois 2 on ne sais pas trop pourquoi ( ça parraissait cohérent dans la tete de jo)
     X += Xp*dt
 
     q = X[0]
@@ -447,10 +449,15 @@ def robotDynamicWithForce(robot,input,q,vq,aq,dt,IDX):
     J = pin.computeFrameJacobian(robot.model,robot.data,q,IDX,pin.ReferenceFrame.LOCAL_WORLD_ALIGNED)
     tau_next = np.dot(A,aq) + H
     f = np.dot(pinv(np.transpose(J)),np.dot(A,aq) + H) 
-
-    return q,vq,aq,f
+    #print("diff = ",tau-np.dot(A,aq) + H)
+    return q,vq,aq,f,J,A,H
     
 
+def adaptS(I_S):
+    diagI_s = np.diag(I_S).copy()
+    diagI_s[1] = 0
+    diagI_s[5] = 0
+    return np.diag(diagI_s)
 
 
 
@@ -461,28 +468,128 @@ def run_efort_control(robot):
 
 
     """
-    N = 3000
+    N = 10
     dt = 1e-3
     IDX = robot.model.getFrameId("tcp")
-    Xdesired,dXdesired,ddXdesired,traj_q,traj_dq,t = getTraj(N,robot,IDX,dt,loi='F'
-    )
+    Xdesired,dXdesired,ddXdesired,traj_q,traj_dq,t = getTraj(N,robot,IDX,dt,loi='F')
     q = traj_q[:,0]
     vq = np.zeros(robot.nv)
     aq = np.zeros(robot.nv)
     trajX = np.zeros(Xdesired.shape)
-
+    trajF = np.zeros(Xdesired.shape)
     robot.forwardKinematics(q) #update joints
     pin.updateFramePlacements(robot.model,robot.data) #update frame placement
     Xinit = situationOT(robot.data.oMf[robot.model.getFrameId("tcp")])
     Xf = np.array([1.15,0,0.85,0,0,0])
     dXf = np.zeros(Xf.shape)
     ddXf = np.zeros(Xf.shape)
-
+    S = computeSelectionMatrix(0,0,0,0,0,0) # position => indice 0,2,4
+    I_S = computeSelectionMatrix(1,1,1,1,1,1)#
+    input = pin.rnea(robot.model,robot.data,q,vq,aq)  # compute dynamic drift -- Coriolis, centrifugal, gravity
+    fd = np.array([0,0,1,0,0,0])
+    I=0
+    Id = 334#math.floor(N/3)
     for i in range(N):
-        print("ntm")
+        
+        robot.display(q)
+        X = situationOT(robot.data.oMf[IDX])
+        trajX[:,i] = X
 
-def effort_control():
-    return None
+        #print("t :",i*dt)
+        #print("X0t : ",X[0])
+        q,vq,aq,f,J,A,H = robotDynamicWithForce(robot,input,q,vq,aq,dt,IDX)
+        #fd = f
+        #print("la force exercé par le robot est égal à\t",f)
+        dX = np.dot(J,vq)
+        ddX = getdjv(robot,q,vq,aq)
+
+        print("force error before controller",norm(fd-f))
+
+        #input,I = effort_control(Xdesired[:,],X,0*dXdesired[:,Id],dX,0*ddXdesired[:,Id],ddX,fd,f,I,J,S,I_S,A,H,dt) #constant position
+        
+        input,I = effort_control(Xdesired[:,i],X,dXdesired[:,i],dX,ddXdesired[:,i],ddX,fd,f,I,J,S,I_S,A,H,dt) # tracking 
+        trajF[:,i] = f
+        #time.sleep(dt)
+
+    plt.figure()
+    plt.title("sur X")
+    plt.plot(t,Xdesired[0,:]*np.ones(N),'r--',label="consigne")
+    plt.plot(t,trajX[0,:],label="traj OT")
+    plt.xlabel("temps en seconde")
+    plt.ylabel("position en m")
+    plt.legend()
+    plt.figure()
+    plt.title("sur Z")
+    plt.plot(t,Xdesired[2,:]*np.ones(N),'r--',label="consigne")
+    plt.plot(t,trajX[2,:],label="traj OT")
+    plt.xlabel("temps en seconde")
+    plt.ylabel("position en m")
+    plt.figure()
+    plt.title("la force en z")
+    plt.plot(t,fd[2]*np.ones(N),'r--',label="consigne")
+    plt.plot(t,trajF[2,:],label="force exercer par l'OT")
+    plt.xlabel("temps en seconde")
+    plt.ylabel("force en N")
+    plt.legend()
+
+    plt.show()
+    
+
+
+        
+
+
+
+
+
+
+def effort_control(Xd,X,dXd,dX,ddXd,ddXn,fd,f,I,J,S,I_S,A,H,dt):
+    """
+        this function compute all the effort_control 
+
+        IN :
+        
+        position, velocity, acceleration of the OT desired with the force
+        information from feedback position, velocity, acceleration and force
+        A : the inertial matrix
+        H : i forgot 
+        dt : differential of time usefull for PID
+        I : the Integral of the force
+        S,I_S selection matrix
+
+        OUT :
+        
+        tau 
+    """
+
+    Kf = 1
+    Kdf = 0
+    KIf = .01
+
+
+    pclt = PCLT(Xd,X,dXd,dX,ddXd,ddXn,pinv(J),A,S)
+    #fcl,I = FCL(fd,f,dX,np.transpose(J),I,dt,Kf,Kdf,I_S,KIf)
+    fcl,I = FCL(fd,f,0,np.transpose(J),I,dt,Kf,Kdf,I_S,KIf)
+    
+
+    return (pclt + fcl + H),I
+
+def FCL(fd,f,dX,Jt,I,dt,Kf,Kdf,I_S,KIf):
+    """
+        Force control law in the effort_control
+        
+        fd : desired force
+        f : force returned by the robot
+        I : integration of f
+        dX : velocity of the OT
+
+        the force f, fd are 6 by 1 vector 
+        
+    """
+
+    outPID,I = controllerPID(fd-f,-dX,I,dt,Kp=Kf,Kd=Kdf,Ki=KIf)#+ fd
+    out = np.dot(I_S,outPID)
+    return np.dot(Jt,out),I
 
 
 
@@ -569,7 +676,7 @@ def controllerPID(delta,deltaDot,I,dt,Kp = 1,Kd = 1,Ki = 1):
     deltaX      : error 
     deltaDotX   : error velocity
     """
-    I += delta*dt
+    I += delta*dt #on relaise l'intégral 
     return (np.dot(Kp,delta)+np.dot(Kd,deltaDot) + np.dot(Ki,I)),I
 
 def calcGain(robot,w):
@@ -592,11 +699,18 @@ def calcGain(robot,w):
     return Kp,Kd,KI
     
 
-def PCLT(eps,eps_vel,eps_acc,I,dt,Kp = 1,Kd = 1,Ki = 1):
+def PCLT(Xd,X,dXd,dX,ddXd,ddXn,Jp,A,S):
     """
         Position control law
+
+        Computed with 
+        
     """
-    return controllerPID(eps,eps_vel,I,dt,Kp,Kd,Ki)
+    outcomputedTorqueController = np.transpose(computedTorqueController(Xd,X,dXd,dX,ddXd,ddXn,eye(6),eye(6),np.zeros(6)))
+    outcomputedTorqueController = np.dot(S,outcomputedTorqueController)
+    AJp = np.dot(A,Jp)
+    outcomputedTorqueController = np.dot(AJp,outcomputedTorqueController)
+    return  outcomputedTorqueController
 
 
 def computeSelectionMatrix(s1,s2,s3,s4,s5,s6):
@@ -604,9 +718,9 @@ def computeSelectionMatrix(s1,s2,s3,s4,s5,s6):
         Compute the selection Matrix useful for the effort control
     """
 
-    if(s1 == s4 or s2 == s5 or s3 == s6):
+    if( (s1==1 and s4 == 1) or (s2 == 1 and s5 == 1) or (s3 == 1 and s6 == 1) ):
         print("Warning we can't control position and force along the same axis")
-    return np.diag(s1,s2,s3,s4,s5,s6)
+    return np.diag([s1,s2,s3,s4,s5,s6])
     
 
 
@@ -705,6 +819,8 @@ def run(robot):
     Xf = np.array([1.15,0,0.85,0,0,0])
     dXf = np.zeros(Xf.shape)
     ddXf = np.zeros(Xf.shape)
+
+    In = math.floor(N/4)
     for i in range(N):
         J = pin.computeFrameJacobian(robot.model,robot.data,q,IDX,BASE)
         G = pin.rnea(robot.model, robot.data, q, np.zeros(robot.nv), np.zeros(robot.nv)) #gravity matrix
@@ -719,7 +835,7 @@ def run(robot):
         
         trajX[:,i] = X
         tau = computedTorqueController(Xdesired[:,i],X,dXdesired[:,i],dX,ddXdesired[:,i],ddXn,Jp,A,H) #tracking
-        #tau = computedTorqueController(Xdesired[:,100],X,0*dXdesired[:,i],dX,0*ddXdesired[:,i],ddXn,Jp,A,H) #constant position 
+        #tau = computedTorqueController(Xdesired[:,In],X,0*dXdesired[:,In],dX,0*ddXdesired[:,In],ddXn,Jp,A,H) #constant position 
 
         q,vq,aq = robotDynamic(robot,tau,q,vq,aq,dt)
         robot.display(q)
@@ -728,7 +844,7 @@ def run(robot):
 
     plt.figure()
     plt.title("suivi de trajectoire sur l'axe z, avec une position constante")
-    plt.plot(t,Xdesired[2,:],'r--',linewidth= 2,label="la consigne sur z")
+    plt.plot(t,Xdesired[2,In]*np.ones(N),'r--',linewidth= 2,label="la consigne sur z")
     plt.plot(t,trajX[2,:],label="trajectoire OT sur z")
     plt.xlabel('temps en seconde')
     plt.ylabel('position en m')
@@ -739,37 +855,31 @@ def main(robot):
     """
         this function is to implement quick test
     """
-    N = 50000
-    dt = 1e-4
-
-    IDX = robot.model.getFrameId("tcp")
-    X,dotX,ddX,traj_q,traj_dq,t = getTraj(N,robot,IDX,dt,loi='R')
-    ddXdiff = calculDotX(dotX,dt)
-
-    plt.figure()
-    plt.plot(t[0:len(t)-1],ddXdiff[100,0]*np.ones(N),label="accélération sur X de l'Ot avec différences finis")
-    plt.plot(t,ddX[:,0],'r--',label="accélération sur X de l'OT avec Jpoint ")
-    #plt.plot(t[0:len(t)-1],(ddXdiff[:,0]-ddX[0:len(t)-1,0]))
-    plt.legend()
-    plt.title("validation Jpoint")
-    plt.xlabel("temps en seconde")
-    plt.ylabel("accélération en m/s2")
-    plt.show()
+    S = computeSelectionMatrix(1,0,1,0,0,0)
+    I_S = eye(S.shape[0]) - S
+    adaptS(I_S)
 
 def computedTorqueController(Xd,X,dXd,dX,ddXd,ddXn,Jp,A,H):
     """
             this is the controller of the computed torque control 
 
             she compute the error, and return the tau ( corresponding to U(t) )
-    """
-    kp = 100#10
-    kd = 1000#100
+
+
+            Kp = wj²
+            Kd = 2zetawj
+"""
+    zeta = 1
+    wj = math.sqrt(20)*math.pi
+    kp = wj**2
+    kd = 2*zeta*wj
+    kp = kp*np.eye(6)#10 on multiplie par Jp car nous somme dans l'espace de l'OT
+    kd = kd*np.eye(6)#100
     ex = Xd-X
     edx = dXd-dX
-    W = kp*ex+kd*edx+ddXd-ddXn
+    W = np.dot(kp,ex)+np.dot(kd,edx)+ddXd-ddXn
     jpw = np.dot(Jp,W)
     tau = np.dot(A,jpw) + H
-    
     return tau
 
     
@@ -783,6 +893,5 @@ if __name__ == '__main__':
     robot.initViewer(loadModel=True)
     robot.display(robot.q0)
     #run(robot)
-    print(np.diag([0,1,0,0,1,0]))
-    
     #main(robot)
+    run_efort_control(robot)
