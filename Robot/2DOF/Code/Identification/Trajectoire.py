@@ -71,18 +71,31 @@ def trajectory(q_start,q_end,Vmax,acc_max,Tech):
     for i in range(np.array(time).size-1):
         j=i+1
         dv=(q[j]-q[i])/(time[j]-time[i])
+        # print('dv=\t',dv)
         v.append(dv)
-    v.append(0)
+    v.append(dv)
     print('shape of time',np.array(time).shape)
     print('shape of v',np.array(v).shape)
-    return q, time,v
+    
+    #calculation of acceleration
+    
+    for i in range(np.array(v).size-1):
+        j=i+1
+        da=(v[j]-v[i])/(time[j]-time[i])
+        # print('da=\t','dv',(v[j]-v[i]),'/dt',(time[j]-time[i]),'=',da)
+        a.append(da)
+    a.append(0)
+    print('shape of time',np.array(time).shape)
+    print('shape of a',np.array(a).shape)
+
+    return q,time,v,a
 
 #calculation of trajectory with several value of velocity
-q_max,time,v_max=trajectory(q_start,q_end,Vmax,acc_max,Tech)
-q1_20,time1,v1_20=trajectory(q_start,q_end,Vmax*0.2,acc_max,Tech)
-q2_40,time2,v2_40=trajectory(q_start,q_end,Vmax*0.4,acc_max,Tech)
-q3_60,time3,v3_60=trajectory(q_start,q_end,Vmax*0.6,acc_max,Tech)
-q4_80,time4,v4_80=trajectory(q_start,q_end,Vmax*0.8,acc_max,Tech)
+q_max,time,v_max,a_max=trajectory(q_start,q_end,Vmax,acc_max,Tech)
+q1_20,time1,v1_20,a1_20=trajectory(q_start,q_end,Vmax*0.2,acc_max,Tech)
+q2_40,time2,v2_40,a2_40=trajectory(q_start,q_end,Vmax*0.4,acc_max,Tech)
+q3_60,time3,v3_60,a3_60=trajectory(q_start,q_end,Vmax*0.6,acc_max,Tech)
+q4_80,time4,v4_80,a4_80=trajectory(q_start,q_end,Vmax*0.8,acc_max,Tech)
 
 #Display of trajectory
 
@@ -109,6 +122,20 @@ plt.plot(time4,v4_80, linewidth=1, label='v4_80 ')
 plt.title('V velocity')
 plt.xlabel('t')
 plt.ylabel('V')
+plt.legend()
+plt.show()
+
+#Display of acceleration 
+
+plt.figure('a acceleration')
+plt.plot(time,a_max,linewidth=1, label='a_max ')
+plt.plot(time1,a1_20, linewidth=1, label='a1_20 ')
+plt.plot(time2,a2_40, linewidth=1, label='a2_40 ')
+plt.plot(time3,a3_60, linewidth=1, label='a3_60 ')
+plt.plot(time4,a4_80, linewidth=1, label='a4_80 ')
+plt.title('a acceleration')
+plt.xlabel('t')
+plt.ylabel('a')
 plt.legend()
 plt.show()
 
