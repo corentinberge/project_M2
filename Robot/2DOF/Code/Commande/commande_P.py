@@ -870,7 +870,7 @@ def computedTorqueController(Xd,X,dXd,dX,ddXd,ddXn,Jp,A,H):
             Kd = 2zetawj
 """
     zeta = 1
-    wj = math.sqrt(20)*math.pi
+    wj = math.sqrt(100)*math.pi
     kp = wj**2
     kd = 2*zeta*wj
     kp = kp*np.eye(6)#10 on multiplie par Jp car nous somme dans l'espace de l'OT
