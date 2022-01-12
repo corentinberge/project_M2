@@ -12,23 +12,30 @@ from typing import Optional
 from typing import Optional
 import qpsolvers
 
+# initialisation
 q_start=0
 q_end=100
 Vmax=14.1
 acc_max=2
 Tech=0.0001
 
-def trajectoire(q_start,q_end,Vmax,acc_max,Tech):
-    #vmax=sqrt(D*ACC)
-    D=q_end-q_start
-    if(D>((Vmax*Vmax)/acc_max)):
-        time1=Vmax/acc_max#time that take the velocity to go from 0 to max
+
+def trajectory(q_start,q_end,Vmax,acc_max,Tech):
+
+    #function that take first position ,last position,Max velocity, and acceleration
+    # AND return the trajectory of q and the velocity (dq/dt)
+
+                                #the max velocity is given by vmax=sqrt(D*ACC)
+
+    D=q_end-q_start             # total distance 
+    if(D>((Vmax*Vmax)/acc_max)):# D>Vmax^2/acc it's condition so the movment can be achivebel(realisable)
+        time1=Vmax/acc_max      #time that take the velocity to go from 0 to max
     else:
         print('we need a better value of D')
+                                # if D dont respect the condition we need another D 
+                                # so another input for the function
 
-
-    D1=(acc_max*time1)/2
-    timeEnd=time1+(D/Vmax)
+    timeEnd=time1+(D/Vmax)      # time wen the mvt end
     print('Vmax \t acc_max \t time1 \t timeEnd')
     print(Vmax,'\t',acc_max,'\t',time1,'\t',timeEnd)
     t=0
@@ -37,6 +44,7 @@ def trajectoire(q_start,q_end,Vmax,acc_max,Tech):
     q=[]
     v=[]
     a=[]
+    #calculation of q in each intervel of time 
     if(t<=time1):
         q.append(q_start+0.5*t*t*acc_max*sign(D))
     elif(t<=(timeEnd-time1)):
@@ -59,7 +67,7 @@ def trajectoire(q_start,q_end,Vmax,acc_max,Tech):
         t=t+Tech
         time.append(t)
         
-
+    #calculation of the velocity 
     for i in range(np.array(time).size-1):
         j=i+1
         dv=(q[j]-q[i])/(time[j]-time[i])
@@ -69,26 +77,28 @@ def trajectoire(q_start,q_end,Vmax,acc_max,Tech):
     print('shape of v',np.array(v).shape)
     return q, time,v
 
-q_max,time,v_max=trajectoire(q_start,q_end,Vmax,acc_max,Tech)
-q1_20,time1,v1_20=trajectoire(q_start,q_end,Vmax*0.2,acc_max,Tech)
-q2_40,time2,v2_40=trajectoire(q_start,q_end,Vmax*0.4,acc_max,Tech)
-q3_60,time3,v3_60=trajectoire(q_start,q_end,Vmax*0.6,acc_max,Tech)
-q4_80,time4,v4_80=trajectoire(q_start,q_end,Vmax*0.8,acc_max,Tech)
+#calculation of trajectory with several value of velocity
+q_max,time,v_max=trajectory(q_start,q_end,Vmax,acc_max,Tech)
+q1_20,time1,v1_20=trajectory(q_start,q_end,Vmax*0.2,acc_max,Tech)
+q2_40,time2,v2_40=trajectory(q_start,q_end,Vmax*0.4,acc_max,Tech)
+q3_60,time3,v3_60=trajectory(q_start,q_end,Vmax*0.6,acc_max,Tech)
+q4_80,time4,v4_80=trajectory(q_start,q_end,Vmax*0.8,acc_max,Tech)
+
+#Display of trajectory
+
 plt.figure('q Trajectory')
 plt.plot(time,q_max,  linewidth=1, label='q_max position')
 plt.plot(time1,q1_20, linewidth=1, label='q1_20 position')
 plt.plot(time2,q2_40, linewidth=1, label='q2_40 position')
 plt.plot(time3,q3_60, linewidth=1, label='q3_60 position')
 plt.plot(time4,q4_80, linewidth=1, label='q4_80 position')
-# plt.plot(time2,v2, 'g:', linewidth=1, label='v2')
-# plt.plot(time,v, 'b:', linewidth=1, label='v')
-# plt.plot(time1,v1, 'r:', linewidth=1, label='v1')
 plt.title('q Trajectory')
 plt.xlabel('t')
 plt.ylabel('q')
 plt.legend()
 plt.show()
 
+#Display of velocity 
 
 plt.figure('V velocity')
 plt.plot(time,v_max,linewidth=1, label='v_max ')
