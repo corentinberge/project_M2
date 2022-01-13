@@ -13,12 +13,12 @@ from typing import Optional
 import qpsolvers
 
 # initialisation
-q_start=0
-q_end=100
-Vmax=14.1
-acc_max=2
+q_start=[]
+q_end=[]
+Vmax=[]
+acc_max=[]
 Tech=0.0001
-
+print(abs(-10000))
 
 def trajectory(q_start,q_end,Vmax,acc_max,Tech):
 
@@ -90,52 +90,322 @@ def trajectory(q_start,q_end,Vmax,acc_max,Tech):
 
     return q,time,v,a
 
-#calculation of trajectory with several value of velocity
-q_max,time,v_max,a_max=trajectory(q_start,q_end,Vmax,acc_max,Tech)
-q1_20,time1,v1_20,a1_20=trajectory(q_start,q_end,Vmax*0.2,acc_max,Tech)
-q2_40,time2,v2_40,a2_40=trajectory(q_start,q_end,Vmax*0.4,acc_max,Tech)
-q3_60,time3,v3_60,a3_60=trajectory(q_start,q_end,Vmax*0.6,acc_max,Tech)
-q4_80,time4,v4_80,a4_80=trajectory(q_start,q_end,Vmax*0.8,acc_max,Tech)
+def Data_Alltrajectory(Nmbrofjoint,Tech):
+    q_start=[]
+    q_end=[] 
+    Vmax=[]
+    acc_max=[]
+    D=[]
+    for i in range (Nmbrofjoint):
+        print('enter joint',i+1,'start position')
+        start=float(input())
+        q_start.append(start)
+        print('enter joint',i+1,'final position')
+        end=float(input())
+        q_end.append(end)
+        print('enter joint',i+1,'velocity')
+        Vm=float(input())
+        Vmax.append(Vm)
+        print('enter joint',i+1,'acceleration')
+        am=float(input())
+        acc_max.append(am)
 
-#Display of trajectory
+    for i in range (Nmbrofjoint):
+        d=q_end[i]-q_start[i]
+        D.append(d)             # total distance 
+    
+    
+    lamda_1=1
+    mu_1=1
+    lamda_j=[]
+    mu_j=[]
+    lamda_j.append(lamda_1)
+    mu_j.append(mu_1)
+    
+    for j in range (1,Nmbrofjoint):
+        
+        lamda=(Vmax[j]*abs(D[0]))/Vmax[0]*abs(D[j])
+        mu=(acc_max[j]*abs(D[0]))/acc_max[0]*abs(D[j])
+        lamda_j.append(lamda)
+        mu_j.append(mu)
+
+    lamda_j=np.array(lamda_j)
+    mu_j=np.array(mu_j)
+    lamda_1=np.min(lamda_j)
+    mu_1=np.min(mu_j)
+    
+    lamda_joint=[]
+    lamda_joint.append(lamda_1)
+
+    for joint in range(1,Nmbrofjoint):
+        lamda_joint.append(lamda_1*((Vmax[0]*abs(D[joint]))/(Vmax[joint]*abs(D[0]))))
+
+    mu_joint=[]
+    mu_joint.append(mu_1)
+
+    for joint in range(1,Nmbrofjoint):
+        mu_joint.append(mu_1*((acc_max[0]*abs(D[joint]))/(acc_max[joint]*abs(D[0]))))
+
+    print('LAMDA_J values\n')
+    print(lamda_joint)
+    print('lamda_1=\t',lamda_1)
+    print('MU_J values\n')
+    print(mu_joint)
+    print('mu_1=\t',mu_1)
+    
+    new_Vmax=[]
+    NewVmax=lamda_1*Vmax[0]
+    new_Vmax.append(NewVmax)
+    for j in range(1,Nmbrofjoint):
+        new_Vmax.append(lamda_joint[j]*Vmax[j])
+
+    new_Amax=[]
+    NewAmax=mu_1*acc_max[0]
+    new_Amax.append(NewAmax)
+    for j in range(1,Nmbrofjoint):
+        new_Amax.append(mu_joint[j]*acc_max[j])
+
+    time_tau=(lamda_1*Vmax[0])/(mu_1*acc_max[0])
+    timeEnd=[]
+    tf1=((lamda_1*Vmax[0])/(mu_1*acc_max[0]))+(abs(D[0])/(lamda_1*Vmax[0]))
+    timeEnd.append(tf1)
+    for k in range(1,Nmbrofjoint):     
+        if(abs(D[k])>((Vmax[k]*Vmax[k])/acc_max[k])):# D>Vmax^2/acc it's condition so the movment can be achivebel(realisable)
+            tf=((lamda_j[k]*Vmax[k])/(mu_j[k]*acc_max[k]))+(D[k]/(lamda_j[k]*Vmax[k]))
+            timeEnd.append(tf)                     #time that take the velocity to go from 0 to max
+        else:
+            print('we need a better value of D for the joint',k+1)
+                                # if D dont respect the condition we need another D 
+                                # so another input for the function
+
+              # time wen the mvt end
+    timeEnd=np.array(timeEnd)
+    time_final=np.max(timeEnd)
+
+    return time_tau,time_final,q_start,q_end,new_Vmax,new_Amax,D
+    
+def PreDefined_trajectory(time1,timeEnd,q_start,q_end, Vmax,acc_max,D,Tech):
+        
+    t=0
+    time=[]
+    time.append(t)
+    q=[]
+    v=[]
+    a=[]
+    #calculation of q in each intervel of time 
+    if(t<=time1):
+        q.append(q_start+0.5*t*t*acc_max*sign(D))
+    elif(t<=(timeEnd-time1)):
+        q.append(q_start+(t-(time1/2))*Vmax*sign(D))
+    elif(t<=timeEnd):
+        q.append(q_end-0.5*(timeEnd-t)*(timeEnd-t)*acc_max*sign(D))
+    else:
+        print('time out of bound')
+    
+    while(abs(t-timeEnd)>0.01):
+        if(t<=time1):
+            q.append(q_start+0.5*t*t*acc_max*sign(D))
+        elif(t<=(timeEnd-time1)):
+            q.append(q_start+(t-(time1/2))*Vmax*sign(D))
+        elif(t<=timeEnd):
+            q.append(q_end-0.5*(timeEnd-t)*(timeEnd-t)*acc_max*sign(D))
+        else:
+            print('time out of bound')
+        
+        t=t+Tech
+        time.append(t)
+        
+        #calculation of the velocity 
+    for i in range(np.array(time).size-1):
+        j=i+1
+        dv=(q[j]-q[i])/(time[j]-time[i])
+        # print('dv=\t',dv)
+        v.append(dv)
+    v.append(dv)
+    print('shape of time',np.array(time).shape)
+    print('shape of v',np.array(v).shape)
+    
+        #calculation of acceleration
+    
+    for i in range(np.array(v).size-1):
+        j=i+1
+        da=(v[j]-v[i])/(time[j]-time[i])
+        # print('da=\t','dv',(v[j]-v[i]),'/dt',(time[j]-time[i]),'=',da)
+        a.append(da)
+    a.append(0)
+    print('shape of time',np.array(time).shape)
+    print('shape of a',np.array(a).shape)
+
+    return q,time,v,a
+
+def PreDefined_velocity_trajectory(time1,timeEnd,Vmax,acc_max,Tech):
+        
+    t=0
+    time=[]
+    time.append(t)
+    q=[]
+    v=[]
+    a=[]
+    #calculation of q in each intervel of time 
+    if(t<=time1):
+        v.append(acc_max*t)
+        # q.append(q_start+0.5*t*t*acc_max*sign(D))
+    elif(t<=(timeEnd-time1)):
+        v.append(acc_max*time1)
+        # v.append(Vmax)
+        # q.append(q_start+(t-(time1/2))*Vmax*sign(D))
+    elif(t<=timeEnd):
+         v.append(acc_max*(timeEnd-t))
+        # q.append(q_end-0.5*(timeEnd-t)*(timeEnd-t)*acc_max*sign(D))
+    else:
+        print('time out of bound')
+    
+    while(abs(t-timeEnd)>0.01):
+        if(t<=time1):
+            v.append(acc_max*t)
+            # q.append(q_start+0.5*t*t*acc_max*sign(D))
+        elif(t<=(timeEnd-time1)):
+            v.append(acc_max*time1)
+            # v.append(Vmax)
+            # q.append(q_start+(t-(time1/2))*Vmax*sign(D))
+        elif(t<=timeEnd):
+             v.append(acc_max*(timeEnd-t))
+            # q.append(q_end-0.5*(timeEnd-t)*(timeEnd-t)*acc_max*sign(D))
+        else:
+            print('time out of bound')
+        
+        t=t+Tech
+        time.append(t)
+    return v,time
+
+nbrjoint=2
+time_tau,time_final,q_start,q_end,Vmax,acc_max,D=Data_Alltrajectory(nbrjoint,Tech)
+
+# print('getting data from function DATA_Alltarajectory')
+# print(q_start[0],q_end[0], Vmax[0],acc_max[0],D[0],Tech)
+# print(q_start[1],q_end[1], Vmax[1],acc_max[1],D[1],Tech)
+
+V_1,timeV1=PreDefined_velocity_trajectory(time_tau,time_final,Vmax[0],acc_max[0],Tech)
+V_2,timeV2=PreDefined_velocity_trajectory(time_tau,time_final,Vmax[1],acc_max[1],Tech)
+plt.figure('V velocity theoratical')
+plt.plot(timeV1,V_1, linewidth=3, label='V1_th ')
+plt.plot(timeV2,V_2, linewidth=1, label='V2_th ')
+plt.title('V velocity th')
+plt.xlabel('t')
+plt.ylabel('V')
+plt.legend()
+plt.show()
+q1,time1,v1,a1=PreDefined_trajectory(time_tau,time_final,q_start[0],q_end[0], Vmax[0],acc_max[0],D[0],Tech)
+q2,time2,v2,a2=PreDefined_trajectory(time_tau,time_final,q_start[1],q_end[1], Vmax[1],acc_max[1],D[1],Tech)
+
 
 plt.figure('q Trajectory')
-plt.plot(time,q_max,  linewidth=1, label='q_max position')
-plt.plot(time1,q1_20, linewidth=1, label='q1_20 position')
-plt.plot(time2,q2_40, linewidth=1, label='q2_40 position')
-plt.plot(time3,q3_60, linewidth=1, label='q3_60 position')
-plt.plot(time4,q4_80, linewidth=1, label='q4_80 position')
+for i in range(nbrjoint):
+    q1,time1,v1,a1=PreDefined_trajectory(time_tau,time_final,q_start[i],q_end[i], Vmax[i],acc_max[i],D[i],Tech)
+    plt.plot(time1,q1,linewidth=1, label='q'+str(i))
+
 plt.title('q Trajectory')
 plt.xlabel('t')
 plt.ylabel('q')
 plt.legend()
 plt.show()
 
+# plt.figure('q Trajectory')
+# plt.plot(time1,q1,  linewidth=1, label='q_1')
+# plt.plot(time2,q2, linewidth=1, label='q_2')
+# plt.title('q Trajectory')
+# plt.xlabel('t')
+# plt.ylabel('q')
+# plt.legend()
+# plt.show()
+
+
 #Display of velocity 
 
-plt.figure('V velocity')
-plt.plot(time,v_max,linewidth=1, label='v_max ')
-plt.plot(time1,v1_20, linewidth=1, label='v1_20 ')
-plt.plot(time2,v2_40, linewidth=1, label='v2_40 ')
-plt.plot(time3,v3_60, linewidth=1, label='v3_60 ')
-plt.plot(time4,v4_80, linewidth=1, label='v4_80 ')
-plt.title('V velocity')
+plt.figure('V velocity calculated via derivation(dq)')
+for i in range(nbrjoint):
+    q1,time1,v1,a1=PreDefined_trajectory(time_tau,time_final,q_start[i],q_end[i], Vmax[i],acc_max[i],D[i],Tech)
+    plt.plot(time1,v1,linewidth=1, label='V'+str(i))
 plt.xlabel('t')
 plt.ylabel('V')
 plt.legend()
 plt.show()
+plt.title('V velocity calculated via derivation(dq)')
 
-#Display of acceleration 
+# plt.figure('V velocity calculated via derivation(dq)')
+# plt.plot(time1,v1, linewidth=1, label='v1_dq ')
+# plt.plot(time2,v2, linewidth=1, label='v2_dq ')
+# plt.title('V velocity calculated via derivation(dq)')
+# plt.xlabel('t')
+# plt.ylabel('V')
+# plt.legend()
+# plt.show()
 
-plt.figure('a acceleration')
-plt.plot(time,a_max,linewidth=1, label='a_max ')
-plt.plot(time1,a1_20, linewidth=1, label='a1_20 ')
-plt.plot(time2,a2_40, linewidth=1, label='a2_40 ')
-plt.plot(time3,a3_60, linewidth=1, label='a3_60 ')
-plt.plot(time4,a4_80, linewidth=1, label='a4_80 ')
-plt.title('a acceleration')
-plt.xlabel('t')
-plt.ylabel('a')
-plt.legend()
-plt.show()
+
+
+# #Display of acceleration 
+
+# plt.figure('a acceleration')
+# plt.plot(time,a_max,linewidth=1, label='a_max ')
+# plt.plot(time1,a1_20, linewidth=1, label='a1_20 ')
+# plt.plot(time2,a2_40, linewidth=1, label='a2_40 ')
+# plt.plot(time3,a3_60, linewidth=1, label='a3_60 ')
+# plt.plot(time4,a4_80, linewidth=1, label='a4_80 ')
+# plt.title('a acceleration')
+# plt.xlabel('t')
+# plt.ylabel('a')
+# plt.legend()
+# plt.show()
+
+
+
+
+#calculation of trajectory with several value of velocity
+# q_max,time,v_max,a_max=trajectory(10,150,12,2,Tech)
+# q1_20,time1,v1_20,a1_20=trajectory(0,100,14,3,Tech)
+# q2_40,time2,v2_40,a2_40=trajectory(q_start,q_end,Vmax*0.4,acc_max,Tech)
+# q3_60,time3,v3_60,a3_60=trajectory(q_start,q_end,Vmax*0.6,acc_max,Tech)
+# q4_80,time4,v4_80,a4_80=trajectory(q_start,q_end,Vmax*0.8,acc_max,Tech)
+
+#Display of trajectory
+
+# plt.figure('q Trajectory')
+# plt.plot(time,q_max,  linewidth=1, label='10-150-12-2 position')
+# plt.plot(time1,q1_20, linewidth=1, label='0-100-14-2 position')
+# # plt.plot(time2,q2_40, linewidth=1, label='q2_40 position')
+# plt.plot(time3,q3_60, linewidth=1, label='q3_60 position')
+# plt.plot(time4,q4_80, linewidth=1, label='q4_80 position')
+# plt.title('q Trajectory')
+# plt.xlabel('t')
+# plt.ylabel('q')
+# plt.legend()
+# plt.show()
+
+# #Display of velocity 
+
+# plt.figure('V velocity')
+# plt.plot(time,v_max,linewidth=1, label='v_max ')
+# plt.plot(time1,v1_20, linewidth=1, label='v1_20 ')
+# # plt.plot(time2,v2_40, linewidth=1, label='v2_40 ')
+# # plt.plot(time3,v3_60, linewidth=1, label='v3_60 ')
+# # plt.plot(time4,v4_80, linewidth=1, label='v4_80 ')
+# plt.title('V velocity')
+# plt.xlabel('t')
+# plt.ylabel('V')
+# plt.legend()
+# plt.show()
+
+# #Display of acceleration 
+
+# plt.figure('a acceleration')
+# plt.plot(time,a_max,linewidth=1, label='a_max ')
+# plt.plot(time1,a1_20, linewidth=1, label='a1_20 ')
+# plt.plot(time2,a2_40, linewidth=1, label='a2_40 ')
+# plt.plot(time3,a3_60, linewidth=1, label='a3_60 ')
+# plt.plot(time4,a4_80, linewidth=1, label='a4_80 ')
+# plt.title('a acceleration')
+# plt.xlabel('t')
+# plt.ylabel('a')
+# plt.legend()
+# plt.show()
 
