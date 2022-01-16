@@ -1,7 +1,7 @@
 from numpy.core.fromnumeric import shape
 from numpy.core.numeric import ones
 from numpy.lib.index_tricks import ix_
-from numpy.linalg.linalg import transpose
+from numpy.linalg.linalg import det, transpose
 import pinocchio as pin
 from pinocchio.utils import *
 from pinocchio.visualize import GepettoVisualizer
@@ -49,6 +49,7 @@ def adaptSituation(X,q):
     on enleve ey car il n'y a pas de translation selon ey, on enleve psi et phi car rotation constantes """
     nX = np.array([X[0],X[2],q[0]+q[1]])#,X[4]]) # on enleve les colonnes 2,3 et 5 donc on enlève les lignes 2,3 et 5 de la jacobienne et on enleve l'indice 4 car on travail en position pour l'insatnt
     return nX
+    
 def adaptPlanarRotation(R):
     """
         Adapt the rotation matrix, with respect of the Plan(0,x,z)
@@ -78,7 +79,8 @@ def getTraj(N,robot,IDX,dt,loi='P',V=10):
     a0,a1,a2 = 0,1,2
     X = np.zeros((6,N))
     traj_q = np.zeros((robot.nq,N))
-    traj_dq = np.zeros(traj_q.shape) 
+    traj_dq = np.zeros(traj_q.shape)
+    traj_ddq = np.zeros(traj_q.shape) 
     t = np.zeros(N)
     dotX = np.zeros(X.shape)
     ddX = np.zeros(X.shape)
@@ -100,7 +102,7 @@ def getTraj(N,robot,IDX,dt,loi='P',V=10):
         t[i] = i*dt
         dotX[:,i] = np.dot(J,dq)
         ddX[:,i] = dJv + np.dot(J,ddq)
-    return X,dotX,ddX,traj_q,traj_dq,t
+    return X,dotX,ddX,traj_q,traj_dq,traj_ddq,t
         
 #Loi polynomial
 
@@ -148,9 +150,9 @@ def calcCoeff(Vmax, robot, qf):
 
 def loiPendule(robot,t):
     """retourne la loi avec série de fournier """
-    q = np.array([0.1*np.cos(2*math.pi*t), 0.5*np.cos(2*math.pi*t)])
-    vq = np.array([-0.2*math.pi*np.sin(2*math.pi*t),-1*math.pi*np.sin(2*math.pi*t)])
-    aq = np.array([-0.4*math.pi**2*np.cos(2*math.pi*t),-2*math.pi**2*np.cos(2*math.pi*t)])
+    q = np.array([0.1*np.cos(2*math.pi*t), 0])
+    vq = np.array([-0.2*math.pi*np.sin(2*math.pi*t),0])
+    aq = np.array([-0.4*math.pi**2*np.cos(2*math.pi*t),0])
     return  q,vq,aq
 
 
@@ -164,7 +166,7 @@ def simulateurVerif(N,robot):
     dotXJac = np.zeros(X.shape)
     ddX_traj = np.zeros(X.shape)
     for i in range(N):
-        q,dq = loiPoly(robot,i*dt,Vmax=4)
+        q,dq,ddq = loiPoly(robot,i*dt,Vmax=4)
         robot.forwardKinematics(q) #update joint 
         pin.updateFramePlacements(robot.model,robot.data) #update frame placement
         DJ = pin.computeJointJacobiansTimeVariation(robot.model,robot.data,q,dq)
@@ -389,7 +391,7 @@ def robotDynamic(robot,input,q,vq,aq,dt):
     """
 
     A = pin.crba(robot.model,robot.data,q) # compute mass matrix
-    H = pin.rnea(robot.model,robot.data,q,vq,aq)  # compute dynamic drift -- Coriolis, centrifugal, gravity
+    H = pin.rnea(robot.model,robot.data,q,vq,np.zeros(aq.shape))  # compute dynamic drift -- Coriolis, centrifugal, gravity
     tau = input
     X = np.array([q,vq])
     Xp = np.array([vq,np.dot(pinv(A),(tau-H))])
@@ -429,7 +431,7 @@ def robotDynamicWithForce(robot,input,q,vq,aq,dt,IDX):
     """
 
     A = pin.crba(robot.model,robot.data,q) # compute mass matrix
-    H = pin.rnea(robot.model,robot.data,q,vq,aq)  # compute dynamic drift -- Coriolis, centrifugal, gravity
+    H = pin.rnea(robot.model,robot.data,q,vq,np.zeros(aq.shape[0]))  # compute dynamic drift -- Coriolis, centrifugal, gravity
     tau = input
     X = np.array([q,vq])
     Xp = np.array([vq,np.dot(pinv(A),(tau-H))]) # rajout d'un fois 2 on ne sais pas trop pourquoi ( ça parraissait cohérent dans la tete de jo)
@@ -442,14 +444,15 @@ def robotDynamicWithForce(robot,input,q,vq,aq,dt,IDX):
     robot.forwardKinematics(q) #update joint 
     pin.updateFramePlacements(robot.model,robot.data) #update frame placement
 
-
+    print("force using pinnochio ",robot.data.Fcrb)
     A = pin.crba(robot.model,robot.data,q) # compute mass matrix
-    H = pin.rnea(robot.model,robot.data,q,vq,aq)  # compute dynamic drift -- Coriolis, centrifugal, gravity
+    #H = pin.rnea(robot.model,robot.data,q,vq,aq)  # compute dynamic drift -- Coriolis, centrifugal, gravity
+    H = pin.rnea(robot.model,robot.data,q,vq,np.zeros(aq.shape[0]))  # compute dynamic drift -- Coriolis, centrifugal, gravity
 
-    J = pin.computeFrameJacobian(robot.model,robot.data,q,IDX,pin.ReferenceFrame.LOCAL_WORLD_ALIGNED)
+    #J = adaptJacob(pin.computeFrameJacobian(robot.model,robot.data,q,IDX,pin.ReferenceFrame.LOCAL_WORLD_ALIGNED))
+    J =pin.computeFrameJacobian(robot.model,robot.data,q,IDX,pin.ReferenceFrame.LOCAL_WORLD_ALIGNED)
     tau_next = np.dot(A,aq) + H
-    f = np.dot(pinv(np.transpose(J)),np.dot(A,aq) + H) 
-    #print("diff = ",tau-np.dot(A,aq) + H)
+    f= np.dot(pinv(np.transpose(J)),tau)
     return q,vq,aq,f,J,A,H
     
 
@@ -459,7 +462,24 @@ def adaptS(I_S):
     diagI_s[5] = 0
     return np.diag(diagI_s)
 
+def robot_dyn(robot,input,q,vq,aq,f,J,dt,IDX):
+    """
+        x vector = [ q, dq, f]
+        dx vector = [dq ddq, df]
+        
+        dq = dq
+        ddq = pinv(A),(tau-H+np.dot(np.transpose(J),f))
+    """
+    A = pin.crba(robot.model,robot.data,q) # compute mass matrix
+    H = pin.rnea(robot.model,robot.data,q,vq,np.zeros(aq.shape[0]))  # compute dynamic drift -- Coriolis, centrifugal, gravity
+    tau = input
+    X = np.array([q,vq])
+    Xp = np.array([vq,np.dot(pinv(A),(tau-H+np.dot(np.transpose(J),f)))]) # rajout d'un fois 2 on ne sais pas trop pourquoi ( ça parraissait cohérent dans la tete de jo)
+    X += Xp*dt
 
+    q = X[0]
+    vq = X[1]
+    aq = Xp[1]
 
 
 def run_efort_control(robot):
@@ -468,27 +488,122 @@ def run_efort_control(robot):
 
 
     """
-    N = 10
+    N = 3000
     dt = 1e-3
     IDX = robot.model.getFrameId("tcp")
-    Xdesired,dXdesired,ddXdesired,traj_q,traj_dq,t = getTraj(N,robot,IDX,dt,loi='F')
+    Xdesired,dXdesired,ddXdesired,traj_q,traj_dq,traj_ddq,t = getTraj(N,robot,IDX,dt,loi='P')
     q = traj_q[:,0]
     vq = np.zeros(robot.nv)
     aq = np.zeros(robot.nv)
-    trajX = np.zeros(Xdesired.shape)
-    trajF = np.zeros(Xdesired.shape)
+    trajX = np.zeros((3,N))
+    trajF = np.zeros((3,N))
     robot.forwardKinematics(q) #update joints
     pin.updateFramePlacements(robot.model,robot.data) #update frame placement
-    Xinit = situationOT(robot.data.oMf[robot.model.getFrameId("tcp")])
-    Xf = np.array([1.15,0,0.85,0,0,0])
-    dXf = np.zeros(Xf.shape)
-    ddXf = np.zeros(Xf.shape)
-    S = computeSelectionMatrix(0,0,0,0,0,0) # position => indice 0,2,4
-    I_S = computeSelectionMatrix(1,1,1,1,1,1)#
-    input = pin.rnea(robot.model,robot.data,q,vq,aq)  # compute dynamic drift -- Coriolis, centrifugal, gravity
-    fd = np.array([0,0,1,0,0,0])
+
+    #S = computeSelectionMatrix(1,0,1,0,1,0) # position => indice 0,2,4
+    #I_S = computeSelectionMatrix(0,0,0,0,0,0)#
+
+
+    S = np.eye(3)   #np.array([[1,0],[0,1]]) # Sur X et Z  => X de taille 2x2
+    S = np.diag([1,0,0])
+    I_S = np.eye(S.shape[0]) - S  #np.eye(2)-S
+    I_S = np.diag([0,1,0])
+    input = pin.rnea(robot.model,robot.data,q,vq,aq)  # H compute dynamic drift -- Coriolis, centrifugal, gravity
+    fd = np.array([1,1,1])
     I=0
     Id = 334#math.floor(N/3)
+
+
+    print(I_S)
+    for i in range(N):
+        
+        robot.display(q)
+        X = adaptSituation(situationOT(robot.data.oMf[IDX]),q)
+        trajX[:,i] = X
+
+        #print("t :",i*dt)
+        #print("X0t : ",X[0])
+        q,vq,aq,f,J,A,H = robotDynamicWithForce(robot,input,q,vq,aq,dt,IDX)
+        J = adaptJacob(J)
+        f = adaptSituation(f,[0,0])
+        #fd = f
+        #print("la force exercé par le robot est égal à\t",f)
+        dX = np.dot(J,vq)
+        ddX = getdjv(robot,q,vq,aq)
+
+        #print("postion error before controller",norm(adaptSituation(Xdesired[:,i])-X))
+
+        #input,I = effort_control(adaptSituation(Xdesired[:,Id]),X,0*adaptSituation(dXdesired[:,0]),dX,0*adaptSituation(ddXdesired[:,0]),adaptSituation(ddX),fd,f,I,J,S,I_S,A,H,dt) #constant position
+        input,I = effort_control(adaptSituation(Xdesired[:,i],traj_q[:,i]),X,adaptSituation(dXdesired[:,i],traj_dq[:,i]),dX,adaptSituation(ddXdesired[:,i],traj_ddq[:,i]),adaptSituation(ddX,aq),fd,f,I,J,S,I_S,A,H,dt) # tracking 
+        trajF[:,i] = f
+        #time.sleep(dt)
+
+    plt.figure()
+    plt.title("sur X")
+    plt.plot(t,Xdesired[0,:]*np.ones(N),'r--',label="consigne")
+    plt.plot(t,trajX[0,:],label="traj OT")
+    plt.xlabel("temps en seconde")
+    plt.ylabel("position en m")
+    plt.legend()
+    plt.figure()
+    plt.title("sur Z")
+    plt.plot(t,Xdesired[2,:]*np.ones(N),'r--',label="consigne")
+    plt.plot(t,trajX[1,:],label="traj OT")
+    plt.xlabel("temps en seconde")
+    plt.ylabel("position en m")
+    plt.figure()
+    plt.title("la force en z")
+    plt.plot(t,fd[1]*np.ones(N),'r--',label="consigne")
+    plt.plot(t,trajF[1,:],label="force exercer par l'OT")
+    plt.xlabel("temps en seconde")
+    plt.ylabel("force en N")
+    plt.figure()
+    plt.title("la force en x")
+    plt.plot(t,fd[0]*np.ones(N),'r--',label="consigne")
+    plt.plot(t,trajF[0,:],label="force exercer par l'OT")
+    plt.xlabel("temps en seconde")
+    plt.ylabel("force en N")
+    plt.legend()
+
+    plt.show()
+    
+
+
+        
+def run_efort_control2(robot):
+    """
+        this function implement the efort control scheme and run it 
+
+
+    """
+    N = 4000
+    dt = 1e-3
+    IDX = robot.model.getFrameId("tcp")
+    Xdesired,dXdesired,ddXdesired,traj_q,traj_dq,traj_ddq,t = getTraj(N,robot,IDX,dt,loi='F')
+    q = traj_q[:,0]
+    vq = np.zeros(robot.nv)
+    aq = np.zeros(robot.nv)
+    trajX = np.zeros((Xdesired[:,0].shape[0],N))
+    trajF = np.zeros((Xdesired[:,0].shape[0],N))
+    robot.forwardKinematics(q) #update joints
+    pin.updateFramePlacements(robot.model,robot.data) #update frame placement
+
+    #S = computeSelectionMatrix(1,0,1,0,1,0) # position => indice 0,2,4
+    #I_S = computeSelectionMatrix(0,0,0,0,0,0)#
+
+
+
+    S = np.diag([1,0,1,0,1,0])
+    I_S = np.diag([0,0,0,0,0,0])
+   #np.array([[1,0],[0,1]]) # Sur X et Z  => X de taille 2x2
+    #I_S = np.eye(S.shape[0]) - S  #np.eye(2)-S
+    input = pin.rnea(robot.model,robot.data,q,vq,aq)  # compute dynamic drift -- Coriolis, centrifugal, gravity
+    fd = np.array([100,0,1,0,0,0])
+    I=0
+    Id = 334#math.floor(N/3)
+
+
+    print(I_S)
     for i in range(N):
         
         robot.display(q)
@@ -503,14 +618,13 @@ def run_efort_control(robot):
         dX = np.dot(J,vq)
         ddX = getdjv(robot,q,vq,aq)
 
-        print("force error before controller",norm(fd-f))
+        #print("postion error before controller",norm(adaptSituation(Xdesired[:,i])-X))
 
-        #input,I = effort_control(Xdesired[:,],X,0*dXdesired[:,Id],dX,0*ddXdesired[:,Id],ddX,fd,f,I,J,S,I_S,A,H,dt) #constant position
-        
+        #input,I = effort_control(adaptSituation(Xdesired[:,Id]),X,0*adaptSituation(dXdesired[:,0]),dX,0*adaptSituation(ddXdesired[:,0]),adaptSituation(ddX),fd,f,I,J,S,I_S,A,H,dt) #constant position
         input,I = effort_control(Xdesired[:,i],X,dXdesired[:,i],dX,ddXdesired[:,i],ddX,fd,f,I,J,S,I_S,A,H,dt) # tracking 
         trajF[:,i] = f
         #time.sleep(dt)
-
+    print("f =",f)
     plt.figure()
     plt.title("sur X")
     plt.plot(t,Xdesired[0,:]*np.ones(N),'r--',label="consigne")
@@ -530,14 +644,16 @@ def run_efort_control(robot):
     plt.plot(t,trajF[2,:],label="force exercer par l'OT")
     plt.xlabel("temps en seconde")
     plt.ylabel("force en N")
+    plt.figure()
+    plt.title("la Moment en x")
+    plt.plot(t,fd[0]*np.ones(N),'r--',label="consigne")
+    plt.plot(t,trajF[0,:],label="force exercer par l'OT")
+    plt.xlabel("temps en seconde")
+    plt.ylabel("force en N")
     plt.legend()
 
     plt.show()
     
-
-
-        
-
 
 
 
@@ -562,15 +678,15 @@ def effort_control(Xd,X,dXd,dX,ddXd,ddXn,fd,f,I,J,S,I_S,A,H,dt):
         tau 
     """
 
-    Kf = 1
+    Kf = 0.1
     Kdf = 0
-    KIf = .01
+    KIf = 0
 
-
+    #if(det(J) == 0):
+        #print("c'est J le probleme j'ai jurer")
     pclt = PCLT(Xd,X,dXd,dX,ddXd,ddXn,pinv(J),A,S)
     #fcl,I = FCL(fd,f,dX,np.transpose(J),I,dt,Kf,Kdf,I_S,KIf)
-    fcl,I = FCL(fd,f,0,np.transpose(J),I,dt,Kf,Kdf,I_S,KIf)
-    
+    fcl,I = FCL(fd,f,dX,np.transpose(J),I,dt,Kf,Kdf,I_S,KIf)
 
     return (pclt + fcl + H),I
 
@@ -589,6 +705,7 @@ def FCL(fd,f,dX,Jt,I,dt,Kf,Kdf,I_S,KIf):
 
     outPID,I = controllerPID(fd-f,-dX,I,dt,Kp=Kf,Kd=Kdf,Ki=KIf)#+ fd
     out = np.dot(I_S,outPID)
+    print("deltaF = ",out)
     return np.dot(Jt,out),I
 
 
@@ -649,7 +766,7 @@ def simulator(robot,espace="OT"):
         traj_dotOT[i,:] = dotX
         # Display of the robot
         robot.display(q)
-        time.sleep(dt)
+
     
     print("position x OT" + "\tposition consigne",X[0],Xc[N-1][0])#Xc[N-1[0],:])
     print("position y OT" + "\tposition consigne",X[1],Xc[N-1][1])#Xc[N-1,:][1])
@@ -706,8 +823,10 @@ def PCLT(Xd,X,dXd,dX,ddXd,ddXn,Jp,A,S):
         Computed with 
         
     """
-    outcomputedTorqueController = np.transpose(computedTorqueController(Xd,X,dXd,dX,ddXd,ddXn,eye(6),eye(6),np.zeros(6)))
+    outcomputedTorqueController = np.transpose(computedTorqueController(Xd,X,dXd,dX,ddXd,ddXn,eye(X.shape[0]),eye(X.shape[0]),np.zeros(X.shape)))
+    #print("out controller avant ",outcomputedTorqueController)
     outcomputedTorqueController = np.dot(S,outcomputedTorqueController)
+    print("DeltaX = ",outcomputedTorqueController)
     AJp = np.dot(A,Jp)
     outcomputedTorqueController = np.dot(AJp,outcomputedTorqueController)
     return  outcomputedTorqueController
@@ -807,7 +926,7 @@ def run(robot):
     vq = np.zeros(robot.nv)
     aq = np.zeros(robot.nv)
 
-    Xdesired,dXdesired,ddXdesired,traj_q,traj_dq,t = getTraj(N,robot,IDX,dt,loi='P')
+    Xdesired,dXdesired,ddXdesired,traj_q,traj_dq,traj_ddq,t = getTraj(N,robot,IDX,dt,loi='R')
     q = traj_q[:,0]
     vq = np.zeros(robot.nv)
     aq = np.zeros(robot.nv)
@@ -825,11 +944,12 @@ def run(robot):
         J = pin.computeFrameJacobian(robot.model,robot.data,q,IDX,BASE)
         G = pin.rnea(robot.model, robot.data, q, np.zeros(robot.nv), np.zeros(robot.nv)) #gravity matrix
         A = pin.crba(robot.model,robot.data,q) # compute mass matrix
-        H = pin.rnea(robot.model,robot.data,q,vq,aq)  # compute dynamic drift -- Coriolis, centrifugal, gravity
+        H = pin.rnea(robot.model,robot.data,q,vq,np.zeros(aq.shape))  # compute dynamic drift -- Coriolis, centrifugal, gravity
         robot.forwardKinematics(q) #update joint
         X = situationOT(robot.data.oMf[IDX])
         pin.updateFramePlacements(robot.model,robot.data) #update frame placement
         Jp = pinv(J)
+        print("Jp ", Jp)
         dX = np.dot(J,vq)
         ddXn = getdjv(robot,q,vq,aq)
         
@@ -844,7 +964,7 @@ def run(robot):
 
     plt.figure()
     plt.title("suivi de trajectoire sur l'axe z, avec une position constante")
-    plt.plot(t,Xdesired[2,In]*np.ones(N),'r--',linewidth= 2,label="la consigne sur z")
+    plt.plot(t,Xdesired[2,:]*np.ones(N),'r--',linewidth= 2,label="la consigne sur z")
     plt.plot(t,trajX[2,:],label="trajectoire OT sur z")
     plt.xlabel('temps en seconde')
     plt.ylabel('position en m')
@@ -855,9 +975,23 @@ def main(robot):
     """
         this function is to implement quick test
     """
-    S = computeSelectionMatrix(1,0,1,0,0,0)
-    I_S = eye(S.shape[0]) - S
-    adaptS(I_S)
+    N = 1000
+    dt = 1e-3
+    Xdesired,dXdesired,ddXdesired,traj_q,traj_dq,traj_ddq,t = getTraj(N,robot,0,dt,loi='R')
+
+    dXverif = calculDotX(Xdesired,dt)
+    plt.figure()
+    plt.title("verif J")
+    plt.plot(t,Xdesired[0,:]*np.ones(N),'r--',linewidth= 2,label="calculer ")
+    plt.plot(t,dXverif[0,:],label="diff finis")
+    plt.xlabel('temps en seconde')
+    plt.ylabel('position en m')
+    plt.legend()
+    plt.show()
+
+
+
+    
 
 def computedTorqueController(Xd,X,dXd,dX,ddXd,ddXn,Jp,A,H):
     """
@@ -870,15 +1004,17 @@ def computedTorqueController(Xd,X,dXd,dX,ddXd,ddXn,Jp,A,H):
             Kd = 2zetawj
 """
     zeta = 1
-    wj = math.sqrt(100)*math.pi
+    wj = 1 #math.sqrt(200)*math.pi 1
     kp = wj**2
     kd = 2*zeta*wj
-    kp = kp*np.eye(6)#10 on multiplie par Jp car nous somme dans l'espace de l'OT
-    kd = kd*np.eye(6)#100
+    kp = kp*np.eye(X.shape[0])#10 on multiplie par Jp car nous somme dans l'espace de l'OT
+    kd = kd*np.eye(X.shape[0])#100
     ex = Xd-X
     edx = dXd-dX
     W = np.dot(kp,ex)+np.dot(kd,edx)+ddXd-ddXn
+    print("W shape :",W.shape)
     jpw = np.dot(Jp,W)
+
     tau = np.dot(A,jpw) + H
     return tau
 
@@ -894,4 +1030,5 @@ if __name__ == '__main__':
     robot.display(robot.q0)
     #run(robot)
     #main(robot)
-    run_efort_control(robot)
+    #simulateurVerif(1000,robot)
+    run(robot)
