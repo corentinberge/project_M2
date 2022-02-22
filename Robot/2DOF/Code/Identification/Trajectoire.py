@@ -1,4 +1,4 @@
-from numpy import double, linalg, sign, sqrt
+from numpy import double, linalg, sign, size, sqrt
 from numpy.core.fromnumeric import shape
 from numpy.lib.nanfunctions import _nanmedian_small
 from pinocchio.visualize import GepettoVisualizer
@@ -12,22 +12,260 @@ from typing import Optional
 from typing import Optional
 import qpsolvers
 
+
+package_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) + '/Modeles/'
+urdf_path = package_path + 'planar_2DOF/URDF/planar_2DOF.urdf'
+
+# ========== Step 1 - load model, create robot model and create robot data
+
+robot = RobotWrapper()
+robot.initFromURDF(urdf_path, package_path, verbose=True)
+robot.initViewer(loadModel=True)
+robot.display(robot.q0)
+
+data = robot.data
+model = robot.model
+NQ = robot.nq                 # joints angle
+NV = robot.nv                 # joints velocity
+NJOINT = robot.model.njoints  # number of links
+gv = robot.viewer.gui
+
+#sampling time 
+Tech=0.01
+
+def trajectory_mode_a2a_sync():
+    # data.qlim did not work
+    print('i am in' )
+    
+    mode=0
+    while (mode!=1 and mode!=2):
+        print('enter 1 for the mode axe to axe, and 2 for the mode syncronized')
+        mode=float(input())
+        if(mode==1):
+            print('enter the total number of joints')
+            nbr_joint=int(input())
+
+            print('enter the number of joint you want to move  ')
+            joint_i=float(input())
+
+            print('enter lower bound position (q_min)')
+            q_min=float(input())
+
+            print('enter uper bound position (q_max)')
+            q_max=float(input())
+            
+            print('enter the MAX velocity of joint')
+            V_joint=float(input())
+
+            
+            print('enter the acceleration of joint')
+            acc_joint=float(input())
+
+            print('enter number of repetition time of motion')
+            nbr_rep=int(input())
+
+            Q_plot=calcul_Q_all_variable(nbr_rep,q_min,q_max,V_joint,acc_joint,Tech)
+            Q_plot_80=calcul_Q_all_variable(nbr_rep,q_min,q_max,V_joint*0.8,acc_joint,Tech)
+            Q_plot_60=calcul_Q_all_variable(nbr_rep,q_min,q_max,V_joint*0.6,acc_joint,Tech)
+            Q_plot_40=calcul_Q_all_variable(nbr_rep,q_min,q_max,V_joint*0.4,acc_joint,Tech)
+            Q_plot_20=calcul_Q_all_variable(nbr_rep,q_min,q_max,V_joint*0.2,acc_joint,Tech)
+            
+            # print('here the trajectory of joint',joint_i,'the other joints dont move')
+            # plot_Trajectory(Q_plot)
+            # plot_Trajectory(Q_plot_80)
+            # plot_Trajectory(Q_plot_60)
+            # plot_Trajectory(Q_plot_40)
+            # plot_Trajectory(Q_plot_20)
+            
+            Q_total,V_total,A_total=calcul_QVA_joints_total(nbr_joint,joint_i,Q_plot)
+            plot_QVA_total(Q_plot,nbr_joint,Q_total,V_total,A_total,'max_')
+
+            Q_total_80,V_total_80,A_total_80=calcul_QVA_joints_total(nbr_joint,joint_i,Q_plot_80)
+            plot_QVA_total(Q_plot_80,nbr_joint,Q_total_80,V_total_80,A_total_80,'80_')
+
+            Q_total_60,V_total_60,A_total_60=calcul_QVA_joints_total(nbr_joint,joint_i,Q_plot_60)
+            plot_QVA_total(Q_plot_60,nbr_joint,Q_total_60,V_total_60,A_total_60,'60_')
+
+            Q_total_40,V_total_40,A_total_40=calcul_QVA_joints_total(nbr_joint,joint_i,Q_plot_40)
+            plot_QVA_total(Q_plot_40,nbr_joint,Q_total_40,V_total_40,A_total_40,'40_')
+
+            Q_total_20,V_total_20,A_total_20=calcul_QVA_joints_total(nbr_joint,joint_i,Q_plot_20)
+            plot_QVA_total(Q_plot_20,nbr_joint,Q_total_20,V_total_20,A_total_20,'20_')
+
+
+        if(mode==2):
+            print('mode 2 youpi')
+        else:
+            print('please re-enter your choice :)')  
+
+
+    return Q_total,V_total,A_total
+
+def plot_QVA_total(Q_plot,nbr_joint,Q_total,V_total,A_total,name):
+    
+    plt.figure('Q_total Trajectory')
+    for i in range(nbr_joint):
+        plt.plot(Q_plot[1],Q_total[i],linewidth=1, label='q'+str(name)+str(i))
+    plt.title('q Trajectory')
+    plt.xlabel('t')
+    plt.ylabel('q')
+    plt.legend()
+    plt.show()        
+
+    plt.figure('V_total velosity')
+    for i in range(nbr_joint):
+        plt.plot(Q_plot[1],V_total[i],linewidth=1, label='V'+str(name)+str(i))
+    plt.title('V velosity')
+    plt.xlabel('t')
+    plt.ylabel('V')
+    plt.legend()
+    plt.show() 
+
+    plt.figure('A_total acceleration')
+    for i in range(nbr_joint):
+        plt.plot(Q_plot[1],A_total[i],linewidth=1, label='acc'+str(name)+str(i))
+    plt.title('acc acceleration')
+    plt.xlabel('t')
+    plt.ylabel('acc')
+    plt.legend()
+    plt.show() 
+
+def calcul_QVA_joints_total(nbr_joint,joint_i,Q_plot):
+    Q_total=[]
+    V_total=[]
+    A_total=[]
+    tmp=[]
+    for i in range(nbr_joint):
+                if(i==joint_i):
+                    Q_total.append(Q_plot[0])
+                else:
+                    tmp=[]
+                    for i in range(np.array(Q_plot[0]).size):
+                        tmp.append(0)
+                    Q_total.append(tmp)
+
+    for i in range(nbr_joint):
+                if(i==joint_i):
+                    V_total.append(Q_plot[2])
+                else:
+                    tmp=[]
+                    for i in range(np.array(Q_plot[2]).size):
+                        tmp.append(0)
+                    V_total.append(tmp)
+
+    for i in range(nbr_joint):
+                if(i==joint_i):
+                    A_total.append(Q_plot[3])
+                else:
+                    tmp=[]
+                    for i in range(np.array(Q_plot[3]).size):
+                        tmp.append(0)
+                    A_total.append(tmp)
+
+    # Q_total.append(V_total)
+    # Q_total.append(A_total)
+
+    return Q_total,V_total,A_total
+
+def plot_Trajectory(Q):
+    
+    q=Q[0],
+    time=Q[1]
+    v=Q[2]
+    a=Q[3]
+    print('shape of Q[0]',np.array(Q[0]).shape)
+    print('shape of Q[1]',np.array(Q[1]).shape)
+    plt.figure('q Trajectory')
+    plt.plot(Q[1],Q[0],linewidth=1, label='q')
+    plt.title('q Trajectory')
+    plt.xlabel('t')
+    plt.ylabel('q')
+    plt.legend()
+    plt.show()
+
+    plt.figure('V velocity calculated via derivation(dq)')
+    plt.title('V velocity calculated via derivation(dq)')
+    plt.plot(time,v,linewidth=1, label='V')
+    plt.xlabel('t sec')
+    plt.ylabel('V(m/s)')
+    plt.legend()
+    plt.show()
+    
+
+    plt.figure('acc acceleration calculated via derivation(ddq)')
+    plt.plot(time,a,linewidth=1, label='acc')
+    plt.xlabel('t sec')
+    plt.ylabel('acc (m/s^2)')
+    plt.legend()
+    plt.show()
+    plt.title('acc acceleration calculated via derivation(ddq)')
+
+def calcul_Q_all_variable(nbr_rep,q_min,q_max,V_joint,acc_joint,Tech):
+    Q_plot=[]
+    Q=[]
+    V=[]
+    T=[]
+    tf=0
+    A=[]
+    print('avant nbr_rep')
+    for i in range(nbr_rep):
+        print('avant trajectory')      
+        q,t,v,a=trajectory(q_min,q_max,V_joint,acc_joint,Tech)
+        print('apres trajectory')  
+        Q.extend(q)
+        V.extend(v)
+        A.extend(a)
+        for i in range(np.array(t).size):
+            t[i]+=tf
+
+        T.extend(t)       
+        tf=T[np.array(T).size-1]
+
+        q1,t1,v1,a1=trajectory(q_max,q_min,V_joint,acc_joint,Tech)
+        Q.extend(q1)
+        V.extend(v1)
+        A.extend(a1)
+
+        for i in range(np.array(t1).size):
+            t1[i]+=tf
+
+        T.extend(t1)
+        tf=T[np.array(T).size-1]
+
+    Q_plot.append(Q)
+    Q_plot.append(T)
+    Q_plot.append(V)
+    Q_plot.append(A)
+
+    return Q_plot
+
 def trajectory(q_start,q_end,Vmax,acc_max,Tech):
 
-    #function that take first position ,last position,Max velocity, and acceleration
-    # AND return the trajectory of q and the velocity (dq/dt)
+    #function that take as input:
+    #                            1-initial position
+    #                            2-final position
+    #                            3-Max velocity
+    #                            4-acceleration
+    #                            5- periode of sampling
+    #  
+    # AND return:
+    #            1- trajectory q
+    #            2- velocity (dq/dt)
+    #            3- acceleration
+    #            4- time vector that take the movement to go from qi to qf
+     
 
                                 #the max velocity is given by vmax=sqrt(D*ACC)
 
     D=q_end-q_start             # total distance 
-    if(D>((Vmax*Vmax)/acc_max)):# D>Vmax^2/acc it's condition so the movment can be achivebel(realisable)
+    if(abs(D)>((Vmax*Vmax)/acc_max)):# D>Vmax^2/acc it's condition so the movment can be achivebel(realisable)
         time1=Vmax/acc_max      #time that take the velocity to go from 0 to max
     else:
         print('we need a better value of D')
                                 # if D dont respect the condition we need another D 
                                 # so another input for the function
 
-    timeEnd=time1+(D/Vmax)      # time wen the mvt end
+    timeEnd=time1+(abs(D)/Vmax)      # time wen the mvt end
     print('Vmax \t acc_max \t time1 \t timeEnd')
     print(Vmax,'\t',acc_max,'\t',time1,'\t',timeEnd)
     t=0
@@ -66,6 +304,8 @@ def trajectory(q_start,q_end,Vmax,acc_max,Tech):
         # print('dv=\t',dv)
         v.append(dv)
     v.append(dv)
+    v=np.array(v)
+    v=abs(v)
     print('shape of time',np.array(time).shape)
     print('shape of v',np.array(v).shape)
     
@@ -290,6 +530,12 @@ def PreDefined_velocity_trajectory(time1,timeEnd,Vmax,acc_max,Tech):
         time.append(t)
     return v,time
 
+
+trajectory_mode_a2a_sync()
+
+'''
+
+
 # initialisation
 q_start=[]
 q_end=[]
@@ -392,3 +638,4 @@ plt.title('V velocity calculated via derivation(dq)')
 # plt.legend()
 # plt.show()
 
+'''
