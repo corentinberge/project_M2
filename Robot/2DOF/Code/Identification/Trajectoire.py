@@ -33,9 +33,21 @@ gv = robot.viewer.gui
 #sampling time 
 Tech=0.01
 
-def coulomb_force():
-    print('i love coulomb')
+def coulomb_force(Fs,V_total,nbr_joint):
+    print('je suis force')
+    force=[]
+    for j in range(nbr_joint):
+        F=[]
+        for i in range(np.array(V_total[0].size)):
+            f=Fs*np.sign(V_total[j,i])
+            F.extend([f])
 
+        force.append(F)
+
+    print('je suis avant plot force')
+
+    
+    return force
 
 def trajectory_mode_a2a_sync():
     #this function dont take an input data  but ask the user to enter his own data: 
@@ -173,9 +185,6 @@ def trajectory_mode_a2a_sync():
             tau,w=Generate_Torque_Regression_matrix(nbr_joint,Q_total,V_total,A_total)
             phi_etoile=estimation_with_qp_solver(w,tau)
             force=force_coulomb(phi_etoile[21],V_total,nbr_joint)
-
-            # print('je suis avant plot force')
-
             plt.figure('force friction')
             for i in range(nbr_joint):
                 plt.plot(V_total[i],force[i],linewidth=1, label='fric'+str(i))
@@ -184,11 +193,13 @@ def trajectory_mode_a2a_sync():
             plt.ylabel('fric')
             plt.legend()
             plt.show() 
+
+            
         else:
             print('please re-enter your choice :)')  
 
 
-    return Q_total,V_total,A_total,time
+    return Q_total,V_total,A_total,time,force
 
 def plot_QVA_total(time,nbr_joint,Q_total,V_total,A_total,name):
     
