@@ -33,19 +33,36 @@ gv = robot.viewer.gui
 #sampling time 
 Tech=0.01
 
+def coulomb_force():
+    print('i love coulomb')
+
+
 def trajectory_mode_a2a_sync():
-    # data.qlim did not work
-    print('i am in' )
+    #this function dont take an input data  but ask the user to enter his own data: 
+    # it returns two mode of trajectorys:
+    #                                   mode 1: axe to axe
+    #                                          1-it return a spedifique trajectory fpr a chosen joint
+    #                                            and for other joints trajectory with zero value
+    #                                            so other joints dont move
+    #                                           2-it return the force of coulon
     
+    # data.qlim did not work
+    Q_total=[]
+    V_total=[]
+    A_total=[]
+    Q_total_per_joint=[]
     mode=0
     while (mode!=1 and mode!=2):
+        
+        # entering data from user 
+
         print('enter 1 for the mode axe to axe, and 2 for the mode syncronized')
         mode=float(input())
         if(mode==1):
             print('enter the total number of joints')
             nbr_joint=int(input())
 
-            print('enter the number of joint you want to move  ')
+            print('enter the number of joint you want to move (counting start from 0) ')
             joint_i=float(input())
 
             print('enter lower bound position (q_min)')
@@ -57,19 +74,33 @@ def trajectory_mode_a2a_sync():
             print('enter the MAX velocity of joint')
             V_joint=float(input())
 
+            print('enter the desire  prcentatge of the MAX velocity of joint')
+            pourcentage=float(input())
             
             print('enter the acceleration of joint')
             acc_joint=float(input())
 
             print('enter number of repetition time of motion')
             nbr_rep=int(input())
-
-            Q_plot=calcul_Q_all_variable(nbr_rep,q_min,q_max,V_joint,acc_joint,Tech)
-            Q_plot_80=calcul_Q_all_variable(nbr_rep,q_min,q_max,V_joint*0.8,acc_joint,Tech)
-            Q_plot_60=calcul_Q_all_variable(nbr_rep,q_min,q_max,V_joint*0.6,acc_joint,Tech)
-            Q_plot_40=calcul_Q_all_variable(nbr_rep,q_min,q_max,V_joint*0.4,acc_joint,Tech)
-            Q_plot_20=calcul_Q_all_variable(nbr_rep,q_min,q_max,V_joint*0.2,acc_joint,Tech)
             
+            # calculs of position velosity acceleration for the chosen joint with variation 
+            # of the Vmax 80% 60% 40% 20%
+
+            Q_plot=calcul_Q_all_variable_a2a(nbr_rep,q_min,q_max,V_joint,acc_joint,Tech)
+            Q_plot_80=calcul_Q_all_variable_a2a(nbr_rep,q_min,q_max,V_joint*0.8,acc_joint,Tech)
+            Q_plot_60=calcul_Q_all_variable_a2a(nbr_rep,q_min,q_max,V_joint*0.6,acc_joint,Tech)
+            Q_plot_40=calcul_Q_all_variable_a2a(nbr_rep,q_min,q_max,V_joint*0.4,acc_joint,Tech)
+            Q_plot_20=calcul_Q_all_variable_a2a(nbr_rep,q_min,q_max,V_joint*0.2,acc_joint,Tech)
+
+            Q_plot_pourcentage=calcul_Q_all_variable_a2a(nbr_rep,q_min,q_max,V_joint*pourcentage,acc_joint,Tech)
+            
+            # position vector Q_plot[0]
+            # time vector Q_plot[1]
+            # velosity vector Q_plot[2]
+            # acc vector Q_plot[3]
+            time=Q_plot[1]
+            # plot the data of the chosen joint
+
             # print('here the trajectory of joint',joint_i,'the other joints dont move')
             # plot_Trajectory(Q_plot)
             # plot_Trajectory(Q_plot_80)
@@ -77,35 +108,93 @@ def trajectory_mode_a2a_sync():
             # plot_Trajectory(Q_plot_40)
             # plot_Trajectory(Q_plot_20)
             
+            # calculs of position velosity acceleration for all joint joint with variation 
+            # of the Vmax
+
             Q_total,V_total,A_total=calcul_QVA_joints_total(nbr_joint,joint_i,Q_plot)
-            plot_QVA_total(Q_plot,nbr_joint,Q_total,V_total,A_total,'max_')
+            plot_QVA_total(Q_plot[1],nbr_joint,Q_total,V_total,A_total,'max_')
 
-            Q_total_80,V_total_80,A_total_80=calcul_QVA_joints_total(nbr_joint,joint_i,Q_plot_80)
-            plot_QVA_total(Q_plot_80,nbr_joint,Q_total_80,V_total_80,A_total_80,'80_')
+            # Q_total_80,V_total_80,A_total_80=calcul_QVA_joints_total(nbr_joint,joint_i,Q_plot_80)
+            # plot_QVA_total(Q_plot_80[1],nbr_joint,Q_total_80,V_total_80,A_total_80,'80_')
 
-            Q_total_60,V_total_60,A_total_60=calcul_QVA_joints_total(nbr_joint,joint_i,Q_plot_60)
-            plot_QVA_total(Q_plot_60,nbr_joint,Q_total_60,V_total_60,A_total_60,'60_')
+            # Q_total_60,V_total_60,A_total_60=calcul_QVA_joints_total(nbr_joint,joint_i,Q_plot_60)
+            # plot_QVA_total(Q_plot_60[1],nbr_joint,Q_total_60,V_total_60,A_total_60,'60_')
 
-            Q_total_40,V_total_40,A_total_40=calcul_QVA_joints_total(nbr_joint,joint_i,Q_plot_40)
-            plot_QVA_total(Q_plot_40,nbr_joint,Q_total_40,V_total_40,A_total_40,'40_')
+            # Q_total_40,V_total_40,A_total_40=calcul_QVA_joints_total(nbr_joint,joint_i,Q_plot_40)
+            # plot_QVA_total(Q_plot_40[1],nbr_joint,Q_total_40,V_total_40,A_total_40,'40_')
 
-            Q_total_20,V_total_20,A_total_20=calcul_QVA_joints_total(nbr_joint,joint_i,Q_plot_20)
-            plot_QVA_total(Q_plot_20,nbr_joint,Q_total_20,V_total_20,A_total_20,'20_')
+            # Q_total_20,V_total_20,A_total_20=calcul_QVA_joints_total(nbr_joint,joint_i,Q_plot_20)
+            # plot_QVA_total(Q_plot_20[1],nbr_joint,Q_total_20,V_total_20,A_total_20,'20_')
 
+            # Q_total_pourcentage,V_total_pourcentage,A_total_pourcentage=calcul_QVA_joints_total(nbr_joint,joint_i,Q_plot_pourcentage)
+            # plot_QVA_total(Q_plot_pourcentage[1],nbr_joint,Q_total_pourcentage,V_total_pourcentage,A_total_pourcentage,'%_')
 
+            tau,w=Generate_Torque_Regression_matrix(nbr_joint,Q_total,V_total,A_total)
+            
+            phi_etoile=estimation_with_qp_solver(w,tau)
+            force=force_coulomb(phi_etoile[21],V_total,nbr_joint)
+
+            # print('je suis avant plot force')
+
+            plt.figure('force friction')
+            for i in range(nbr_joint):
+                plt.plot(V_total[i],force[i],linewidth=1, label='fric'+str(i))
+            plt.title('friction force')
+            plt.xlabel('v')
+            plt.ylabel('fric')
+            plt.legend()
+            plt.show() 
         if(mode==2):
-            print('mode 2 youpi')
+
+            print('enter the total number of joints')
+            nbr_joint=int(input())
+            print('enter number of repetition time of motion')
+            nbr_rep=int(input())
+
+            time_tau,time_final,q_start,q_end,Vmax,acc_max,D=Data_Alltrajectory(nbr_joint,Tech)
+            print('\n')
+            print('the new values of velosity and acc after synchronisation')
+            for i in range(nbr_joint):
+                print('V_joint',i+1,'\t',Vmax[i],'m/s')
+                print('acc_joint',i+1,'\t',acc_max[i],'m/s^2')
+
+            for i in range(nbr_joint):
+
+                # q,time,v,a=PreDefined_trajectory(time_tau,time_final,q_start[i],q_end[i], Vmax[i],acc_max[i],D[i],Tech)
+                Q_total_per_joint=calcul_Q_all_variable_sync(nbr_rep,time_tau,time_final,q_start[i],q_end[i],Vmax[i],acc_max[i],D[i],Tech)
+
+                Q_total.append(Q_total_per_joint[0])
+                V_total.append(Q_total_per_joint[2])
+                A_total.append(Q_total_per_joint[3])
+                time=Q_total_per_joint[1]
+
+            plot_QVA_total(time,nbr_joint,Q_total,V_total,A_total,'sync')
+
+            tau,w=Generate_Torque_Regression_matrix(nbr_joint,Q_total,V_total,A_total)
+            phi_etoile=estimation_with_qp_solver(w,tau)
+            force=force_coulomb(phi_etoile[21],V_total,nbr_joint)
+
+            # print('je suis avant plot force')
+
+            plt.figure('force friction')
+            for i in range(nbr_joint):
+                plt.plot(V_total[i],force[i],linewidth=1, label='fric'+str(i))
+            plt.title('friction force')
+            plt.xlabel('v')
+            plt.ylabel('fric')
+            plt.legend()
+            plt.show() 
         else:
             print('please re-enter your choice :)')  
 
 
-    return Q_total,V_total,A_total
+    return Q_total,V_total,A_total,time
 
-def plot_QVA_total(Q_plot,nbr_joint,Q_total,V_total,A_total,name):
+def plot_QVA_total(time,nbr_joint,Q_total,V_total,A_total,name):
     
     plt.figure('Q_total Trajectory')
     for i in range(nbr_joint):
-        plt.plot(Q_plot[1],Q_total[i],linewidth=1, label='q'+str(name)+str(i))
+        plt.plot(time,Q_total[i],linewidth=1, label='q'+str(name)+str(i))
     plt.title('q Trajectory')
     plt.xlabel('t')
     plt.ylabel('q')
@@ -114,16 +203,16 @@ def plot_QVA_total(Q_plot,nbr_joint,Q_total,V_total,A_total,name):
 
     plt.figure('V_total velosity')
     for i in range(nbr_joint):
-        plt.plot(Q_plot[1],V_total[i],linewidth=1, label='V'+str(name)+str(i))
+        plt.plot(time,abs(np.array(V_total[i])),linewidth=1, label='V'+str(name)+str(i))
     plt.title('V velosity')
-    plt.xlabel('t')
-    plt.ylabel('V')
+    plt.xlabel('t sec')
+    plt.ylabel('V m/sec')
     plt.legend()
     plt.show() 
 
     plt.figure('A_total acceleration')
     for i in range(nbr_joint):
-        plt.plot(Q_plot[1],A_total[i],linewidth=1, label='acc'+str(name)+str(i))
+        plt.plot(time,A_total[i],linewidth=1, label='acc'+str(name)+str(i))
     plt.title('acc acceleration')
     plt.xlabel('t')
     plt.ylabel('acc')
@@ -185,7 +274,7 @@ def plot_Trajectory(Q):
 
     plt.figure('V velocity calculated via derivation(dq)')
     plt.title('V velocity calculated via derivation(dq)')
-    plt.plot(time,v,linewidth=1, label='V')
+    plt.plot(time,abs(np.array(v)),linewidth=1, label='V')
     plt.xlabel('t sec')
     plt.ylabel('V(m/s)')
     plt.legend()
@@ -200,18 +289,57 @@ def plot_Trajectory(Q):
     plt.show()
     plt.title('acc acceleration calculated via derivation(ddq)')
 
-def calcul_Q_all_variable(nbr_rep,q_min,q_max,V_joint,acc_joint,Tech):
+def calcul_Q_all_variable_sync(nbr_rep,time1,timeEnd,q_min,q_max,V_joint,acc_joint,D,Tech):
     Q_plot=[]
     Q=[]
     V=[]
     T=[]
     tf=0
     A=[]
-    print('avant nbr_rep')
+    # print('avant nbr_rep')
     for i in range(nbr_rep):
-        print('avant trajectory')      
+        # print('avant trajectory')      
+        q,t,v,a=PreDefined_trajectory(time1,timeEnd,q_min,q_max,V_joint,acc_joint,D,Tech)
+        # print('apres trajectory')  
+        Q.extend(q)
+        V.extend(v)
+        A.extend(a)
+        for i in range(np.array(t).size):
+            t[i]+=tf
+
+        T.extend(t)       
+        tf=T[np.array(T).size-1]
+
+        q1,t1,v1,a1=trajectory(q_max,q_min,V_joint,acc_joint,Tech)
+        Q.extend(q1)
+        V.extend(v1)
+        A.extend(a1)
+
+        for i in range(np.array(t1).size):
+            t1[i]+=tf
+
+        T.extend(t1)
+        tf=T[np.array(T).size-1]
+
+    Q_plot.append(Q)
+    Q_plot.append(T)
+    Q_plot.append(V)
+    Q_plot.append(A)
+
+    return Q_plot
+
+def calcul_Q_all_variable_a2a(nbr_rep,q_min,q_max,V_joint,acc_joint,Tech):
+    Q_plot=[]
+    Q=[]
+    V=[]
+    T=[]
+    tf=0
+    A=[]
+    # print('avant nbr_rep')
+    for i in range(nbr_rep):
+        # print('avant trajectory')      
         q,t,v,a=trajectory(q_min,q_max,V_joint,acc_joint,Tech)
-        print('apres trajectory')  
+        # print('apres trajectory')  
         Q.extend(q)
         V.extend(v)
         A.extend(a)
@@ -305,6 +433,7 @@ def trajectory(q_start,q_end,Vmax,acc_max,Tech):
         v.append(dv)
     v.append(dv)
     v=np.array(v)
+    vreturn=v
     v=abs(v)
     print('shape of time',np.array(time).shape)
     print('shape of v',np.array(v).shape)
@@ -320,7 +449,7 @@ def trajectory(q_start,q_end,Vmax,acc_max,Tech):
     print('shape of time',np.array(time).shape)
     print('shape of a',np.array(a).shape)
 
-    return q,time,v,a
+    return q,time,vreturn,a
 
 def Data_Alltrajectory(Nmbrofjoint,Tech):
 
@@ -479,6 +608,9 @@ def PreDefined_trajectory(time1,timeEnd,q_start,q_end, Vmax,acc_max,D,Tech):
         # print('dv=\t',dv)
         v.append(dv)
     v.append(dv)
+    v=np.array(v)
+    vreturn=v
+    v=abs(v)
     print('shape of time',np.array(time).shape)
     print('shape of v',np.array(v).shape)
     
@@ -493,7 +625,7 @@ def PreDefined_trajectory(time1,timeEnd,q_start,q_end, Vmax,acc_max,D,Tech):
     print('shape of time',np.array(time).shape)
     print('shape of a',np.array(a).shape)
 
-    return q,time,v,a
+    return q,time,vreturn,a
 
 def PreDefined_velocity_trajectory(time1,timeEnd,Vmax,acc_max,Tech):
         # this function calculate the evolution of velocity  wen time evolute
@@ -529,6 +661,189 @@ def PreDefined_velocity_trajectory(time1,timeEnd,Vmax,acc_max,Tech):
         t=t+Tech
         time.append(t)
     return v,time
+
+
+def Generate_Torque_Regression_matrix(nbr_joint,Q_total,V_total,A_total):
+    # Generate ouput with pin
+    nbSamples=np.array(Q_total[0]).size
+    tau=[]
+    q=np.array(Q_total)
+    dq=np.array(V_total)
+    ddq=np.array(A_total)
+    print('shape of q test1 \t','\t',q.shape)
+
+    for i in range(nbSamples):
+        tau.extend(pin.rnea(model, data, q[:, i], dq[:, i], ddq[:, i]))
+    # print('Shape of tau_pin:\t', np.array(tau).shape)
+    tau=np.array(tau)
+    tau=np.double(tau)
+
+    # # ========== Step 4 - Create IDM with pinocchio (regression matrix)
+    w = []  # Regression vector
+        ## w pour I/O generer par pinocchio
+    for i in range(nbSamples):
+        w.extend(pin.computeJointTorqueRegressor(model, data, q[:, i], dq[:, i], ddq[:, i]))
+    w=np.array(w)
+
+    ## modification of W so it contain dq et singe(dq) for the friction param Fv et Fs
+    dq_stack=[]
+    for i in range(nbr_joint):
+        dq_stack.extend(dq[i])
+    
+    dq_stack=np.array([dq_stack])
+    dq_stack=dq_stack.T
+
+    # calculs of  signe(dq)
+    dq_sign=np.sign(dq_stack)
+
+    # modification of w
+    w=np.concatenate([w,dq_stack], axis=1)
+    w=np.concatenate([w,dq_sign], axis=1)
+
+    return tau,w
+
+def estimation_with_qp_solver(w,tau):
+
+    P = np.dot(w.transpose(),w)
+    q = -np.dot(tau.transpose(),w)
+
+    # test if P is positive-definite if not then p=spd (spd=symmetric positive semidefinite)
+    P=nearestPD(P)
+
+    G=([-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],   
+    [0,0,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0,0,0,0],
+    [0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0])
+
+    h=[0,-0.05,0.3,-0.05,0.3,-0.05,0.3,0,-0.05,0.3,-0.05,0.3,-0.05,0.3]
+
+
+
+    # converting to double
+    G=np.array(G)
+    h=np.array(h)
+    G=np.double(G)
+    h=np.double(h)
+
+
+    #Any constraints that are >= must be multiplied by -1 to become a <=.
+
+    # phi_etoile=qpsolvers.solve_ls(P,q,None,None)
+    phi_etoile=qpsolvers.solve_qp(
+            P,
+            q,
+            G,#G Linear inequality matrix.
+            h,#Linear inequality vector.
+            A=None,
+            b=None,
+            lb=None,
+            ub=None,
+            solver="quadprog",
+            initvals=None,
+            sym_proj=True
+            )
+
+    tau_estime=np.dot(w,phi_etoile)
+    samples = []
+    for i in range(np.array(tau).size):
+        samples.append(i)
+
+    plt.figure('torque et torque estime')
+    plt.plot(samples, tau, 'g', linewidth=2, label='tau')
+    plt.plot(samples,tau_estime, 'b:', linewidth=1, label='tau estime')
+    # plt.plot(samples, tau_estime1, 'r', linewidth=1, label='tau estime 1')
+    plt.title('tau and tau_estime')
+    plt.xlabel('2000 Samples')
+    plt.ylabel('parametres')
+    plt.legend()
+    plt.show()
+
+
+    return phi_etoile
+
+def nearestPD(A):
+    """Find the nearest positive-definite matrix to input
+
+    A Python/Numpy port of John D'Errico's `nearestSPD` MATLAB code [1], which
+    credits [2].
+
+    [1] https://www.mathworks.com/matlabcentral/fileexchange/42885-nearestspd 
+
+    spd=symmetric positive semidefinite
+
+    [2] N.J. Higham, "Computing a nearest symmetric positive semidefinite
+    matrix" (1988): https://doi.org/10.1016/0024-3795(88)90223-6
+    """
+
+    B = (A + A.T) / 2
+    _, s, V = np.linalg.svd(B)#provides another way to factorize a matrix, into singular vectors and singular values
+
+    H = np.dot(V.T, np.dot(np.diag(s), V))
+
+    A2 = (B + H) / 2
+
+    A3 = (A2 + A2.T) / 2
+
+    if isPD(A3):
+        return A3
+
+    spacing = np.spacing(np.linalg.norm(A))#Return the distance between norm(A) and the nearest adjacent number
+    # The above is different from [1]. It appears that MATLAB's `chol` Cholesky
+    # decomposition will accept matrixes with exactly 0-eigenvalue, whereas
+    # Numpy's will not. So where [1] uses `eps(mineig)` (where `eps` is Matlab
+    # for `np.spacing`), we use the above definition. CAVEAT: our `spacing`
+    # will be much larger than [1]'s `eps(mineig)`, since `mineig` is usually on
+    # the order of 1e-16, and `eps(1e-16)` is on the order of 1e-34, whereas
+    # `spacing` will, for Gaussian random matrixes of small dimension, be on
+    # othe order of 1e-16. In practice, both ways converge, as the unit test
+    # below suggests.
+    I = np.eye(A.shape[0])
+    k = 1
+    while not isPD(A3):
+        mineig = np.min(np.real(np.linalg.eigvals(A3)))
+        A3 += I * (-mineig * k**2 + spacing)
+        k += 1
+
+    return A3
+
+
+def isPD(B):
+    """Returns true when input is positive-definite, via Cholesky"""
+    try:
+        _ = np.linalg.cholesky(B)
+        #Cholesky's method serves a test of positive definiteness
+        # The Cholesky decomposition (or the Cholesky factorization) 
+        # is the factorization of a matrix A into the product of a lower triangular matrix L and its transpose. 
+        # We can rewrite this decomposition in mathematical notation as: A = L·LT .
+        return True
+    except np.linalg.LinAlgError:
+        return False
+
+def force_coulomb(FS,V_total,nbr_joint):
+    Force=[]
+    V_total=np.array(V_total)
+    for j in range(nbr_joint):
+        F=[]
+        for i in range(V_total[j].size):
+            f=FS*np.sign(V_total[j,i])
+            # f=FS*(V_total[j,i])
+            f=double(f)
+            F.extend([f])
+
+        Force.append(F)   
+
+    print(np.array(Force).shape)
+    return(Force)
 
 
 trajectory_mode_a2a_sync()
