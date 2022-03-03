@@ -33,22 +33,6 @@ gv = robot.viewer.gui
 #sampling time 
 Tech=0.01
 
-def coulomb_force(Fs,V_total,nbr_joint):
-    print('je suis force')
-    force=[]
-    for j in range(nbr_joint):
-        F=[]
-        for i in range(np.array(V_total[0].size)):
-            f=Fs*np.sign(V_total[j,i])
-            F.extend([f])
-
-        force.append(F)
-
-    print('je suis avant plot force')
-
-    
-    return force
-
 def trajectory_mode_a2a_sync():
     #this function dont take an input data  but ask the user to enter his own data: 
     # it returns two mode of trajectorys:
@@ -111,6 +95,7 @@ def trajectory_mode_a2a_sync():
             # velosity vector Q_plot[2]
             # acc vector Q_plot[3]
             time=Q_plot[1]
+
             # plot the data of the chosen joint
 
             # print('here the trajectory of joint',joint_i,'the other joints dont move')
@@ -147,16 +132,15 @@ def trajectory_mode_a2a_sync():
             
             force=force_coulomb(phi_etoile[21],V_total,nbr_joint)
 
-            # print('je suis avant plot force')
-
             plt.figure('force friction')
             for i in range(nbr_joint):
-                plt.plot(V_total[i],force[i],linewidth=1, label='fric'+str(i))
+              plt.plot(V_total[i],force[i],linewidth=1, label='fric'+str(i))
             plt.title('friction force')
             plt.xlabel('v')
             plt.ylabel('fric')
             plt.legend()
             plt.show() 
+
         if(mode==2):
 
             print('enter the total number of joints')
@@ -191,7 +175,7 @@ def trajectory_mode_a2a_sync():
             force=force_coulomb(phi_etoile[21],V_total,nbr_joint)
             plt.figure('force friction')
             for i in range(nbr_joint):
-                plt.plot(V_total[i],force[i],linewidth=1, label='fric'+str(i))
+              plt.plot(V_total[i],force[i],linewidth=1, label='fric'+str(i))
             plt.title('friction force')
             plt.xlabel('v')
             plt.ylabel('fric')
@@ -206,6 +190,9 @@ def trajectory_mode_a2a_sync():
     return Q_total,V_total,A_total,time,force
 
 def Generate_text_data_file(Q_total,V_total,A_total,tau):
+# this function take in input q dq ddq tau for all the joint 
+# and write all the data in a file .txt
+
     f = open('/home/fadi/projet_cobot_master2/project_M2/Robot/2DOF/Code/Identification/2dof_data_LC.txt','w')
     # tau=[]
     # q_pin = np.random.rand(NQ, nbSamples) * np.pi - np.pi/2  # -pi/2 < q < pi/2
@@ -288,7 +275,11 @@ def plot_QVA_total(time,nbr_joint,Q_total,V_total,A_total,name):
     plt.show() 
 
 def calcul_QVA_joints_total(nbr_joint,joint_i,Q_plot):
-    # this function take in input : number of joints
+    # this function take in input : number of joints 
+    #                               a specifique joint joint_i
+    #                               and Q_plot the data of joint_i
+    # it return the data of al joint in mode axe to axe so the non chosen joint will have:
+    #                                                                     q=0,dq=0,ddq=0  
     #                               
     Q_total=[]
     V_total=[]
@@ -327,7 +318,8 @@ def calcul_QVA_joints_total(nbr_joint,joint_i,Q_plot):
     return Q_total,V_total,A_total
 
 def plot_Trajectory(Q):
-    
+    # this function plot a pre-calculated trajectory 
+    # so it plot q dq ddq in 3 different figure 
     q=Q[0],
     time=Q[1]
     v=Q[2]
@@ -360,6 +352,13 @@ def plot_Trajectory(Q):
     plt.title('acc acceleration calculated via derivation(ddq)')
 
 def calcul_Q_all_variable_sync(nbr_rep,time1,timeEnd,q_min,q_max,V_joint,acc_joint,D,Tech):
+    #this function take in input :1- the number of repetition 
+    #                             2- the data of each joint motion(qstart qend V acc )
+    # and return a matrix that combine:1- position vector after  repetion 
+    #                                  2- velosity vector after  repetion 
+    #                                  3- acc vector after  repetion 
+    #                                  4- time vector with after repetion     
+
     Q_plot=[]
     Q=[]
     V=[]
@@ -399,6 +398,14 @@ def calcul_Q_all_variable_sync(nbr_rep,time1,timeEnd,q_min,q_max,V_joint,acc_joi
     return Q_plot
 
 def calcul_Q_all_variable_a2a(nbr_rep,q_min,q_max,V_joint,acc_joint,Tech):
+     #this function take in input :1- the number of repetition 
+    #                             2- the data of each the chosen joint motion(qstart qend V acc )
+    # and return the data of the chosen joint in a matrix that combine:
+    #                                                       1- position vector after  repetion 
+    #                                                       2- velosity vector after  repetion 
+    #                                                       3- acc vector after  repetion 
+    #                                                       4- time vector with after repetion     
+
     Q_plot=[]
     Q=[]
     V=[]
@@ -732,7 +739,6 @@ def PreDefined_velocity_trajectory(time1,timeEnd,Vmax,acc_max,Tech):
         time.append(t)
     return v,time
 
-
 def Generate_Torque_Regression_matrix(nbr_joint,Q_total,V_total,A_total):
 
     #this function take as input number of joints and the data of each joint (q dq ddq)
@@ -831,15 +837,24 @@ def estimation_with_qp_solver(w,tau):
     for i in range(np.array(tau).size):
         samples.append(i)
 
-    plt.figure('torque et torque estime')
-    plt.plot(samples, tau, 'g', linewidth=0.5, label='tau')
-    plt.plot(samples,tau_estime, 'b:', linewidth=0.6, label='tau estime')
-    # plt.plot(samples, tau_estime1, 'r', linewidth=1, label='tau estime 1')
-    plt.title('tau and tau_estime')
-    plt.xlabel('2000 Samples')
-    plt.ylabel('parametres')
+    # plt.figure('torque et torque estime')
+    # plt.plot(samples, tau, 'g', linewidth=1, label='tau')
+    # plt.plot(samples,tau_estime, 'b:', linewidth=0.4, label='tau estime')
+    # # plt.plot(samples, tau_estime1, 'r', linewidth=1, label='tau estime 1')
+    # plt.title('tau and tau_estime')
+    # plt.xlabel('2000 Samples')
+    # plt.ylabel('parametres')
+    # plt.legend()
+    # plt.show()
+
+    err = []
+    for i in range(np.array(tau).size):
+        err.append(abs(tau[i] - tau_estime[i]) * abs(tau[i] - tau_estime[i]))
+    plt.plot(samples, err, linewidth=2, label="err")
+    plt.title("erreur quadratique")
     plt.legend()
     plt.show()
+
 
 
     return phi_etoile
@@ -920,6 +935,8 @@ def force_coulomb(FS,V_total,nbr_joint):
         Force.append(F)   
 
     print(np.array(Force).shape)
+
+    
     return(Force)
 
 
