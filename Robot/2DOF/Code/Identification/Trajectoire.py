@@ -142,8 +142,9 @@ def trajectory_mode_a2a_sync():
             # plot_QVA_total(Q_plot_pourcentage[1],nbr_joint,Q_total_pourcentage,V_total_pourcentage,A_total_pourcentage,'%_')
 
             tau,w=Generate_Torque_Regression_matrix(nbr_joint,Q_total,V_total,A_total)
-            
             phi_etoile=estimation_with_qp_solver(w,tau)
+            Generate_text_data_file(Q_total,V_total,A_total,tau)
+            
             force=force_coulomb(phi_etoile[21],V_total,nbr_joint)
 
             # print('je suis avant plot force')
@@ -183,6 +184,9 @@ def trajectory_mode_a2a_sync():
             plot_QVA_total(time,nbr_joint,Q_total,V_total,A_total,'sync')
 
             tau,w=Generate_Torque_Regression_matrix(nbr_joint,Q_total,V_total,A_total)
+            Generate_text_data_file(Q_total,V_total,A_total,tau)
+
+
             phi_etoile=estimation_with_qp_solver(w,tau)
             force=force_coulomb(phi_etoile[21],V_total,nbr_joint)
             plt.figure('force friction')
@@ -201,7 +205,60 @@ def trajectory_mode_a2a_sync():
 
     return Q_total,V_total,A_total,time,force
 
+def Generate_text_data_file(Q_total,V_total,A_total,tau):
+    f = open('/home/fadi/projet_cobot_master2/project_M2/Robot/2DOF/Code/Identification/2dof_data_LC.txt','w')
+    # tau=[]
+    # q_pin = np.random.rand(NQ, nbSamples) * np.pi - np.pi/2  # -pi/2 < q < pi/2
+    # dq_pin = np.random.rand(NQ, nbSamples) * 10              # 0 < dq  < 10
+    # ddq_pin = np.random.rand(NQ, nbSamples) * 2               # 0 < dq  < 2
+
+    nbSamples=np.array(Q_total[0]).size
+    q_pin=np.array(Q_total)
+    dq_pin=np.array(V_total)
+    ddq_pin=np.array(A_total)
+    tau=np.array(tau)
+    print('shape of Q ',q_pin.shape)
+    print('shape of tau ',tau.shape)
+
+    # tau,w = Generate_Torque_Regression_matrix(NQ,q_pin,dq_pin,ddq_pin)
+    i=0
+    j=1
+    tau1=[]
+    tau2=[]
+    print('shape of tau',np.array(tau).shape)
+    while i<=(tau.size-2):
+        tau1.append(tau[i])
+        i+=2
+    tau1=np.array(tau1)
+    print('shape of tau 1',tau1.shape)
+    while j<=(tau.size-1):
+        tau2.append(tau[j])
+        j+=2
+    tau2=np.array(tau2)
+    print('shape of tau 2', tau2.shape)
+
+    line=[str('q1'),'\t',str('q2'),'\t',str('dq1'),'\t',str('dq2'),'\t',str('ddq1'),
+                '\t',str('ddq2'),'\t',str('tau1'),'\t',str('tau2')]
+    f.writelines(line)
+    f.write('\n')
+        
+
+    for i in range(nbSamples):
+        line=[str(q_pin[0][i]),'\t',str(q_pin[1][i]),'\t',str(dq_pin[0][i]),'\t',str(dq_pin[1][i]),'\t',str(ddq_pin[0][i]),
+                '\t',str(ddq_pin[1][i]),'\t',str(tau1[i]),'\t',str(tau2[i])]
+        f.writelines(line)
+        f.write('\n')
+        
+    f.close()
+
 def plot_QVA_total(time,nbr_joint,Q_total,V_total,A_total,name):
+    # # this function take in input: position of the joint qi
+    #                                velosity of the joint dqi
+    #                                acceleration of the joint ddqi
+    # the function dont return any thing 
+    # it plot: the trajectorys of all the joints
+            #  the velositys of all joints
+            #  the acceleration of all joints
     
     plt.figure('Q_total Trajectory')
     for i in range(nbr_joint):
@@ -231,6 +288,8 @@ def plot_QVA_total(time,nbr_joint,Q_total,V_total,A_total,name):
     plt.show() 
 
 def calcul_QVA_joints_total(nbr_joint,joint_i,Q_plot):
+    # this function take in input : number of joints
+    #                               
     Q_total=[]
     V_total=[]
     A_total=[]
@@ -675,6 +734,10 @@ def PreDefined_velocity_trajectory(time1,timeEnd,Vmax,acc_max,Tech):
 
 
 def Generate_Torque_Regression_matrix(nbr_joint,Q_total,V_total,A_total):
+
+    #this function take as input number of joints and the data of each joint (q dq ddq)
+    #it return the torque of each joint and the regression matrix
+
     # Generate ouput with pin
     nbSamples=np.array(Q_total[0]).size
     tau=[]
@@ -688,6 +751,7 @@ def Generate_Torque_Regression_matrix(nbr_joint,Q_total,V_total,A_total):
     # print('Shape of tau_pin:\t', np.array(tau).shape)
     tau=np.array(tau)
     tau=np.double(tau)
+    print ('shape of tau in the function generate output',tau.shape)
 
     # # ========== Step 4 - Create IDM with pinocchio (regression matrix)
     w = []  # Regression vector
@@ -714,13 +778,16 @@ def Generate_Torque_Regression_matrix(nbr_joint,Q_total,V_total,A_total):
     return tau,w
 
 def estimation_with_qp_solver(w,tau):
-
+    # this function take in input the regression matrix and the torque vectore of the joint
+    # it return the estimeted parameters 
     P = np.dot(w.transpose(),w)
     q = -np.dot(tau.transpose(),w)
 
     # test if P is positive-definite if not then p=spd (spd=symmetric positive semidefinite)
     P=nearestPD(P)
 
+    #constraints
+    #Any constraints that are >= must be multiplied by -1 to become a <=.
     G=([-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
     [0,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
     [0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],   
@@ -738,16 +805,11 @@ def estimation_with_qp_solver(w,tau):
 
     h=[0,-0.05,0.3,-0.05,0.3,-0.05,0.3,0,-0.05,0.3,-0.05,0.3,-0.05,0.3]
 
-
-
     # converting to double
     G=np.array(G)
     h=np.array(h)
     G=np.double(G)
     h=np.double(h)
-
-
-    #Any constraints that are >= must be multiplied by -1 to become a <=.
 
     # phi_etoile=qpsolvers.solve_ls(P,q,None,None)
     phi_etoile=qpsolvers.solve_qp(
@@ -770,8 +832,8 @@ def estimation_with_qp_solver(w,tau):
         samples.append(i)
 
     plt.figure('torque et torque estime')
-    plt.plot(samples, tau, 'g', linewidth=2, label='tau')
-    plt.plot(samples,tau_estime, 'b:', linewidth=1, label='tau estime')
+    plt.plot(samples, tau, 'g', linewidth=0.5, label='tau')
+    plt.plot(samples,tau_estime, 'b:', linewidth=0.6, label='tau estime')
     # plt.plot(samples, tau_estime1, 'r', linewidth=1, label='tau estime 1')
     plt.title('tau and tau_estime')
     plt.xlabel('2000 Samples')
@@ -841,6 +903,10 @@ def isPD(B):
         return False
 
 def force_coulomb(FS,V_total,nbr_joint):
+    # this function take as input : number of joints
+    #                               Velosity of joints
+    #                               the friction parametres 
+    # it return: the coulombs force vector for each joint 
     Force=[]
     V_total=np.array(V_total)
     for j in range(nbr_joint):
@@ -858,7 +924,7 @@ def force_coulomb(FS,V_total,nbr_joint):
 
 
 trajectory_mode_a2a_sync()
-
+# Generate_text_data_file(1000)
 '''
 
 
