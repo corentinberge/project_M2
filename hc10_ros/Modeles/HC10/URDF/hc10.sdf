@@ -1,0 +1,23 @@
+<?xml version="1.0" ?>
+<sdf version='1.5'>
+  <model name='hc10_model'/>
+
+    <link name="base">
+
+    <inertial>
+      <pose>0 0 0.275 0 0 0</pose>
+      <inertial>
+        <ixx>0.001</ixx>
+        <ixy>0.000</ixy>
+        <ixz>0.000</ixz>
+        <iyy>0.001</iyy>
+        <iyz>0.000</iyz>
+        <izz>0.001</izz>
+      </inertial>
+      <mass>1.0</mass>
+    </inertial>
+
+    <collision name="base_collision">
+      <pose>
+</sdf>
+

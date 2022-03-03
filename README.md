@@ -24,7 +24,7 @@ Clone this repository to your home folder.
 
 Build the Docker with (this will take a few minutes):
 ```bash
-bash project_M2/Docker/launch.sh
+bash Docker/launch.sh
 ```
 
 After few minutes, you just need to run the Docker.
