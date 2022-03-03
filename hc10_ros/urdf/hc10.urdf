@@ -9,6 +9,7 @@
         <color rgba="0.12941 0.14902 0.74902 1" />
     </material>
     <!-- link list -->
+    <link name="world"/>
     <link name="base_link">
         <visual>
             <geometry>
@@ -145,6 +146,10 @@
     <link name="tool0" />
     <!-- end of link list -->
     <!-- joint list -->
+    <joint name="fixed" type="fixed">
+        <parent link="world" />
+        <child link="base_link" />
+    </joint>
     <joint name="joint_1_s" type="revolute">
         <parent link="base_link" />
         <child link="link_1_s" />
@@ -201,7 +206,7 @@
         <child link="base" />
     </joint>
     
-<transmission name="trans_joint_1_s">
+    <transmission name="trans_joint_1_s">
         <type>transmission_interface/SimpleTransmission</type>
         <joint name="joint_1_s">
             <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
@@ -263,7 +268,28 @@
     </transmission>
     <gazebo>
         <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
-            <robotNamespace>/</robotNamespace>
+            <robotNamespace>/motoman_hc10</robotNamespace>
         </plugin>
     </gazebo>
+    <!-- <gazebo reference="${prefix}base_link">
+        <turnGravityOff>true</turnGravityOff>
+    </gazebo>
+    <gazebo reference="${prefix}link_1_s">
+        <turnGravityOff>true</turnGravityOff>
+    </gazebo>
+    <gazebo reference="${prefix}link_2_l">
+        <turnGravityOff>true</turnGravityOff>
+    </gazebo>
+    <gazebo reference="${prefix}link_3_u">
+        <turnGravityOff>true</turnGravityOff>
+    </gazebo>
+    <gazebo reference="${prefix}link_4_r">
+        <turnGravityOff>true</turnGravityOff>
+    </gazebo>
+    <gazebo reference="${prefix}link_5_b">
+        <turnGravityOff>true</turnGravityOff>
+    </gazebo>
+    <gazebo reference="${prefix}link_6_t">
+        <turnGravityOff>true</turnGravityOff>
+    </gazebo> -->
 </robot>
