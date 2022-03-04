@@ -23,7 +23,7 @@ RUN curl http://robotpkg.openrobots.org/packages/debian/robotpkg.key | sudo apt-
 RUN apt-get update
 
 # Install desktop full melodic && pinocchio
-RUN apt-get install -y ros-melodic-desktop-full ros-melodic-moveit ros-melodic-industrial-msgs ros-melodic-industrial-robot-client python3-catkin-tools robotpkg-py36-pinocchio robotpkg-py36-crocoddyl robotpkg-py36-qt5-gepetto-viewer-corba
+RUN apt-get install -y ros-melodic-desktop-full ros-melodic-moveit ros-melodic-industrial-msgs ros-melodic-industrial-robot-client ros-melodic-effort-controllers python3-catkin-tools robotpkg-py36-pinocchio robotpkg-py36-crocoddyl robotpkg-py36-qt5-gepetto-viewer-corba
 
 # Create new user and switch on it
 RUN useradd -ms /bin/bash linux && echo "linux:linux" | chpasswd && adduser linux sudo

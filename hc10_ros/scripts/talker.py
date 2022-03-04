@@ -5,7 +5,7 @@ from std_msgs.msg import Float64
 import math
 
 def talker():
-    pub = rospy.Publisher('/simple_model/joint3_position_controller/command', Float64, queue_size=10)
+    pub = rospy.Publisher('/motoman_hc10/joint3_position_controller/command', Float64, queue_size=10)
     rospy.init_node('talker', anonymous=True)
     rate = rospy.Rate(10) # 10hz
     while not rospy.is_shutdown():
