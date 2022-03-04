@@ -1,3 +1,4 @@
+from pyexpat import model
 from numpy import double, linalg, sign, sqrt
 from numpy.core.fromnumeric import shape
 from numpy.lib.nanfunctions import _nanmedian_small
@@ -15,8 +16,9 @@ import qpsolvers
 package_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))) + '/Yaskawa/Modeles/'
 urdf_path = package_path + 'motoman_hc10_support/urdf/hc10.urdf'
 
+
 def trajectory(q_start,q_end,Vmax,acc_max,Tech):
-    #OK
+    
     #function that take first position ,last position,Max velocity, and acceleration
     # AND return the trajectory of q and the velocity (dq/dt)
 
@@ -101,13 +103,12 @@ def Data_Alltrajectory(Nmbrofjoint,Tech):
     Vmax=[]
     acc_max=[]
     D=[]
-    # taking data for each joint from the user
-    for i in range (Nmbrofjoint):
-        q_start.append(start)
-        q_end.append(end)
-        Vmax.append(Vm)
-        acc_max.append(am)
-        
+    #-------DATA---
+    # taking data for each joint from the urdf
+    q_start=[-3.141592653589793, -3.141592653589793, -0.08726646259971647,-3.141592653589793, -3.141592653589793, -3.141592653589793]
+    q_end=[3.141592653589793, 3.141592653589793, 6.19591884457987, 3.141592653589793, 3.141592653589793, 3.141592653589793] 
+    Vmax=[2.2689280275926285, 2.2689280275926285, 3.141592653589793, 3.141592653589793, 4.363323129985824, 4.363323129985824]
+    acc_max=[2,2,2,2,2,2]
     #-------NOW we get it from urdf------------------
     #for i in range (Nmbrofjoint):
         # print('enter joint',i+1,'start position')
@@ -311,7 +312,6 @@ Tech=0.0001
 
 # nomber of joint initialisation
 nbrjoint=6
-
 #Data calculation for all joint 
 time_tau,time_final,q_start,q_end,Vmax,acc_max,D=Data_Alltrajectory(nbrjoint,Tech)
 
