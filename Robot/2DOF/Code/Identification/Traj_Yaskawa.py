@@ -16,7 +16,7 @@ package_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(o
 urdf_path = package_path + 'motoman_hc10_support/urdf/hc10.urdf'
 
 def trajectory(q_start,q_end,Vmax,acc_max,Tech):
-
+    #OK
     #function that take first position ,last position,Max velocity, and acceleration
     # AND return the trajectory of q and the velocity (dq/dt)
 
