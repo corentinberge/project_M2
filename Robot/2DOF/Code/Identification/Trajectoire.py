@@ -399,7 +399,7 @@ def calcul_Q_all_variable_sync(nbr_rep,time1,timeEnd,q_min,q_max,V_joint,acc_joi
 
 def calcul_Q_all_variable_a2a(nbr_rep,q_min,q_max,V_joint,acc_joint,Tech):
      #this function take in input :1- the number of repetition 
-    #                             2- the data of each the chosen joint motion(qstart qend V acc )
+    #                             2- the data of the chosen joint motion(qstart qend V acc )
     # and return the data of the chosen joint in a matrix that combine:
     #                                                       1- position vector after  repetion 
     #                                                       2- velosity vector after  repetion 
