@@ -14,7 +14,7 @@ from typing import Optional
 import qpsolvers
 
 package_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))) + '/Yaskawa/Modeles/'
-urdf_path = package_path + 'motoman_hc10_support/urdf/hc10.urdf'
+urdf_path = package_path + 'motoman_hc10_support/urdf/hc10_FGV.urdf'
 
 
 def trajectory(q_start,q_end,Vmax,acc_max,Tech):

@@ -37,10 +37,10 @@ def trajectory_mode_a2a_sync():
     #this function dont take an input data  but ask the user to enter his own data: 
     # it returns two mode of trajectorys:
     #   mode 1: axe to axe
-    #   1-it return a spedifique trajectory fpr a chosen joint
+    #   1-it return a specifique trajectory for a chosen joint
     #   and for other joints trajectory with zero value
     #   so other joints dont move
-    #   2-it return the force of coulon
+    #   2-it return the fricion force of coulomb
     
     # data.qlim did not work
     Q_total=[]
