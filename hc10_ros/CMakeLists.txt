@@ -16,12 +16,14 @@ find_package(gazebo REQUIRED)
 
 add_message_files(
   FILES
-  Num.msg
+  JointCommands.msg
+  JointState.msg
 )
 
 add_service_files(
   FILES
   AddTwoInts.srv
+  joint_state.srv
 )
 
 generate_messages(
@@ -46,10 +48,6 @@ install(DIRECTORY images meshes launch rviz urdf
         DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
 
-catkin_install_python(PROGRAMS scripts/add_two_ints_server.py
-  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-
-catkin_install_python(PROGRAMS scripts/add_two_ints_server.py scripts/add_two_ints_client.py
+catkin_install_python(PROGRAMS src/control_joint.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

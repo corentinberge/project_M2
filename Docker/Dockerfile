@@ -8,7 +8,7 @@ SHELL ["/bin/bash", "-c"]
 RUN apt-get update
 
 # Install dependencies for all the Docker
-RUN apt-get install -qqy apt-utils lsb-release python3.6 gnupg2 curl git ipython3 python3-pip freeglut3 python3-matplotlib python3-pil.imagetk jupyter python3-scipy python3-matplotlib jupyter python3-scipy python3-numpy libqt5gui5 qt5-default wget software-properties-common ssh
+RUN apt-get install -y apt-utils lsb-release python3.6 gnupg2 curl git ipython3 python3-pip freeglut3 python3-matplotlib python3-pil.imagetk jupyter python3-scipy python3-matplotlib jupyter python3-scipy python3-numpy libqt5gui5 qt5-default wget software-properties-common ssh python3-rospkg
 RUN pip3 install Pillow meshcat qpsolvers minidom-ext
 
 # Install vscode
@@ -23,7 +23,9 @@ RUN curl http://robotpkg.openrobots.org/packages/debian/robotpkg.key | sudo apt-
 RUN apt-get update
 
 # Install desktop full melodic && pinocchio
-RUN apt-get install -y ros-melodic-desktop-full ros-melodic-moveit ros-melodic-industrial-msgs ros-melodic-industrial-robot-client ros-melodic-effort-controllers python3-catkin-tools robotpkg-py36-pinocchio robotpkg-py36-crocoddyl robotpkg-py36-qt5-gepetto-viewer-corba
+RUN apt-get install -y ros-melodic-desktop-full 
+RUN source /opt/ros/melodic/setup.bash
+RUN apt-get install -y ros-melodic-moveit ros-melodic-industrial-msgs ros-melodic-industrial-robot-client ros-melodic-rospy ros-melodic-roslaunch ros-melodic-effort-controllers python3-catkin-tools robotpkg-py36-pinocchio robotpkg-py36-crocoddyl robotpkg-py36-qt5-gepetto-viewer-corba 
 
 # Create new user and switch on it
 RUN useradd -ms /bin/bash linux && echo "linux:linux" | chpasswd && adduser linux sudo
@@ -52,6 +54,7 @@ RUN cd $HOME/catkin_ws && source /opt/ros/melodic/setup.bash && sudo rosdep inst
 
 # Configure envirnoment for ROS
 RUN echo "source $HOME/catkin_ws/devel/setup.bash" >> $HOME/.bashrc
+RUN echo "source /opt/ros/melodic/setup.bash" >> $HOME/.bashrc
 
 # Add ROS dependencies
 RUN source $HOME/catkin_ws/devel/setup.bash
