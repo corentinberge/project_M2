@@ -1,6 +1,6 @@
 <launch>
 
-  <arg name="model" default="$(find hc10_ros)/Modeles/HC10/URDF/hc10.urdf"/>
+  <arg name="model" default="$(find hc10_ros)/urdf/hc10.urdf"/>
   <arg name="gui" default="true" />
   
   <param name="robot_description" command="$(find xacro)/xacro $(arg model)" />  
