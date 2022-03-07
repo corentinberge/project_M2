@@ -1,37 +1,38 @@
+from sqlite3 import Time
 from numpy import double, linalg, sign, size, sqrt
 from numpy.core.fromnumeric import shape
 from numpy.lib.nanfunctions import _nanmedian_small
-#from pinocchio.visualize import GepettoVisualizer
-#from pinocchio.robot_wrapper import RobotWrapper
+from pinocchio.visualize import GepettoVisualizer
+from pinocchio.robot_wrapper import RobotWrapper
 import matplotlib.pyplot as plt
 import scipy.linalg as sp
-#import pinocchio as pin
+import pinocchio as pin
 import numpy as np
 import os
 from typing import Optional
 from typing import Optional
 import qpsolvers
-
-# package_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) + '/Modeles/'
-#package_path='/home/fadi/projet_cobot_master2/project_M2/Robot/Yaskawa/Modeles/'
-#urdf_path = package_path + 'motoman_hc10_support/urdf/hc10_FGV.urdf'
+from time import sleep 
+package_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) + '/Modeles/'
+package_path='/home/fadi/projet_cobot_master2/project_M2/Robot/Yaskawa/Modeles/'
+urdf_path = package_path + 'motoman_hc10_support/urdf/hc10_FGV.urdf'
 
 # ========== Step 1 - load model, create robot model and create robot data
 
-#robot = RobotWrapper()
-#robot.initFromURDF(urdf_path, package_path, verbose=True)
-#robot.initViewer(loadModel=True)
-#robot.display(robot.q0)
+robot = RobotWrapper()
+robot.initFromURDF(urdf_path, package_path, verbose=True)
+robot.initViewer(loadModel=True)
+robot.display(robot.q0)
 
-#data = robot.data
-#model = robot.model
-#NQ = robot.nq                 # joints angle
-#NV = robot.nv                 # joints velocity
-#NJOINT = robot.model.njoints  # number of links
-#gv = robot.viewer.gui
+data = robot.data
+model = robot.model
+NQ = robot.nq                 # joints angle
+NV = robot.nv                 # joints velocity
+NJOINT = robot.model.njoints  # number of links
+gv = robot.viewer.gui
 
 #sampling time 
-Tech=0.001
+Tech=0.0001
 
 
 def generation_palier_vitesse(nbr_rep,q_start,q_end,Vmax,acc_max,Tech):
@@ -45,6 +46,7 @@ def generation_palier_vitesse(nbr_rep,q_start,q_end,Vmax,acc_max,Tech):
     print('entrer votre pourcentage de augmenter la vitesse')
     prct=float(input())
     vitesse=prct*Vmax
+    prct_var=prct
     i=0
     loop=0 # pour un test dans ma tete
     Q_all=[]
@@ -56,8 +58,8 @@ def generation_palier_vitesse(nbr_rep,q_start,q_end,Vmax,acc_max,Tech):
     while(vitesse<=Vmax):
         Q_palier=calcul_Q_all_variable_a2a(nbr_rep,q_start,q_end,vitesse,acc_max,Tech)
         #Q_all.append(Q)
-        prct+=prct
-        vitesse=prct*Vmax
+        prct_var+=prct
+        vitesse=prct_var*Vmax
         loop+=1
         # print('avant trajectory')      
         q=Q_palier[0]
@@ -82,6 +84,7 @@ def generation_palier_vitesse(nbr_rep,q_start,q_end,Vmax,acc_max,Tech):
     return Q_all
 
 def trajectory_axe2axe_palier_de_vitesse():
+# axe2axe en shandel mode joint1=0 joint2=0
 
     print('enter the number of Yaskawa joint you want to move (counting start from 0) ')
     joint_i=int(input())
@@ -105,55 +108,36 @@ def trajectory_axe2axe_palier_de_vitesse():
     # plot the data of the chosen joint
 
     print('here the trajectory of joint',joint_i,'the other joints dont move')
-    #plot_Trajectory(Q_pallier_vitesse)
-    # plot_Trajectory(Q_plot_80)
-    # plot_Trajectory(Q_plot_60)
-    # plot_Trajectory(Q_plot_40)
-    # plot_Trajectory(Q_plot_20)
-    plt.figure('q Trajectory')
-    plt.plot(Q_pallier_vitesse[1],Q_pallier_vitesse[0],linewidth=1, label='q')
-    plt.title('q Trajectory')
-    plt.xlabel('t')
-    plt.ylabel('q')
-    plt.legend()
-    plt.show()
-            
+    # plot_Trajectory(Q_pallier_vitesse)
+    
     # calculs of position velosity acceleration for all joint joint with variation 
     # of the Vmax
-
-    Q_total,V_total,A_total=calcul_QVA_joints_total(nbr_joint,joint_i,Q_pallier_vitesse)
-    plot_QVA_total(Q_pallier_vitesse[1],nbr_joint,Q_total,V_total,A_total,'max_')
-
-    # Q_total_80,V_total_80,A_total_80=calcul_QVA_joints_total(nbr_joint,joint_i,Q_plot_80)
-    # plot_QVA_total(Q_plot_80[1],nbr_joint,Q_total_80,V_total_80,A_total_80,'80_')
-
-    # Q_total_60,V_total_60,A_total_60=calcul_QVA_joints_total(nbr_joint,joint_i,Q_plot_60)
-    # plot_QVA_total(Q_plot_60[1],nbr_joint,Q_total_60,V_total_60,A_total_60,'60_')
-
-    # Q_total_40,V_total_40,A_total_40=calcul_QVA_joints_total(nbr_joint,joint_i,Q_plot_40)
-    # plot_QVA_total(Q_plot_40[1],nbr_joint,Q_total_40,V_total_40,A_total_40,'40_')
-
-    # Q_total_20,V_total_20,A_total_20=calcul_QVA_joints_total(nbr_joint,joint_i,Q_plot_20)
-    # plot_QVA_total(Q_plot_20[1],nbr_joint,Q_total_20,V_total_20,A_total_20,'20_')
-
-    # Q_total_pourcentage,V_total_pourcentage,A_total_pourcentage=calcul_QVA_joints_total(nbr_joint,joint_i,Q_plot_pourcentage)
-    # plot_QVA_total(Q_plot_pourcentage[1],nbr_joint,Q_total_pourcentage,V_total_pourcentage,A_total_pourcentage,'%_')
-
-    tau,w=Generate_Torque_Regression_matrix(nbr_joint,Q_total,V_total,A_total)
-    phi_etoile=estimation_with_qp_solver(w,tau)
-    Generate_text_data_file(Q_total,V_total,A_total,tau)
-            
-    force=force_coulomb(phi_etoile[21],V_total,nbr_joint)
-
-    plt.figure('force friction')
-    for i in range(nbr_joint):
-        plt.plot(V_total[i],force[i],linewidth=1, label='fric'+str(i))
-    plt.title('friction force')
-    plt.xlabel('v')
-    plt.ylabel('fric')
-    plt.legend()
-    plt.show() 
     
+    Q_total,V_total,A_total=calcul_QVA_joints_total(nbr_joint,joint_i,Q_pallier_vitesse)
+    # plot_QVA_total(Q_pallier_vitesse[1],nbr_joint,Q_total,V_total,A_total,'max_')
+    Q_total=np.array(Q_total)
+    print('shape of Q_totale',Q_total[0].size)
+
+    for i in range(Q_total[0].size):
+        robot.display(Q_total[:,i])
+        sleep(Tech)
+
+
+    # tau,w=Generate_Torque_Regression_matrix(nbr_joint,Q_total,V_total,A_total)
+    # phi_etoile=estimation_with_qp_solver(w,tau)
+    # Generate_text_data_file(Q_total,V_total,A_total,tau)
+            
+    # force=force_coulomb(phi_etoile[21],V_total,nbr_joint)
+
+    # plt.figure('force friction')
+    # for i in range(nbr_joint):
+    #     plt.plot(V_total[i],force[i],linewidth=1, label='fric'+str(i))
+    # plt.title('friction force')
+    # plt.xlabel('v')
+    # plt.ylabel('fric')
+    # plt.legend()
+    # plt.show() 
+     
 def trajectory_mode_a2a_sync():
     #this function dont take an input data  but ask the user to enter his own data: 
     # it returns two mode of trajectorys:
@@ -1061,6 +1045,13 @@ def force_coulomb(FS,V_total,nbr_joint):
     return(Force)
 
 trajectory_axe2axe_palier_de_vitesse()
+# q,time,vreturn,a=trajectory(0,150,8,1,0.001)
+# plt.plot(time,q,linewidth=1, label='q')
+# plt.title('V velocity th')
+# plt.xlabel('t')
+# plt.ylabel('V')
+# plt.legend()
+# plt.show()
 
 
 # q1_min=
