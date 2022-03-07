@@ -58,7 +58,7 @@ if __name__ == '__main__':
 
   # now get gains from parameter server
   rospy.init_node('motoman_hc10_control')
-  for i in xrange(len(command.name)):
+  for i in range(len(command.name)):
     name = command.name[i]
     # pid = rospy.get_param('/motoman_hc10/joint' + str(i+1) + '_position_controller/pid/parameter_descriptions')
     pid = [1,2,3]
@@ -76,7 +76,7 @@ if __name__ == '__main__':
   pub = rospy.Publisher('/motoman_hc10/joint_commands', JointCommands, queue_size=1)
 
   # for each trajectory
-  for i in xrange(0, traj_len):
+  for i in range(0, traj_len):
     # get initial joint positions
     initialPosition = array(currentJointState.position)
     # get joint commands from yaml

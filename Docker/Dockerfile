@@ -9,7 +9,7 @@ RUN apt-get update
 
 # Install dependencies for all the Docker
 RUN apt-get install -y apt-utils lsb-release python3.6 gnupg2 curl git ipython3 python3-pip freeglut3 python3-matplotlib python3-pil.imagetk jupyter python3-scipy python3-matplotlib jupyter python3-scipy python3-numpy libqt5gui5 qt5-default wget software-properties-common ssh python3-rospkg
-RUN pip3 install Pillow meshcat qpsolvers minidom-ext
+RUN pip3 install Pillow meshcat qpsolvers minidom-ext rosdep
 
 # Install vscode
 RUN wget -q https://packages.microsoft.com/keys/microsoft.asc -O- | apt-key add - && add-apt-repository "deb [arch=amd64] https://packages.microsoft.com/repos/vscode stable main"
@@ -54,7 +54,6 @@ RUN cd $HOME/catkin_ws && source /opt/ros/melodic/setup.bash && sudo rosdep inst
 
 # Configure envirnoment for ROS
 RUN echo "source $HOME/catkin_ws/devel/setup.bash" >> $HOME/.bashrc
-RUN echo "source /opt/ros/melodic/setup.bash" >> $HOME/.bashrc
 
 # Add ROS dependencies
 RUN source $HOME/catkin_ws/devel/setup.bash
