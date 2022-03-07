@@ -11,7 +11,7 @@ import os
 from typing import Optional
 from typing import Optional
 import qpsolvers
-
+#
 # package_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) + '/Modeles/'
 #package_path='/home/fadi/projet_cobot_master2/project_M2/Robot/Yaskawa/Modeles/'
 #urdf_path = package_path + 'motoman_hc10_support/urdf/hc10_FGV.urdf'
@@ -105,7 +105,7 @@ def trajectory_axe2axe_palier_de_vitesse():
     # plot the data of the chosen joint
 
     print('here the trajectory of joint',joint_i,'the other joints dont move')
-    #plot_Trajectory(Q_pallier_vitesse)
+    plot_Trajectory(Q_pallier_vitesse)
     # plot_Trajectory(Q_plot_80)
     # plot_Trajectory(Q_plot_60)
     # plot_Trajectory(Q_plot_40)
@@ -139,20 +139,20 @@ def trajectory_axe2axe_palier_de_vitesse():
     # Q_total_pourcentage,V_total_pourcentage,A_total_pourcentage=calcul_QVA_joints_total(nbr_joint,joint_i,Q_plot_pourcentage)
     # plot_QVA_total(Q_plot_pourcentage[1],nbr_joint,Q_total_pourcentage,V_total_pourcentage,A_total_pourcentage,'%_')
 
-    tau,w=Generate_Torque_Regression_matrix(nbr_joint,Q_total,V_total,A_total)
-    phi_etoile=estimation_with_qp_solver(w,tau)
-    Generate_text_data_file(Q_total,V_total,A_total,tau)
+    #tau,w=Generate_Torque_Regression_matrix(nbr_joint,Q_total,V_total,A_total)
+    #phi_etoile=estimation_with_qp_solver(w,tau)
+    #Generate_text_data_file(Q_total,V_total,A_total,tau)
             
-    force=force_coulomb(phi_etoile[21],V_total,nbr_joint)
+    #force=force_coulomb(phi_etoile[21],V_total,nbr_joint)
 
-    plt.figure('force friction')
-    for i in range(nbr_joint):
-        plt.plot(V_total[i],force[i],linewidth=1, label='fric'+str(i))
-    plt.title('friction force')
-    plt.xlabel('v')
-    plt.ylabel('fric')
-    plt.legend()
-    plt.show() 
+    #plt.figure('force friction')
+    #for i in range(nbr_joint):
+     #   plt.plot(V_total[i],force[i],linewidth=1, label='fric'+str(i))
+    #plt.title('friction force')
+    #plt.xlabel('v')
+    #plt.ylabel('fric')
+    #plt.legend()
+    #plt.show() 
     
 def trajectory_mode_a2a_sync():
     #this function dont take an input data  but ask the user to enter his own data: 
@@ -1024,7 +1024,6 @@ def nearestPD(A):
         k += 1
 
     return A3
-
 
 def isPD(B):
     """Returns true when input is positive-definite, via Cholesky"""
