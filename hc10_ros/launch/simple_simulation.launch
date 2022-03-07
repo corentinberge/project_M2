@@ -1,4 +1,0 @@
-<launch>
-    <include file="$(find hc10_ros)/launch/hc10_gazebo.launch" />
-    <include file="$(find hc10_ros)/launch/hc10_control.launch" />
-</launch>
