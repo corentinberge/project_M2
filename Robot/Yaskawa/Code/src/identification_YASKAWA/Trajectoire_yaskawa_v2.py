@@ -114,7 +114,7 @@ def trajectory_axe2axe_palier_de_vitesse():
     # of the Vmax
     
     Q_total,V_total,A_total=calcul_QVA_joints_total(nbr_joint,joint_i,Q_pallier_vitesse)
-    # plot_QVA_total(Q_pallier_vitesse[1],nbr_joint,Q_total,V_total,A_total,'max_')
+    plot_QVA_total(Q_pallier_vitesse[1],nbr_joint,Q_total,V_total,A_total,'max_')
     Q_total=np.array(Q_total)
     print('shape of Q_totale',Q_total[0].size)
 
