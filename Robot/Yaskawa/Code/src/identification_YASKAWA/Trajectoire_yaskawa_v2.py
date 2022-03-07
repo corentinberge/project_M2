@@ -1,11 +1,11 @@
 from numpy import double, linalg, sign, size, sqrt
 from numpy.core.fromnumeric import shape
 from numpy.lib.nanfunctions import _nanmedian_small
-from pinocchio.visualize import GepettoVisualizer
-from pinocchio.robot_wrapper import RobotWrapper
+#from pinocchio.visualize import GepettoVisualizer
+#from pinocchio.robot_wrapper import RobotWrapper
 import matplotlib.pyplot as plt
 import scipy.linalg as sp
-import pinocchio as pin
+#import pinocchio as pin
 import numpy as np
 import os
 from typing import Optional
@@ -13,32 +13,78 @@ from typing import Optional
 import qpsolvers
 
 # package_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) + '/Modeles/'
-package_path='/home/fadi/projet_cobot_master2/project_M2/Robot/Yaskawa/Modeles/'
-urdf_path = package_path + 'motoman_hc10_support/urdf/hc10_FGV.urdf'
+#package_path='/home/fadi/projet_cobot_master2/project_M2/Robot/Yaskawa/Modeles/'
+#urdf_path = package_path + 'motoman_hc10_support/urdf/hc10_FGV.urdf'
 
 # ========== Step 1 - load model, create robot model and create robot data
 
-robot = RobotWrapper()
-robot.initFromURDF(urdf_path, package_path, verbose=True)
-robot.initViewer(loadModel=True)
-robot.display(robot.q0)
+#robot = RobotWrapper()
+#robot.initFromURDF(urdf_path, package_path, verbose=True)
+#robot.initViewer(loadModel=True)
+#robot.display(robot.q0)
 
-data = robot.data
-model = robot.model
-NQ = robot.nq                 # joints angle
-NV = robot.nv                 # joints velocity
-NJOINT = robot.model.njoints  # number of links
-gv = robot.viewer.gui
+#data = robot.data
+#model = robot.model
+#NQ = robot.nq                 # joints angle
+#NV = robot.nv                 # joints velocity
+#NJOINT = robot.model.njoints  # number of links
+#gv = robot.viewer.gui
 
 #sampling time 
 Tech=0.001
 
-def trajectory_axe2axe_palier_de_vitesse():
-    print('enter the number of Yaskawa joint you want to move (counting start from 0) ')
-    joint_i=float(input())
 
-    print('enter the desire  prcentatge of the MAX velocity of joint')
-    pourcentage=float(input())
+def generation_palier_vitesse(nbr_rep,q_start,q_end,Vmax,acc_max,Tech):
+    #this function take in input :1- the number of repetition 
+    #                             2- the data of the chosen joint motion(qstart qend V acc )
+    # and return the data of the chosen joint in a matrix that combine:
+    #                                                       1- position vector after  repetion 
+    #                                                       2- velosity vector after  repetion 
+    #                                                       3- acc vector after  repetion 
+    #                                                       4- time vector with after repetion     
+    print('entrer votre pourcentage de augmenter la vitesse')
+    prct=float(input())
+    vitesse=prct*Vmax
+    i=0
+    loop=0 # pour un test dans ma tete
+    Q_all=[]
+    Q=[]
+    V=[]
+    T=[]
+    tf=0
+    A=[]
+    while(vitesse<=Vmax):
+        Q_palier=calcul_Q_all_variable_a2a(nbr_rep,q_start,q_end,vitesse,acc_max,Tech)
+        #Q_all.append(Q)
+        prct+=prct
+        vitesse=prct*Vmax
+        loop+=1
+        # print('avant trajectory')      
+        q=Q_palier[0]
+        t=Q_palier[1]
+        v=Q_palier[2]
+        a=Q_palier[3]
+        # print('apres trajectory')  
+        Q.extend(q)
+        V.extend(v)
+        A.extend(a)
+        for i in range(np.array(t).size):
+            t[i]+=tf
+
+        T.extend(t)       
+        tf=T[np.array(T).size-1]
+
+    Q_all.append(Q)
+    Q_all.append(T)
+    Q_all.append(V)
+    Q_all.append(A)
+    
+    return Q_all
+
+def trajectory_axe2axe_palier_de_vitesse():
+
+    print('enter the number of Yaskawa joint you want to move (counting start from 0) ')
+    joint_i=int(input())
 
     q_start=[-3.141592653589793, -3.141592653589793, -0.08726646259971647,-3.141592653589793, -3.141592653589793, -3.141592653589793]
     q_end=[3.141592653589793, 3.141592653589793, 6.19591884457987, 3.141592653589793, 3.141592653589793, 3.141592653589793] 
@@ -46,34 +92,37 @@ def trajectory_axe2axe_palier_de_vitesse():
     acc_max=[2,2,2,2,2,2]
     nbr_joint=6 #yaskawa case
     nbr_rep=1
-    Q_plot_100=calcul_Q_all_variable_a2a(nbr_rep,q_start[joint_i],q_end[joint_i],Vmax[joint_i],acc_max[joint_i],Tech)
-    Q_plot_80=calcul_Q_all_variable_a2a(nbr_rep,q_start[joint_i],q_end[joint_i],0.8*Vmax[joint_i],acc_max[joint_i],Tech)
-    Q_plot_60=calcul_Q_all_variable_a2a(nbr_rep,q_start[joint_i],q_end[joint_i],0.6*Vmax[joint_i],acc_max[joint_i],Tech)
-    Q_plot_40=calcul_Q_all_variable_a2a(nbr_rep,q_start[joint_i],q_end[joint_i],0.4*Vmax[joint_i],acc_max[joint_i],Tech)
-    Q_plot_20=calcul_Q_all_variable_a2a(nbr_rep,q_start[joint_i],q_end[joint_i],0.2*Vmax[joint_i],acc_max[joint_i],Tech)
+    Q_pallier_vitesse=[]
+    Q_pallier_vitesse = generation_palier_vitesse(nbr_rep,q_start[joint_i],q_end[joint_i],Vmax[joint_i],acc_max[joint_i],Tech)
 
-    # Q_plot_pourcentage=calcul_Q_all_variable_a2a(nbr_rep,q_start[joint_i],q_end[joint_i],pourcentage*Vmax[joint_i],acc_max[joint_i],Tech)
-            
-    # position vector Q_plot[0]
-    # time vector Q_plot[1]
-    # velosity vector Q_plot[2]
-    # acc vector Q_plot[3]
-    time=Q_plot_100[1]
+    print('shape of Q_pallier_vitesse',np.array(Q_pallier_vitesse).shape)
+    # position vector Q_pallier_vitesse[0]
+    # time vector Q_pallier_vitesse[1]
+    # velosity vector Q_pallier_vitesse[2]
+    # acc vector Q_pallier_vitesse[3]
+    time=Q_pallier_vitesse[1]
 
     # plot the data of the chosen joint
 
-    # print('here the trajectory of joint',joint_i,'the other joints dont move')
-    # plot_Trajectory(Q_plot)
+    print('here the trajectory of joint',joint_i,'the other joints dont move')
+    #plot_Trajectory(Q_pallier_vitesse)
     # plot_Trajectory(Q_plot_80)
     # plot_Trajectory(Q_plot_60)
     # plot_Trajectory(Q_plot_40)
     # plot_Trajectory(Q_plot_20)
+    plt.figure('q Trajectory')
+    plt.plot(Q_pallier_vitesse[1],Q_pallier_vitesse[0],linewidth=1, label='q')
+    plt.title('q Trajectory')
+    plt.xlabel('t')
+    plt.ylabel('q')
+    plt.legend()
+    plt.show()
             
     # calculs of position velosity acceleration for all joint joint with variation 
     # of the Vmax
 
-    Q_total,V_total,A_total=calcul_QVA_joints_total(nbr_joint,joint_i,Q_plot_100)
-    plot_QVA_total(Q_plot_100[1],nbr_joint,Q_total,V_total,A_total,'max_')
+    Q_total,V_total,A_total=calcul_QVA_joints_total(nbr_joint,joint_i,Q_pallier_vitesse)
+    plot_QVA_total(Q_pallier_vitesse[1],nbr_joint,Q_total,V_total,A_total,'max_')
 
     # Q_total_80,V_total_80,A_total_80=calcul_QVA_joints_total(nbr_joint,joint_i,Q_plot_80)
     # plot_QVA_total(Q_plot_80[1],nbr_joint,Q_total_80,V_total_80,A_total_80,'80_')
@@ -262,8 +311,8 @@ def trajectory_mode_a2a_sync():
     return Q_total,V_total,A_total,time,force
 
 def Generate_text_data_file(Q_total,V_total,A_total,tau):
-# this function take in input q dq ddq tau for all the joint 
-# and write all the data in a file .txt
+    # this function take in input q dq ddq tau for all the joint 
+    # and write all the data in a file .txt
 
     f = open('/home/fadi/projet_cobot_master2/project_M2/Robot/2DOF/Code/Identification/2dof_data_LC.txt','w')
     # tau=[]
@@ -350,7 +399,7 @@ def calcul_QVA_joints_total(nbr_joint,joint_i,Q_plot):
     # this function take in input : number of joints 
     #                               a specifique joint joint_i
     #                               and Q_plot the data of joint_i
-    # it return the data of al joint in mode axe to axe so the non chosen joint will have:
+    # it return the data of all joint in mode axe to axe so the non chosen joint will have:
     #                                                                     q=0,dq=0,ddq=0  
     #                               
     Q_total=[]
@@ -1011,6 +1060,7 @@ def force_coulomb(FS,V_total,nbr_joint):
     
     return(Force)
 
+trajectory_axe2axe_palier_de_vitesse()
 
 
 # q1_min=
