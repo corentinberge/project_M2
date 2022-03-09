@@ -36,9 +36,9 @@ Tech=0.0001
 q_start=[-3.141592653589793, -3.141592653589793, -0.08726646259971647,-3.141592653589793, -3.141592653589793, -3.141592653589793]
 q_end=[3.141592653589793, 3.141592653589793, 6.19591884457987, 3.141592653589793, 3.141592653589793, 3.141592653589793] 
 Vmax=[2.2689280275926285, 2.2689280275926285, 3.141592653589793, 3.141592653589793, 4.363323129985824, 4.363323129985824]
-acc_max=[2,2,2,2,2,2]
+acc_max=[2,2,3,3,4,4]
 nbr_joint=6 #yaskawa case
-nbr_rep=1
+nbr_rep=5
 #-----------------------------------------------------
 
 #========FONCTIONS=====================================
@@ -557,8 +557,8 @@ def trajectory(q_start,q_end,Vmax,acc_max,Tech):
                                 # so another input for the function
 
     timeEnd=time1+(abs(D)/Vmax)      # time wen the mvt end
-    print('Vmax \t acc_max \t time1 \t timeEnd')
-    print(Vmax,'\t',acc_max,'\t',time1,'\t',timeEnd)
+    #print('Vmax \t acc_max \t time1 \t timeEnd')
+    #print(Vmax,'\t',acc_max,'\t',time1,'\t',timeEnd)
     t=0
     time=[]
     time.append(t)
