@@ -18,6 +18,7 @@ add_message_files(
   FILES
   JointCommands.msg
   JointState.msg
+  JointState_noHeader.msg
 )
 
 add_service_files(
@@ -49,5 +50,9 @@ install(DIRECTORY images meshes launch rviz urdf
 )
 
 catkin_install_python(PROGRAMS src/control_joint.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+catkin_install_python(PROGRAMS scripts/talker.py scripts/listener.py scripts/test.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

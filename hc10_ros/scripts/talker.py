@@ -1,19 +1,49 @@
 #!/usr/bin/env python
 # license removed for brevity
+
 import rospy
+
 from std_msgs.msg import Float64
-import math
+# from pinocchio.robot_wrapper import RobotWrapper
+# from Fonction_jo import ROS_function
 
 def talker():
-    pub = rospy.Publisher('/motoman_hc10/joint3_position_controller/command', Float64, queue_size=10)
-    rospy.init_node('talker', anonymous=True)
-    rate = rospy.Rate(10) # 10hz
+    jointNames = ['joint_1_s','joint_2_l','joint_3_u','joint_4_r','joint_5_b','joint_6_t']
+    pub = []
+    for i in range(0, 6):
+        pub.append(rospy.Publisher('/motoman_hc10/joint'+str(i+1)+'_position_controller/command', Float64, queue_size=10))
+        rospy.init_node('talker', anonymous=True)
+        rate = rospy.Rate(10) # 10hz
+
+    # Open file
+    f = open("2dof_data_LC.txt.txt", "r")
+
+    # robot = RobotWrapper()
+    # robot.initFromURDF(urdf_path, package_path, verbose=True)
+    # ROS_function(robot, ...)
+
+    # A = [0,0,0,0,0,0]
+
     while not rospy.is_shutdown():
-        hello_str = "hello world %s" % rospy.get_time()
-        position = math.pi/2
-        rospy.loginfo(position)
-        pub.publish(position)
+            
+        tmp = [f.readline() for i in range(1,250)]
+        l = f.readline()
+
+        # If EOF => Loop on file
+        if len(l) == 0:
+            f.close()
+            f = open("2dof_data_LC.txt.txt", "r")
+            l = f.readline()
+
+        q_data = l.split()
+        q_data_float = [float(i) for i in q_data]
+
+        for i in range(0, 6):
+            rospy.loginfo(q_data_float[i])
+            pub[i].publish(q_data_float[i])
+        
         rate.sleep()
+
 
 if __name__ == '__main__':
     try:

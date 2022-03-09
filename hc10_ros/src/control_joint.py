@@ -3,7 +3,7 @@ import roslib;
 import rospy, yaml, sys
 from hc10_ros.msg import JointCommands
 from hc10_ros.msg import JointState
-from numpy import zeros, array, linspace
+from numpy import zeros, array, linspace, multiply
 from math import ceil
 
 JointNames = ['joint_1_s', 'joint_2_l', 'joint_3_u', 'joint_4_r','joint_5_b', 'joint_6_t']
@@ -36,7 +36,7 @@ if __name__ == '__main__':
 
 
   #Mode test
-  traj_yaml = [[1,2,3,4,5,6],[1,2,3,4,5,6],[1,2,3,4,5,6],[1,2,3,4,5,6],[1,2,3,4,5,6],[1,2,3,4,5,6]]
+  traj_yaml = [[10,20,30,40,50,60],[10,20,30,40,50,60],[10,20,30,40,50,60],[10,20,30,40,50,60],[10,20,30,40,50,60],[10,20,30,40,50,60]]
   traj_len = len(traj_yaml)
 
   # Setup subscriber to atlas states
@@ -61,7 +61,7 @@ if __name__ == '__main__':
   for i in range(len(command.name)):
     name = command.name[i]
     # pid = rospy.get_param('/motoman_hc10/joint' + str(i+1) + '_position_controller/pid/parameter_descriptions')
-    pid = [1,2,3]
+    pid = [100,0.1,1]
     # print("\n\n---PID---\n"+pid+"\n\---END PID---\n\n")
     command.kp_position[i]  = pid[0]
     command.ki_position[i]  = pid[1]
@@ -91,9 +91,10 @@ if __name__ == '__main__':
     dtPublish = 0.02
     n = ceil(dt / dtPublish)
     for ratio in linspace(0, 1, n):
-      interpCommand = (1-ratio)*initialPosition 
-      interpCommand += int(ratio) * commandPosition
+      interpCommand = (1-ratio)*initialPosition
+      interpCommand += multiply(commandPosition, ratio)
+      print(interpCommand)
       # interpCommand = (1-ratio)*initialPosition + ratio * commandPosition
-      # command.position = [ float(x) for x in interpCommand ]
-      # pub.publish(command)
-      # rospy.sleep(dt / float(n))
+      command.position = [ float(x) for x in interpCommand ]
+      pub.publish(command)
+      rospy.sleep(dt / float(n))
