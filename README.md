@@ -82,6 +82,6 @@ Tip: Create a .bash file with this command :)
 Once you are in the docker, run the folowing commands every time you run the Docker or you make a change.
 
 ```bash
-cd catkin_ws
+cd ~/catkin_ws
 catkin_make
 ```
