@@ -9,8 +9,7 @@
 
 
 
-
-from computed_torque_function_ROS import computedTorqueController, robotDynamic
+# 
 import pinocchio as pin
 import os
 from pinocchio.utils import *
@@ -117,14 +116,8 @@ class command():
         self.Xmeasure = self.situationOT(self.robot.data.omF[self.EF_index])
         self.dXmeasure = self.J@self.q
         self.tau = self.computedTorqueController(self.Xc,self.Xmeasure,self.dXc,self.dXmeasure,self.ddXc,self.ddXmeasure) #mettre valeur de Xc 
-        q,vq,aq = robotDynamic(self.tau,self.dt) #value to publish 
-
-
-
-
+        q,vq,aq = self.robotDynamic(self.tau,self.dt) #value to publish 
         
-        
-
     
     def computedTorqueController(self,Xc,Xm,dXc,dXm,ddXc,ddXm): 
         """
@@ -166,16 +159,12 @@ class command():
 #       self.dXc = data.EFVelocity
 #      self.ddXc = data.EFAcceleration
 
-    def _publishQ(self):
+    def _publish_Joint(self,q,vq):
         """
             put the control law here 
         """
-    
-        
-
-        
-        
-        
+        msg.position = q
+        msg.velocity = vq
 
         
     def getdjv(self):
