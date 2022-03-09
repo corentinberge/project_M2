@@ -10,12 +10,13 @@
 
 
 
-import queue
+from computed_torque_function_ROS import computedTorqueController, robotDynamic
 import pinocchio as pin
 import os
 from pinocchio.utils import *
 from pinocchio.visualize import GepettoVisualizer
 from pinocchio.robot_wrapper import RobotWrapper
+import math
 import rospy
 
 package_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))) + '/Modeles/'
@@ -25,16 +26,17 @@ class command():
     """
         The command object 
     """
-    
     def __init__(self):
         self.robot = RobotWrapper.BuildFromURDF(urdf_path,package_path,verbose=True)
-        self.EF_index = robot.model.getFrameId("Nom END EFFECTOR") # A CHANGER
+        self.EF_index = self.robot.model.getFrameId("Nom END EFFECTOR") # A CHANGER
         # pub
         self.JointPub = rospy.Publisher("topic",JointState,queue_size=1)
         # sub
         self.measured_joint = rospy.Subscriber("topic",JointState,self._measured_joint_callback) #A Adapter
-        self._joint_trajectory = rospy.Suscriber("topic",MSG,self._joint_trajectory_callback)
+        self._joint_trajectory = rospy.Suscriber("topic",MSG,self._trajectory_callback)
         self.previousTime = rospy.get_rostime()
+        self.aq = 0
+        self.vq = 0
         self.dt = 0
 
     def orientationEuler(self,R):
@@ -60,36 +62,118 @@ class command():
         delta = self.orientationEuler(M.rotation) #à decommenter a terme 
         return np.concatenate((p,delta),axis=0)
 
+    def robotDynamic(self,input,dt):
+        """ 
+        Dynamic of the robot calculator for postion/speed control 
+        tau =  input + G
+
+        tau = J't.f
+        ------------------------------
+        IN
+    
+        robot   : a RobotWrapper object needed to compute gravity torque and other parameters
+        input   : input signal of the function equals to B*deltaDotQ-K*deltaQ
+        q       : current joints angles values
+        vq      : current joints velocities 
+        aq      : current joints acceleration values 
+        dt      : time step between each execution of this function
+        ---------------------------------
+        OUT
+
+        q : calculated joint angles values 
+        dq : calculated joint velocities values 
+        aq : calculated joint acceleration values 
+        f : the force exerted by the manipulator 
+
+        system : 
+                Xp = Ax + Bu
+                Y = x
+                with u = tau, x = [q,vq], Xp = [vq,aq]
+        """
+
+        X = np.array([self.q,self.vq])
+        Xp = np.array([self.vq,np.dot(np.linalg.pinv(self.A),(input-self.H))])
+        X += Xp*dt
+
+        return X[0],X[1],Xp[1]
     
     def _measured_joint_callback(self,data):
         """
             each time a joint as been published on the topic then we compute all data that we need to do the control law
         """
         self.q = data.position
-        self.vq = data.velocity
-        self.aq = data.acceleration
+        vqnew = data.velocity
+        
         self.dt = rospy.get_rostime() - self.previousTime
-        self.robot.forwardKinematics(self.q)
+        self.aq = (vqnew-self.vq)/self.dt
+        self.vq = vqnew
+
+        self.robot.forwardKinematics(self.q,self.vq,0*self.aq)
         pin.updateFramePlacement(self.robot.model,self.robot.data)
         self.J = pin.ComputeFrameJacobian(self.robot.model,self.robot.data,self.q,self.EF_index,pin.ReferenceFrame.LOCAL_WORLD_ALIGNED)
         self.A = pin.crba(self.robot.model,self.robot.data,self.q) # compute mass matrix
         self.H = pin.rnea(self.robot.model,self.robot.data,q,self.vq,np.zeros(self.q.shape))  # compute dynamic drift -- Coriolis, centrifugal, gravity
-        self.jdv = self.getdjv()
-        self.X = self.situationOT(self.robot.data.omF[self.EF_index])
+        self.getdjv() #we compute ddXmeasure
+        self.Xmeasure = self.situationOT(self.robot.data.omF[self.EF_index])
+        self.dXmeasure = self.J@self.q
+        self.tau = self.computedTorqueController(self.Xc,self.Xmeasure,self.dXc,self.dXmeasure,self.ddXc,self.ddXmeasure) #mettre valeur de Xc 
+        q,vq,aq = robotDynamic(self.tau,self.dt) #value to publish 
 
 
-    def _joint_trajectory_callback(self,data):
-        """ 
-            trajectory node, send a message every x seconde
+
+
+        
+        
+
+    
+    def computedTorqueController(self,Xc,Xm,dXc,dXm,ddXc,ddXm): 
         """
-        self.Xc = data.EFPosition
-        self.dXc = data.EFVelocity
-        self.ddXc = data.EFAcceleration
+                this is the controller of the computed torque control 
+
+                she compute the error, and return the tau ( corresponding to U(t) )
+
+
+                Kp = wj²
+                Kd = 2zetawj
+
+                Xd = traj EF desired at instant t 2x1
+                X =  current position of the EF 2x1
+                dXd = velocities EF desired at instant t 2x1  
+                dX =  current velocity of the EF 2x1 
+                ddXd = acceleration of the EF desired at instant t 2x1 
+                ddXn current acceleration of the EF 2x1 
+            
+                J planar Jacobian size 2x2
+                A inertial matrix
+                H corriolis vector 
+
+
+    """
+        kp=1
+        kd = 2*math.sqrt(kp)
+        ex = Xc-Xm
+        edx = dXc-dXm
+        Jp = np.linalg.pinv(self.J)
+        W= kp*ex + kd*edx+ddXc-ddXm
+        jpw = np.dot(Jp,W)
+        return np.dot(self.A,jpw) + self.H
+
+#   def _trajectory_callback(self,data):
+#       """ 
+#          trajectory node, send a message every x seconde
+#       """
+#       self.Xc = data.EFPosition
+#       self.dXc = data.EFVelocity
+#      self.ddXc = data.EFAcceleration
 
     def _publishQ(self):
         """
             put the control law here 
         """
+    
+        
+
+        
         
         
 
@@ -99,7 +183,7 @@ class command():
             this function return the product of the derivative Jacobian times the joint velocities 
         """ 
         djV = pin.getFrameClassicalAcceleration(self.robot.model,self.robot.data,self.EF_index,pin.ReferenceFrame.LOCAL_WORLD_ALIGNED)
-        self.dJv = np.hstack(djV.linear,djV.rotation)
+        self.ddXmeasure = np.hstack(djV.linear,djV.rotation)
 
 
 
