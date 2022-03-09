@@ -21,11 +21,11 @@ add_message_files(
   JointState_noHeader.msg
 )
 
-add_service_files(
-  FILES
-  AddTwoInts.srv
-  joint_state.srv
-)
+# add_service_files(
+#   FILES
+#   AddTwoInts.srv
+#   joint_state.srv
+# )
 
 generate_messages(
   DEPENDENCIES
@@ -36,7 +36,15 @@ include_directories(include ${catkin_INCLUDE_DIRS})
 
 catkin_package(
   # INCLUDE_DIRS include
-  CATKIN_DEPENDS roscpp std_msgs sensor_msgs geometry_msgs nav_msgs tf gazebo_ros message_runtime
+  CATKIN_DEPENDS
+  roscpp
+  std_msgs
+  sensor_msgs
+  geometry_msgs
+  nav_msgs
+  tf
+  gazebo_ros
+  message_runtime
   DEPENDS GAZEBO
 )
 
@@ -45,14 +53,25 @@ if(CATKIN_ENABLE_TESTING)
   roslaunch_add_file_check(launch)
 endif()
 
-install(DIRECTORY images meshes launch rviz urdf
-        DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+install(
+  DIRECTORY
+  images
+  meshes
+  launch
+  rviz
+  urdf
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
 
-catkin_install_python(PROGRAMS src/control_joint.py
+catkin_install_python(
+  PROGRAMS src/control_joint.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
-catkin_install_python(PROGRAMS scripts/talker.py scripts/listener.py scripts/test.py
+catkin_install_python(
+  PROGRAMS
+  scripts/talker.py
+  scripts/listener.py
+  scripts/test_odo.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
