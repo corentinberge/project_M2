@@ -2,6 +2,7 @@ import pinocchio as pin
 from pinocchio.utils import *
 from pinocchio.visualize import GepettoVisualizer
 from pinocchio.robot_wrapper import RobotWrapper
+import numpy as np
 import math
 
 
@@ -113,6 +114,14 @@ def ROS_function(robot,q,vq,aq,Xc,dXc,ddXc,dt):
         aq : the current joint acceleration
         retunr the different position,velocity and acceleration to be send on the robot
     """
+    
+    # Derivate to obtain current acceleration
+    # print(robot.data)
+    # aq = (robot.data.velocity(q,vq,1)-vq)/dt
+    # print(aq+"\n"+type(aq))
+    # aq = [((robot.velocity(q,vq,i)- vq) / dt) for i in range(1,7)]
+    # aq = (robot.velocity(q,vq,) - vq) / dt
+
     IDX = robot.model.getFrameId("tcp") # Change tcp for the OT desired (in the urdf file for the name)
     robot.forwardKinematics(q,vq,0*aq)
     pin.updateFramePlacement(robot.model,robot.data)
