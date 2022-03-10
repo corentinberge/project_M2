@@ -7,16 +7,24 @@
         1 for the simulation node the robot
 """
 
-
-
-# 
-import pinocchio as pin
+#system
+from mimetypes import init
 import os
-from pinocchio.utils import *
-from pinocchio.visualize import GepettoVisualizer
-from pinocchio.robot_wrapper import RobotWrapper
 import math
+
+# pinocchio 
+import pinocchio as pin
+from pinocchio.utils import *
+from pinocchio.robot_wrapper import RobotWrapper
+
+
+#ros 
 import rospy
+
+#ROS MSG
+from sensor_msgs.msg import JointState
+
+
 
 package_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))) + '/Modeles/'
 urdf_path = package_path + 'motoman_hc10_support/urdf/hc10.urdf'
@@ -32,7 +40,7 @@ class command():
         self.JointPub = rospy.Publisher("topic",JointState,queue_size=1)
         # sub
         self.measured_joint = rospy.Subscriber("topic",JointState,self._measured_joint_callback) #A Adapter
-        self._joint_trajectory = rospy.Suscriber("topic",MSG,self._trajectory_callback)
+        #self._joint_trajectory = rospy.Suscriber("topic",MSG,self._trajectory_callback)
         self.previousTime = rospy.get_rostime()
         self.aq = 0
         self.vq = 0
@@ -185,5 +193,5 @@ class command():
 
 
 if __name__ == "__main__":
-    listener = rospy.Subscriber("nom_topic",msg,callback)
-    q = listener.data
+    rospy.init_node('computed_torque_control_node')
+    computed_torque = command()

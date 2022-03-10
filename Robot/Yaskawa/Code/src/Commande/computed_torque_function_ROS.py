@@ -126,6 +126,7 @@ def ROS_function(robot,q,vq,aq,Xc,dXc,ddXc,dt):
 
         retunr the different position,velocity and acceleration to be send on the robot
     """
+    aq = 0
     IDX = robot.model.getFrameId("tcp") # Change tcp for the OT desired (in the urdf file for the name)
     robot.forwardKinematics(q,vq,0*aq)
     pin.updateFramePlacement(robot.model,robot.data)
@@ -138,10 +139,9 @@ def ROS_function(robot,q,vq,aq,Xc,dXc,ddXc,dt):
     ddXmeasure = getdjv(robot,q,vq,aq)
 
     tau = computedTorqueController(Xc,Xmeasure,dXc,dXmeasure,ddXc,ddXmeasure,J,A,H)
-
-
+    
     qnew, vqnew, aqnew = robotDynamic(robot,tau,q,vq,aq,dt)
-    return qnew,vqnew,aqnew
+    return qnew,vqnew,aqnew,aq 
 
     
 

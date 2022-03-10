@@ -270,12 +270,13 @@ def FCL(fd,f,dX,J,I,dt,I_S):
         the force f, fd are 6 by 1 vector 
         
     """
-    kf = 1
+    kf = 0.1
     kfd = 0
-    kif = 0.1
+    kif = 0.0
     ef = fd-f
     I += ef*dt
-    a = np.dot(I_S,np.dot(kf,ef)+np.dot(kif,ef)-np.dot(kfd,dX)+0*fd) #intermediate signal
+    #print("error on the force : ",ef)
+    a = np.dot(I_S,np.dot(kf,ef)+np.dot(kif,ef)-np.dot(kfd,dX)+1*fd) #intermediate signal
     #print("shape before Jt",a.shape)
     return np.dot(a,np.transpose(J)),I # a la base en Jt,a
 
@@ -300,14 +301,9 @@ def effort_control(Xd,X,dXd,dX,ddXd,ddXn,fd,f,I,J,S,I_S,A,H,dt):
         tau 
     """
 
-    Kf = 0.1
-    Kdf = 0
-    KIf = 0
-
     tau_pos = PCLT(Xd,X,dXd,dX,ddXd,ddXn,J,A,S) + H
     tau_f,I = FCL(fd,f,dX,J,I,dt,I_S)
    
-    #print("couple de la force demandé ",tau_f)
     return (tau_pos + tau_f),I # return of tau_f for plot
 
 def run_efort_control(robot):
@@ -317,30 +313,27 @@ def run_efort_control(robot):
 
     """
     """             INITIALISATION              """
+    """ creating final and initial position """
     qi = np.array([np.radians(-46),np.radians(-46)])
     qf = np.array([np.radians(-45),np.radians(-45)])
     IDX = robot.model.getFrameId("tcp")
-
-
-
     robot.forwardKinematics(qf) #update joints
     pin.updateFramePlacements(robot.model,robot.data) #update frame placement
     Xf = situationOT(robot.data.oMf[IDX])
-
     robot.forwardKinematics(qi) #update joints
     pin.updateFramePlacements(robot.model,robot.data) #update frame placement
-
-    Pz0 = 1.3
-    stiffness = 0.1
-    damping = 0.001
-
-    N = 10000
+    """ Initialisation of robot constant"""
+    """ contact constant """
+    Pz0 = 1.28
+    stiffness = 1
+    damping = 0.1
+    """ Simulation Data """
+    N = 60000
     dt = 1e-3
     constant_position = 10000
     IDX = robot.model.getFrameId("tcp")
-    #Xdesired,dXdesired,ddXdesired,traj_q,traj_dq,traj_ddq,t = getTraj(N,robot,dt)
-    fd = np.array([0,1])
-    #q = traj_q[:,0]
+
+    fd = np.array([0,0.01])
     q = qi
     vq = np.zeros(robot.nv)
     aq = np.zeros(robot.nv)
@@ -348,11 +341,11 @@ def run_efort_control(robot):
     trajX = np.zeros((2,N))
     trajF = np.zeros((2,N))
     tau_f_traj = np.zeros((2,N))
-    f = np.zeros((6,1))
+    f = np.zeros((2,1))
     robot.forwardKinematics(q) #update joints
     pin.updateFramePlacements(robot.model,robot.data) #update frame placement
     J = computePlanarJacobian(robot,q,IDX)
-    S = np.diag([1,0])
+    S = np.diag([1,0]) #on commande en position au début
     I_S = np.eye(S.shape[0])-S
     tau = pin.rnea(robot.model, robot.data, q, np.zeros(robot.nv), np.zeros(robot.nv)) #initial tau
     I=0
@@ -360,27 +353,36 @@ def run_efort_control(robot):
     
     """         SIMULATION          """
     for i in range(N):
+        qold = q.copy()
         t[i] = i*dt
         robot.display(q)
         q,vq,aq = robotDynamic(robot,tau,q,vq,aq,dt)
+
         robot.forwardKinematics(q) #update joints
         pin.updateFramePlacements(robot.model,robot.data) #update frame placement
-        Tau = pin.rnea(robot.model,robot.data,q,vq,aq)
         J = computePlanarJacobian(robot,q,IDX)
-        #f = np.dot(np.linalg.pinv(np.transpose(J)),Tau)
         X = situationOT(robot.data.oMf[IDX])
+        
         trajX[:,i] = X
         A = pin.crba(robot.model,robot.data,q)
         H = pin.rnea(robot.model,robot.data,q,vq,np.zeros(aq.shape))
         dX = np.dot(J,vq)
         ddX = getdjv(robot,q,vq,aq)
-        f = -(stiffness*(Pz0 - X[1]) + damping*dX[1])
+        #print("position sur Z",X[1])
+        #print("depassement ",Pz0 - X[1])
+        fx = 0
+        fz = stiffness*(X[1] - Pz0) + damping*dX[1]# force exerted on the static surface Pz0
+        if(X[1] - Pz0>0):
+            q = qold
+        f = np.array([fx,fz])
+        
 
 
         #tau,I = effort_control(Xdesired[:,i],X,dXdesired[:,i],dX,ddXdesired[:,i],ddX,fd,f,I,J,S,I_S,A,H,dt) # tracking 
         #tau,I,tau_f_traj[:,i] = effort_control(Xdesired[:,constant_position],X,0*dXdesired[:,constant_position],dX,0*ddXdesired[:,constant_position],ddX,fd,f,I,J,S,I_S,A,H,dt) # constant position
         tau,I = effort_control(Xdesired,X,np.zeros(X.shape),dX,np.zeros(X.shape),ddX,fd,f,I,J,S,I_S,A,H,dt)
-        tau_f_traj[:,i] = tau# pour deconnercter la loi de controle de la force
+        
+        tau_f_traj[:,i] = tau
         trajF[:,i] = f
         #time.sleep(dt)
 
@@ -388,11 +390,11 @@ def run_efort_control(robot):
 
     #plot_res(t,trajX,Xdesired) #plot tracking
     plt.figure()
-    plt.plot(t,trajX[0,:],label="sur Z")
+    plt.plot(t,trajX[0,:],label="sur X")
     plt.plot(t,Xf[0]*np.ones(t.shape),'r--',label="consigne sur X")
     plt.legend()
     plt.figure()
-    plt.plot(t,trajX[1,:],label="sur X")
+    plt.plot(t,trajX[1,:],label="sur Z")
     plt.plot(t,Xf[1]*np.ones(t.shape),'r--',label="consigne sur Z")
     plt.legend()
     plt.figure()
@@ -403,12 +405,12 @@ def run_efort_control(robot):
     plt.plot(t,trajF[1,:])
     plt.ylabel('en N')
     plt.figure()
-    plt.title("couple tau_f en q1 ")
+    plt.title("couple tau en q1 ")
     plt.plot(t,tau_f_traj[0,:],label='en q1')
     plt.legend()
     plt.ylabel('en N.m')
     plt.figure()
-    plt.title("couple tau_f en q2")
+    plt.title("couple tau en q2")
     plt.plot(t,tau_f_traj[1,:],label='en q2')
     plt.legend()
     plt.ylabel('en N.m')
