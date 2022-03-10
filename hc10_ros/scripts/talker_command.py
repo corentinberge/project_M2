@@ -15,8 +15,8 @@ def talker():
     acceleration = 0
     dt = 1 / Hz
 
-    package_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    urdf_path = package_path + '/urdf/hc10.urdf'
+    package_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) + '/dependencies_ros'
+    urdf_path = os.path.dirname(package_path) + '/hc10_ros/urdf/hc10.urdf'
 
     jointNames = ['joint_1_s','joint_2_l','joint_3_u','joint_4_r','joint_5_b','joint_6_t']
     

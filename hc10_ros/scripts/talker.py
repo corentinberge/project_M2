@@ -4,8 +4,6 @@
 import rospy
 
 from std_msgs.msg import Float64
-# from pinocchio.robot_wrapper import RobotWrapper
-# from Fonction_jo import ROS_function
 
 def talker():
     dataAcc = [0, 0]
@@ -18,10 +16,6 @@ def talker():
 
     # Open file
     f = open("2dof_data_LC.txt.txt", "r")
-
-    # robot = RobotWrapper()
-    # robot.initFromURDF(urdf_path, package_path, verbose=True)
-    # ROS_function(robot, ..., dataAcc)
 
     # A = [0,0,0,0,0,0]
 
