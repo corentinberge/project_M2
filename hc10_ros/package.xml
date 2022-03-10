@@ -35,5 +35,6 @@
   <run_depend>xacro</run_depend>
   <run_depend>sensor_msgs</run_depend>
   <run_depend>message_runtime</run_depend>
+  <run_depend>roslib</run_depend>
   
 </package>
