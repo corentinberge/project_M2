@@ -42,7 +42,7 @@ def computePlanarJacobian(robot,q,IDX):
     #print("J",J)
     planarJ = np.vstack((J[0,:],J[2,:]))#,J[4,:]))
     #print("planar J",planarJ)
-    return planarJ,J
+    return planarJ
 
 
 def getdjv(robot,q,v,a):
@@ -60,9 +60,9 @@ def getdjv(robot,q,v,a):
 """                             TRAJECTOIRE                             """
 def loiPendule(robot,t):
     """retourne la loi avec série de fournier """
-    q = np.array([0.1*np.cos(0.1*math.pi*t), 0])
-    vq = np.array([-0.01*math.pi*np.sin(0.1*math.pi*t),0])
-    aq = np.array([-0.001*math.pi**2*np.cos(0.1*math.pi*t),0])
+    q = np.array([0.1*np.cos(math.pi*t), 0]) + np.array([0.5,-1])
+    vq = np.array([-0.1*math.pi*np.sin(math.pi*t),0])
+    aq = np.array([-0.1*math.pi**2*np.cos(math.pi*t),0])
     return  q,vq,aq
 
 
@@ -94,77 +94,24 @@ def getTraj(N,robot,dt):
         q,dq,ddq = loiPendule(robot,i*dt)
         robot.forwardKinematics(q,dq,0*ddq)
         djv = getdjv(robot,q,dq,ddq)
-        pin.updateFramePlacements(robot.model,robot.data) #update frame placement  
-        pJ,J = computePlanarJacobian(robot,q,IDX)
+        pin.updateFramePlacements(robot.model,robot.data) #update frame placement 
+        #robot.display(q)
+        J = computePlanarJacobian(robot,q,IDX)
         
-        #X[:,i] = np.concatenate((situationOT(robot.data.oMf[IDX]),[q[0]+q[1]]))
         X[:,i] = situationOT(robot.data.oMf[IDX])
 
         a = np.dot(J,dq)
         traj_dq[:,i] = dq
         traj_q[:,i] = q
         t[i] = i*dt
-        dotX[:,i] = np.dot(pJ,dq)
-        ddX[:,i] = djv + np.dot(pJ,ddq)
-        #print("valeur 6x2",a)
-        #print("valeur 2x2",dotX[:,i])
+        dotX[:,i] = np.dot(J,dq)
+        ddX[:,i] = djv + np.dot(J,ddq)
+
 
     return X,dotX,ddX,traj_q,traj_dq,traj_ddq,t
 
 
 """"                        CONTROL                         """
-def robotDynamicWithForce(robot,tau,q,vq,aq,f,dt):
-    """ 
-    Dynamic of the robot calculator for postion/speed control 
-    tau =  input + G
-
-    tau = J't.f
-    ------------------------------
-    IN
-    
-    robot   : a RobotWrapper object needed to compute gravity torque and other parameters
-    input   : input signal of the function equals to B*deltaDotQ-K*deltaQ
-    q       : current joints angles values
-    vq      : current joints velocities 
-    aq      : current joints acceleration values 
-    dt      : time step between each execution of this function
-    ---------------------------------
-    OUT
-
-    q : calculated joint angles values 
-    dq : calculated joint velocities values 
-    aq : calculated joint acceleration values 
-    f : the force exerted by the manipulator 
-
-
-
-    system : 
-            Xp = Ax + Bu
-            Y = x
-            with u = tau, x = [q,vq], Xp = [vq,aq]
-    """
-    IDX = robot.model.getFrameId("tcp")
-    A = pin.crba(robot.model,robot.data,q) # compute mass matrix
-    H = pin.rnea(robot.model,robot.data,q,vq,np.zeros(aq.shape))  # compute dynamic drift -- Coriolis, centrifugal, gravity
-    pJ,J = computePlanarJacobian(robot,q,IDX)
-
-    X = np.array([q,vq])
-    Xp = np.array([vq,np.dot(pinv(A),(tau-H))])             #-np.dot(np.transpose(pJ),f)))])
-    X += Xp*dt
-
-
-
-    q = X[0]
-    vq = X[1]
-    aq = Xp[1]
-    
-    
-    robot.forwardKinematics(q,vq,0*aq) #update joint
-    pin.updateFramePlacements(robot.model,robot.data) #update frame placement
-    tau = pin.rnea(robot.model,robot.data,q,vq,aq)
-    
-    return q,vq,aq,np.dot(pinv(np.transpose(pJ)),tau),pJ,J
-
     
 
 
@@ -204,16 +151,15 @@ def robotDynamic(robot,input,q,vq,aq,dt):
     A = pin.crba(robot.model,robot.data,q) # compute mass matrix
     H = pin.rnea(robot.model,robot.data,q,vq,np.zeros(aq.shape))  # compute dynamic drift -- Coriolis, centrifugal, gravity
     
-    tau = input
     X = np.array([q,vq])
-    Xp = np.array([vq,np.dot(pinv(A),(tau-H))])
+    Xp = np.array([vq,np.dot(pinv(A),(input-H))])
     X += Xp*dt
 
     return X[0],X[1],Xp[1]
 
     #COMPUTED TORQUE CONTROL
 
-def computedTorqueController(Xd,X,dXd,dX,ddXd,ddXn,J,A,H,J6):
+def computedTorqueController(Xd,X,dXd,dX,ddXd,ddXn,J,A,H): 
     """
             this is the controller of the computed torque control 
 
@@ -222,17 +168,26 @@ def computedTorqueController(Xd,X,dXd,dX,ddXd,ddXn,J,A,H,J6):
 
             Kp = wj²
             Kd = 2zetawj
+
+            Xd = traj EF desired at instant t 2x1
+            X =  current position of the EF 2x1
+            dXd = velocities EF desired at instant t 2x1  
+            dX =  current velocity of the EF 2x1 
+            ddXd = acceleration of the EF desired at instant t 2x1 
+            ddXn current acceleration of the EF 2x1 
+            
+            J planar Jacobian size 2x2
+            A inertial matrix
+            H corriolis vector 
+
+
 """
     kp=1
-    kd=0
+    kd = 2*math.sqrt(kp)
     ex = Xd-X
     edx = dXd-dX
-    #W = np.dot(kp,ex)+np.dot(kd,edx)+ddXd-ddXn
-    J6p = pinv(J6) #pinv(J) => tres different
-    #print(J6p)
-    Jp = transpose(np.vstack((J6p[:,0],J6p[:,2])))
-    #print(Jp)
-    Jp = pinv(J) # uncomment for effort control 
+    #print("det J ",np.linalg.det(J))
+    Jp = pinv(J)
     W= kp*ex + kd*edx+ddXd-ddXn
     jpw = np.dot(Jp,W)
     tau = np.dot(A,jpw) + H
@@ -244,19 +199,20 @@ def run(robot):
 
 
     """
-    dt = 1e-3
-    N = 40000
+
+    """       Initialisation            """
+    dt = 1e-4
+    N = 100000
     BASE = pin.ReferenceFrame.LOCAL_WORLD_ALIGNED
     IDX = robot.model.getFrameId("tcp")
-
     Xdesired,dXdesired,ddXdesired,traj_q,traj_dq,traj_ddq,t = getTraj(N,robot,dt)
-    q = traj_q[:,0]
+    q = traj_q[:,0] 
     vq = np.zeros(robot.nv)
     aq = np.zeros(robot.nv)
     trajX = np.zeros(Xdesired.shape)
-
     #robot.forwardKinematics(q) #update joints
     tau = pin.rnea(robot.model, robot.data, q, np.zeros(robot.nv), np.zeros(robot.nv)) #gravity matrix
+
     for i in range(N):
         robot.forwardKinematics(q,vq,0*aq) #update joint
         pin.updateFramePlacements(robot.model,robot.data) #update frame placement
@@ -266,43 +222,43 @@ def run(robot):
         
         #X = np.concatenate((situationOT(robot.data.oMf[IDX])))#,[q[0]+q[1]]))
         X = situationOT(robot.data.oMf[IDX])
+        #print("X",X)
         Jp = pinv(pJ)
         dX = np.dot(pJ,vq)
         ddXn = getdjv(robot,q,vq,aq)
         
         trajX[:,i] = X
         q,vq,aq = robotDynamic(robot,tau,q,vq,aq,dt)
-        #tau = computedTorqueController(traj_q[:,i],q,traj_dq[:,i],vq,traj_ddq[:,i],0*ddXn,np.eye(robot.model.nq),A,H) #tracking
-        tau = computedTorqueController(Xdesired[:,i],X,dXdesired[:,i],dX,ddXdesired[:,i],ddXn,pJ,A,H,J) #constant position 
-
+        tau = computedTorqueController(Xdesired[:,i],X,dXdesired[:,i],dX,ddXdesired[:,i],ddXn,pJ,A,H) #tracking
+        #tau = computedTorqueController(Xdesired[:,1000],X,0*dXdesired[:,1000],dX,0*ddXdesired[:,1000],ddXn,pJ,A,H) #constant position 
         robot.display(q)
         #time.sleep(1)
-    plot_res(t,trajX,Xdesired)
+
+    #plot_res(t,trajX,np.array([Xdesired[0,1000]*np.ones(Xdesired.shape[1]),Xdesired[1,1000]*np.ones(Xdesired.shape[1])])) #cnstant position plot
+    plot_res(t,trajX,Xdesired) #tracking plot 
 
     #HYBRID CONTROL
 
-def PCLT(Xd,X,dXd,dX,ddXd,ddXn,Jp,A,S,J):
+def PCLT(Xd,X,dXd,dX,ddXd,ddXn,J,A,S):
     """
         Position control law
 
         Computed with 
         
     """
-    outcomputedTorqueController = np.transpose(computedTorqueController(Xd,X,dXd,dX,ddXd,ddXn,eye(X.shape[0]),eye(X.shape[0]),np.zeros(X.shape),eye(3)))
-    #print("out controller avant ",outcomputedTorqueController)
-    outcomputedTorqueController = np.dot(S,outcomputedTorqueController)
-    
-    #print("out shape = ",outcomputedTorqueController.shape)
+    kp=1
+    kd = 2*math.sqrt(kp)
+    ex = Xd-X
+    edx = dXd-dX
+    #print("det J ",np.linalg.det(J))
     Jp = pinv(J)
-    Jp = transpose(np.vstack((Jp[:,0],Jp[:,2])))
+    W= np.dot(S,kp*ex + kd*edx+ddXd-ddXn)
+    jpw = np.dot(Jp,W)
+    tau = np.dot(A,jpw)
 
-    outJp = np.dot(Jp,outcomputedTorqueController)
+    return  tau
 
-    Aout = np.dot(A,outJp)
-
-    return  Aout
-
-def FCL(fd,f,dX,Jt,I,dt,Kf,Kdf,I_S,KIf):
+def FCL(fd,f,dX,J,I,dt,I_S):
     """
         Force control law in the effort_control
         
@@ -314,27 +270,19 @@ def FCL(fd,f,dX,Jt,I,dt,Kf,Kdf,I_S,KIf):
         the force f, fd are 6 by 1 vector 
         
     """
-
-    outPID,I = controllerPID(fd-f,-dX,I,dt,Kp=Kf,Kd=Kdf,Ki=KIf)#+ fd
-    out = np.dot(I_S,outPID)
-    #print("deltaF = ",out)
-    return np.dot(Jt,out),I
-
-
-def controllerPID(delta,deltaDot,I,dt,Kp = 1,Kd = 1,Ki = 1):
-    """ 
-    Compute the signal of the output of the controller which can be interpreted as a PID controller
-    ------------------------------
-    IN 
-
-    deltaX      : error 
-    deltaDotX   : error velocity
-    """
-    I += delta*dt #on relaise l'intégral 
-    return (np.dot(Kp,delta)+np.dot(Kd,deltaDot) + np.dot(Ki,I)),I
+    kf = 0.1
+    kfd = 0
+    kif = 0.0
+    ef = fd-f
+    I += ef*dt
+    #print("error on the force : ",ef)
+    a = np.dot(I_S,np.dot(kf,ef)+np.dot(kif,ef)-np.dot(kfd,dX)+1*fd) #intermediate signal
+    #print("shape before Jt",a.shape)
+    return np.dot(a,np.transpose(J)),I # a la base en Jt,a
 
 
-def effort_control(Xd,X,dXd,dX,ddXd,ddXn,fd,f,I,J,S,I_S,A,H,dt,J6):
+
+def effort_control(Xd,X,dXd,dX,ddXd,ddXn,fd,f,I,J,S,I_S,A,H,dt):
     """
         this function compute all the effort_control 
 
@@ -353,20 +301,10 @@ def effort_control(Xd,X,dXd,dX,ddXd,ddXn,fd,f,I,J,S,I_S,A,H,dt,J6):
         tau 
     """
 
-    Kf = 0.1
-    Kdf = 0
-    KIf = 0
-
-    #if(det(J) == 0):
-        #print("c'est J le probleme j'ai jurer")
-    J6p = pinv(J6)
-    Jp = transpose(np.vstack((J6p[:,0],J6p[:,2])))
-    pclt = PCLT(Xd,X,dXd,dX,ddXd,ddXn,Jp,A,S,J6)
-    #fcl,I = FCL(fd,f,dX,np.transpose(J),I,dt,Kf,Kdf,I_S,KIf)
-    fcl,I = FCL(fd,f,dX,np.transpose(J),I,dt,Kf,Kdf,I_S,KIf)
-    print(fcl)
-
-    return (pclt + fcl + H),I
+    tau_pos = PCLT(Xd,X,dXd,dX,ddXd,ddXn,J,A,S) + H
+    tau_f,I = FCL(fd,f,dX,J,I,dt,I_S)
+   
+    return (tau_pos + tau_f),I # return of tau_f for plot
 
 def run_efort_control(robot):
     """
@@ -374,61 +312,113 @@ def run_efort_control(robot):
 
 
     """
-    N = 40000
-    dt = 1e-3
-
+    """             INITIALISATION              """
+    """ creating final and initial position """
+    qi = np.array([np.radians(-46),np.radians(-46)])
+    qf = np.array([np.radians(-45),np.radians(-45)])
     IDX = robot.model.getFrameId("tcp")
-    Xdesired,dXdesired,ddXdesired,traj_q,traj_dq,traj_ddq,t = getTraj(N,robot,dt)
-    fd = np.array([1,1])
-    q = traj_q[:,0]
+    robot.forwardKinematics(qf) #update joints
+    pin.updateFramePlacements(robot.model,robot.data) #update frame placement
+    Xf = situationOT(robot.data.oMf[IDX])
+    robot.forwardKinematics(qi) #update joints
+    pin.updateFramePlacements(robot.model,robot.data) #update frame placement
+    """ Initialisation of robot constant"""
+    """ contact constant """
+    Pz0 = 1.28
+    stiffness = 1
+    damping = 0.1
+    """ Simulation Data """
+    N = 60000
+    dt = 1e-3
+    constant_position = 10000
+    IDX = robot.model.getFrameId("tcp")
 
+    fd = np.array([0,0.01])
+    q = qi
     vq = np.zeros(robot.nv)
     aq = np.zeros(robot.nv)
-
-    trajX = np.zeros(Xdesired.shape)
-    trajF = np.zeros(Xdesired.shape)
-
+    t = np.zeros(N)
+    trajX = np.zeros((2,N))
+    trajF = np.zeros((2,N))
+    tau_f_traj = np.zeros((2,N))
+    f = np.zeros((2,1))
     robot.forwardKinematics(q) #update joints
     pin.updateFramePlacements(robot.model,robot.data) #update frame placement
-    pJ,J = computePlanarJacobian(robot,q,IDX)
-
-    S = np.eye(2)
-    S = np.diag([1,0])
+    J = computePlanarJacobian(robot,q,IDX)
+    S = np.diag([1,0]) #on commande en position au début
     I_S = np.eye(S.shape[0])-S
-
-    tau = pin.rnea(robot.model, robot.data, q, np.zeros(robot.nv), np.zeros(robot.nv)) #gravity matrix
-    f = np.dot(np.transpose(pinv(pJ)),tau)
-    f = np.zeros(robot.nq)
+    tau = pin.rnea(robot.model, robot.data, q, np.zeros(robot.nv), np.zeros(robot.nv)) #initial tau
     I=0
-    print(I_S)
-    for i in range(N):
-        
-        X = situationOT(robot.data.oMf[IDX])
-        trajX[:,i] = X
-
-        q,vq,aq,f,pJ,J6 = robotDynamicWithForce(robot,tau,q,vq,aq,f,dt)
+    Xdesired = Xf
     
+    """         SIMULATION          """
+    for i in range(N):
+        qold = q.copy()
+        t[i] = i*dt
+        robot.display(q)
+        q,vq,aq = robotDynamic(robot,tau,q,vq,aq,dt)
+
+        robot.forwardKinematics(q) #update joints
+        pin.updateFramePlacements(robot.model,robot.data) #update frame placement
+        J = computePlanarJacobian(robot,q,IDX)
+        X = situationOT(robot.data.oMf[IDX])
+        
+        trajX[:,i] = X
         A = pin.crba(robot.model,robot.data,q)
         H = pin.rnea(robot.model,robot.data,q,vq,np.zeros(aq.shape))
-        dX = np.dot(pJ,vq)
+        dX = np.dot(J,vq)
         ddX = getdjv(robot,q,vq,aq)
+        #print("position sur Z",X[1])
+        #print("depassement ",Pz0 - X[1])
+        fx = 0
+        fz = stiffness*(X[1] - Pz0) + damping*dX[1]# force exerted on the static surface Pz0
+        if(X[1] - Pz0>0):
+            q = qold
+        f = np.array([fx,fz])
+        
 
-        #print("postion error before controller",norm(adaptSituation(Xdesired[:,i])-X))
 
-        #input,I = effort_control(adaptSituation(Xdesired[:,Id]),X,0*adaptSituation(dXdesired[:,0]),dX,0*adaptSituation(ddXdesired[:,0]),adaptSituation(ddX),fd,f,I,J,S,I_S,A,H,dt) #constant position
-        tau,I = effort_control(Xdesired[:,i],X,dXdesired[:,i],dX,ddXdesired[:,i],ddX,fd,f,I,pJ,S,I_S,A,H,dt,J) # tracking 
-        #tau = PCLT(Xdesired[:,i],X,dXdesired[:,i],dX,ddXdesired[:,i],ddX,pinv(pJ),A,S,J6)
-        #tau += H
+        #tau,I = effort_control(Xdesired[:,i],X,dXdesired[:,i],dX,ddXdesired[:,i],ddX,fd,f,I,J,S,I_S,A,H,dt) # tracking 
+        #tau,I,tau_f_traj[:,i] = effort_control(Xdesired[:,constant_position],X,0*dXdesired[:,constant_position],dX,0*ddXdesired[:,constant_position],ddX,fd,f,I,J,S,I_S,A,H,dt) # constant position
+        tau,I = effort_control(Xdesired,X,np.zeros(X.shape),dX,np.zeros(X.shape),ddX,fd,f,I,J,S,I_S,A,H,dt)
+        
+        tau_f_traj[:,i] = tau
         trajF[:,i] = f
         #time.sleep(dt)
-    plot_res(t,trajX,Xdesired)
+
+
+
+    #plot_res(t,trajX,Xdesired) #plot tracking
+    plt.figure()
+    plt.plot(t,trajX[0,:],label="sur X")
+    plt.plot(t,Xf[0]*np.ones(t.shape),'r--',label="consigne sur X")
+    plt.legend()
+    plt.figure()
+    plt.plot(t,trajX[1,:],label="sur Z")
+    plt.plot(t,Xf[1]*np.ones(t.shape),'r--',label="consigne sur Z")
+    plt.legend()
+    plt.figure()
+    plt.title("Force sur X")
+    plt.plot(t,trajF[0,:])
     plt.figure()
     plt.title("Force sur Z")
-    plt.plot(t,trajF)
+    plt.plot(t,trajF[1,:])
+    plt.ylabel('en N')
+    plt.figure()
+    plt.title("couple tau en q1 ")
+    plt.plot(t,tau_f_traj[0,:],label='en q1')
+    plt.legend()
+    plt.ylabel('en N.m')
+    plt.figure()
+    plt.title("couple tau en q2")
+    plt.plot(t,tau_f_traj[1,:],label='en q2')
+    plt.legend()
+    plt.ylabel('en N.m')
     plt.show()
 
 
 
+    
 
 
 """                         LOADING URDF FILE                   """
@@ -448,36 +438,23 @@ def init_display(robot):
 def plot_res(t,trajX,Xdesired):
     plt.figure()
     plt.title("trajectoire sur X")
-    plt.plot(t,trajX[0,:],label="trajectoire mesurer")
+    plt.plot(t,trajX[0,:],label="trajectoire mesurée")
     plt.plot(t,Xdesired[0,:],'r--',label="trajectoire à suivre")
+    plt.xlabel("seconde")
+    plt.legend()
     plt.figure()
     plt.title("trajectoire sur Z")
-    plt.plot(t,trajX[1,:],label="trajectoire mesurer")
+    plt.plot(t,trajX[1,:],label="trajectoire mesurée")
     plt.plot(t,Xdesired[1,:],'r--',label="trajectoire à suivre")
+    plt.xlabel("seconde")
     plt.legend()
-    plt.show()
+    #plt.show()
 
 """         TEST            """
-
-def test(robot):
-    dt = 1e-3
-    N = 400000
-    Xdesired,dXdesired,ddXdesired,traj_q,traj_dq,traj_ddq,t = getTraj(N,robot,dt)
-
-    ddXverif = calculDotX(dXdesired,dt)
-    dXverif = calculDotX(Xdesired,dt)
-    #print(t[0:len(t)-1].shape)
-    plt.figure()
-    plt.title("verif vit")
-    plt.plot(t[0:len(t)-1],dXverif[0,:],'r--',label="diff finis",linewidth=10)
-    plt.plot(t,dXdesired[0,:],label="vit calculer")
-    plt.legend()
-    plt.figure()
-    plt.title("verif acc")
-    plt.plot(t[0:len(t)-1],ddXverif[0,:],'r--',label="diff finis",linewidth=5)
-    plt.plot(t,ddXdesired[0,:],label="vit calculer")
-    plt.legend()
-    plt.show()
+    
+    
+    
+    
 
 def calculDotX(X,dt):
     """ Calcul de Xpoint avec les différences finis, Xpoint = DeltaX/Dt en [m/s m/s rad/s ] """
@@ -494,6 +471,5 @@ if __name__ == '__main__':
     robot = getRobot()
     init_display(robot)
 
-    #test(robot)
     #run(robot)
     run_efort_control(robot)
