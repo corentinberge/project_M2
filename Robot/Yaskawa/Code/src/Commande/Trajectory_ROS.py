@@ -79,8 +79,8 @@ def getRobot():
 
 class trajectory:
     def __init__(self):
-        """ Init the different values of position, velocity and acceleration
-        and read the csv file """
+        """ Init the different values of position, velocity and acceleration"""
+
         self.dt = dt
         self.X = np.zeros((N,6))
         self.t = np.zeros(N)                            # Initialisation
@@ -88,6 +88,7 @@ class trajectory:
         self.ddX = np.zeros(self.X.shape)
         self.IDX = robot.model.getFrameId("tool0")
 
+    def lectureCSV(self):
         self.f = open('data.csv','r')                   # read the file
     
         lecteurCSV = csv.reader(self.f)
@@ -109,7 +110,7 @@ class trajectory:
             q,dq,ddq = loiPendule(robot,i*self.dt)              # pendulum law use
             robot.forwardKinematics(q,dq,ddq)
             djv = getdjv(robot,q,dq,ddq)
-            pin.updateFramePlacements(robot.model,robot.data)   #update frame placement 
+            pin.updateFramePlacements(robot.model,robot.data)   # update frame placement 
             J = computePlanarJacobian(robot,q,self.IDX)
             
             self.X[i,:] = situationOT(robot.data.oMf[self.IDX])
@@ -201,8 +202,9 @@ if __name__ == '__main__':
     robot = getRobot()
     traj = trajectory()
     traj.EcritureFichierCSV(N,robot,dt)
+    traj.lectureCSV()
     #traj.Trace()
-    try:
+    """try:
         traj.talker_file()
     except rospy.ROSInterruptException:
-        pass
+        pass"""
