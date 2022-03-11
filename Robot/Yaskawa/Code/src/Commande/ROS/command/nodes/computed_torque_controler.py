@@ -1,4 +1,4 @@
-""" 
+ls""" 
     This file contain the command_node
     2 suscriber : 
         1 for the trajectory node
@@ -151,11 +151,11 @@ class command():
         """
         print("publishing torque")
         self.pubTorqueJoint1.publish(self.tau[0])
-        self.pubTorqueJoint1.publish(self.tau[1])
-        self.pubTorqueJoint1.publish(self.tau[2])
-        self.pubTorqueJoint1.publish(self.tau[3])
-        self.pubTorqueJoint1.publish(self.tau[4])
-        self.pubTorqueJoint1.publish(self.tau[5])
+        self.pubTorqueJoint2.publish(self.tau[1])
+        self.pubTorqueJoint3.publish(self.tau[2])
+        self.pubTorqueJoint4.publish(self.tau[3])
+        self.pubTorqueJoint5.publish(self.tau[4])
+        self.pubTorqueJoint6.publish(self.tau[5])
         
         
 
