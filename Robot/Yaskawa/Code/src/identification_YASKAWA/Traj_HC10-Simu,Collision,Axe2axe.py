@@ -1040,7 +1040,7 @@ trajectory_axe2axe_palier_de_vitesse()
 
     # plt.figure('force friction')
     # for i in range(nbr_joint):
-    #     plt.plot(V_total[i],force[i],linewidth=1, label='fric'+str(i))
+    #     plt.plot(V_total[i],force[i],linewidth=1, label='fric1'+str(i))
     # plt.title('friction force')
     # plt.xlabel('v')
     # plt.ylabel('fric')
