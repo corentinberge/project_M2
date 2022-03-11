@@ -50,6 +50,7 @@ RUN apt-get update \
     ros-noetic-industrial-msgs \
     ros-noetic-industrial-robot-client \
     ros-noetic-effort-controllers \
+    ros-noetic-industrial-core \
     python-catkin-tools \
     robotpkg-py38-pinocchio \
     robotpkg-py38-crocoddyl \
