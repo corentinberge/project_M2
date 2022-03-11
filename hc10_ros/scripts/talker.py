@@ -12,22 +12,22 @@ def talker():
     for i in range(0, 6):
         pub.append(rospy.Publisher('/motoman_hc10/joint'+str(i+1)+'_position_controller/command', Float64, queue_size=10))
         rospy.init_node('talker', anonymous=True)
-        rate = rospy.Rate(10) # 10hz
+        rate = rospy.Rate(100) # 10hz
 
     # Open file
-    f = open("2dof_data_LC.txt.txt", "r")
+    f = open("data_speed.txt", "r")
 
     # A = [0,0,0,0,0,0]
 
     while not rospy.is_shutdown():
             
-        tmp = [f.readline() for i in range(1,250)]
+        # tmp = [f.readline() for i in range(1,50)]
         l = f.readline()
 
         # If EOF => Loop on file
         if len(l) == 0:
             f.close()
-            f = open("2dof_data_LC.txt.txt", "r")
+            f = open("data_speed.txt", "r")
             l = f.readline()
 
         q_data = l.split()
