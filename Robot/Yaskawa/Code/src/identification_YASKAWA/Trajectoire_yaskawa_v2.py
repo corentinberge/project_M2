@@ -282,7 +282,7 @@ def trajectory_axe2axe_palier_de_vitesse():
 
     # # plot_Trajectory(Q_pallier_vitesse)
     plot_QVA_total(T,nbr_joint,Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint,'joint_')
-
+    Generate_text_data_file_Q_txt(Q_total_All_Joint)
     # # calculs of position velosity acceleration for all joint joint with variation 
     # # of the Vmax
     # Q_total,V_total,A_total=calcul_QVA_joints_total(nbr_joint,joint_i,Q_pallier_vitesse)
