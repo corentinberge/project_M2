@@ -19,16 +19,20 @@ import rospy                            # For node ROS
 from std_msgs.msg import String
 
 def situationOT(M):
+
     """ cette fonction permets à partir d'un objet SE3, d'obtenir un vecteur X contenant la transaltion et la rotation de L'OT (situation de l'OT)
     avec les angles d'euler classique, M est l'objet SE3, out = [ex ey ez psi theta phi] """
+
     p = M.translation
     delta = orientationEuler(M.rotation)
     return np.concatenate((p,delta),axis=0)
 
 
 def orientationEuler(R):
+
     """ Renvois l'orientation selon la valeurs des angles d'euler  
     prend une matrice de rotation 3x3 en entrée"""
+
     if(abs(R[2,2]) != 1):
         psi = math.atan2(R[0,2],-R[1,2])
         theta = math.acos(R[2,2])
@@ -42,18 +46,24 @@ def orientationEuler(R):
     return np.array([psi,theta,phi])
 
 def loiPendule(robot,t):
+
     """retourne la loi avec série de fournier """
-    q = []
-    dq = []
-    ddq = []
-    for i in range(robot.nq):
+    """ Only the joint 2 and 3"""
+
+    q = [0,0,0.5*np.cos(2*math.pi*t),0.5*np.cos(2*math.pi*t),0,0]
+    dq = [0,0,-1*math.pi*np.sin(2*math.pi*t),-1*math.pi*np.sin(2*math.pi*t),0,0]
+    ddq = [0,0,-2*math.pi**2*np.cos(2*math.pi*t),-2*math.pi**2*np.cos(2*math.pi*t),0,0]
+
+    """for i in range(robot.nq):
         q.append(0.5*np.cos(2*math.pi*t))
         dq.append(-1*math.pi*np.sin(2*math.pi*t))
-        ddq.append(-2*math.pi**2*np.cos(2*math.pi*t))
+        ddq.append(-2*math.pi**2*np.cos(2*math.pi*t))"""
     return np.array(q),np.array(dq),np.array(ddq)
 
 def getdjv(robot,q,v,a):
+
     """this function return the product of the derivative Jacobian times the joint velocities """ 
+
     IDX = robot.model.getFrameId("tool0")
     robot.forwardKinematics(q,v,0*a)
     dJv = np.hstack( (pin.getFrameClassicalAcceleration(robot.model,robot.data,IDX,pin.ReferenceFrame.LOCAL_WORLD_ALIGNED).linear ,pin.getFrameAcceleration(robot.model,robot.data,IDX,pin.ReferenceFrame.LOCAL_WORLD_ALIGNED).angular))
@@ -69,7 +79,9 @@ def computePlanarJacobian(robot,q,IDX):
     return J
 
 def getRobot():
+
     """ load urdf file  """
+
     workingDir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
     workingDir += '/Modeles'
     package_dir = workingDir
@@ -79,6 +91,7 @@ def getRobot():
 
 class trajectory:
     def __init__(self):
+
         """ Init the different values of position, velocity and acceleration"""
 
         self.dt = dt
@@ -99,7 +112,9 @@ class trajectory:
         self.f.close()
 
     def EcritureFichierCSV(self,N,robot,dt):
-        """ Write the different values of position, velocity and acceleration in csv file"""
+
+        """ Write the different values of position, velocity and acceleration in csv file """
+
         self.dt = dt
         self.t = np.zeros(N)
         self.X = np.zeros((N,6))
@@ -126,7 +141,9 @@ class trajectory:
             writer.writerow(self.t)
 
     def talker_file(self):
+
         """ Publish the position, velocity and acceleration in topic """
+
         pub = rospy.Publisher('Topic_file_trajectory', String, queue_size=10) #Topic name to change
         rospy.init_node('talker_file', anonymous=True)
         rate = rospy.Rate(10) # 10hz
@@ -147,6 +164,7 @@ class trajectory:
             rate.sleep()
     
     def Trace(self):
+        
         """ function to trace the values read in csv file"""
 
         plt.figure()
