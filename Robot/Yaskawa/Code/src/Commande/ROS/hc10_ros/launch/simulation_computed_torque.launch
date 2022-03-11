@@ -1,0 +1,5 @@
+<launch>
+    <include file="$(find hc10_ros)/launch/hc10_gazebo.launch" />
+    <!-- <include file="$(find hc10_ros)/launch/hc10_control_pid.launch" /> -->
+    <include file="$(find hc10_ros)/launch/hc10_torque_control.launch" />
+</launch>

@@ -1,0 +1,33 @@
+<robot name="simple_wall">
+
+  <link name="world"/>
+  
+  <link name="wall">
+    <inertial>
+      <origin xyz="0 0 0" /> 
+      <mass value="100.0" />
+      <inertia  ixx="1.0" ixy="0.0"  ixz="0.0"  iyy="1.0"  iyz="0.0"  izz="1.0" />
+    </inertial>
+    <visual>
+      <origin xyz="-1 0 0"/>
+      <geometry>
+        <box size="2 0.2 2" />
+      </geometry>
+    </visual>
+    <collision>
+      <origin xyz="-1 0 0"/>
+      <geometry>
+        <box size="2 0.2 2" />
+      </geometry>
+    </collision>
+  </link>
+
+  <joint name="fixed" type="fixed">
+        <parent link="world" />
+        <child link="wall" />
+  </joint>
+
+  <gazebo reference="wall">
+    <material>Gazebo/Blue</material>
+  </gazebo>
+</robot>

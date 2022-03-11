@@ -1,0 +1,6 @@
+string joint_name
+float64 effort
+time start_time
+duration duration
+bool success
+string status_message
