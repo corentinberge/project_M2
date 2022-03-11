@@ -42,15 +42,14 @@ q_end=[3.141592653589793, 3.141592653589793, 6.19591884457987, 3.141592653589793
 Vmax=[2.2689280275926285, 2.2689280275926285, 3.141592653589793, 3.141592653589793, 4.36, 4.36]
 acc_max=[4,4,4,4,4,4]
 
-Jcf_Homme=np.array([
-                [5*deg_5,0,0],
-                [6*deg_5,0,0],
-                [7*deg_5 ,0,0],
-                [8*deg_5,0,0],
-                [-9*deg_5 ,0,0],
-                [10*deg_5 ,0,0],
+Jcf_Home=np.array([
+                [-0.959931,0,0],
+                [-0.314159,0,0],
+                [1.69297,0,0],
+                [0.05,0,0],
+                [-1.98968,0,0],
+                [0.959931 ,0,0],
                 ])
-
 
 Jci_avBute=np.array([
                 [0 ,0,0],
@@ -87,6 +86,7 @@ Jcf_aprBute=np.array([
                 [0 ,0,0],
                 [0 ,0,0],
                 ])
+
 def generation_palier_vitesse_calcul_oneJoint(nbr_rep,prct,q_start,q_end,Vmax,acc_max,Tech):
     #this function take in input :1- the number of repetition 
     #                             2- the data of the chosen joint motion(qstart qend V acc)
@@ -226,20 +226,20 @@ def trajectory_axe2axe_palier_de_vitesse():
     A_total_All_Joint=[[],[],[],[],[],[]]
 
     #mode1: generating trajectorys with increasing velocity for each joint upon request
-    Jcf_Homme0=Jcf_Homme[0][0]
-    Jcf_Homme1=Jcf_Homme[1][0]
-    Jcf_Homme2=Jcf_Homme[2][0]
-    Jcf_Homme3=Jcf_Homme[3][0]
-    Jcf_Homme4=Jcf_Homme[4][0]
-    Jcf_Homme5=Jcf_Homme[5][0]
-    
+    Jcf_Home0=Jcf_Home[0][0]
+    Jcf_Home1=Jcf_Home[1][0]
+    Jcf_Home2=Jcf_Home[2][0]
+    Jcf_Home3=Jcf_Home[3][0]
+    Jcf_Home4=Jcf_Home[4][0]
+    Jcf_Home5=Jcf_Home[5][0]
+
     pading_vect=[
-                [Jcf_Homme0,Jcf_Homme1,Jcf_Homme2,Jcf_Homme3,Jcf_Homme4,Jcf_Homme5],
-                [0,Jcf_Homme1,Jcf_Homme2,Jcf_Homme3,Jcf_Homme4,Jcf_Homme5],
-                [0,0,Jcf_Homme2,Jcf_Homme3,Jcf_Homme4,Jcf_Homme5],
-                [0,0,math.pi,Jcf_Homme3,Jcf_Homme4,Jcf_Homme5],
-                [0,0,math.pi,0,Jcf_Homme4,Jcf_Homme5],
-                [0,0,math.pi,0,0,Jcf_Homme5],
+                [Jcf_Home0,Jcf_Home1,Jcf_Home2,Jcf_Home3,Jcf_Home4,Jcf_Home5],
+                [0,Jcf_Home1,Jcf_Home2,Jcf_Home3,Jcf_Home4,Jcf_Home5],
+                [0,0,Jcf_Home2,Jcf_Home3,Jcf_Home4,Jcf_Home5],
+                [0,0,math.pi,Jcf_Home3,Jcf_Home4,Jcf_Home5],
+                [0,0,math.pi,0,Jcf_Home4,Jcf_Home5],
+                [0,0,math.pi,0,0,Jcf_Home5],
                 ]
     
     padind_vect_chandell=[0,0,math.pi,0,0,0]
@@ -252,7 +252,7 @@ def trajectory_axe2axe_palier_de_vitesse():
     # A_total_All_Joint=np.concatenate([A_total_All_Joint,A_inter_Home_joint], axis=1)
 
     for i in range(nbr_joint):
-        q,dq,ddq,times=generateQuinticPolyTraj_version_GF(Jcf_Homme[i],Jci_avBute[i],Vmax[i],Tech)
+        q,dq,ddq,times=generateQuinticPolyTraj_version_GF(Jcf_Home[i],Jci_avBute[i],Vmax[i],Tech)
         Q_inter_Home_joint,V_inter_Home_joint,A_inter_Home_joint=calcul_QVA_joints_total(nbr_joint,i,[q,times,dq,ddq],pading_vect[i])
         Q_total_All_Joint=np.concatenate([Q_total_All_Joint,Q_inter_Home_joint], axis=1)
         V_total_All_Joint=np.concatenate([V_total_All_Joint,V_inter_Home_joint], axis=1)
