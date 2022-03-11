@@ -33,7 +33,7 @@ NJOINT = robot.model.njoints  # number of links
 gv = robot.viewer.gui
 
 #sampling time 
-Tech=(1/1000)
+Tech=(1/100)
 # INITIALISATION 
 deg_5=-0.08726646259971647
 deg_5=deg_5+0.25*deg_5
