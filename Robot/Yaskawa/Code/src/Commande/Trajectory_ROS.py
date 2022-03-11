@@ -15,6 +15,9 @@ import time
 import os
 import csv
 
+import rospy                            # For node ROS
+from std_msgs.msg import String
+
 def situationOT(M):
     """ cette fonction permets à partir d'un objet SE3, d'obtenir un vecteur X contenant la transaltion et la rotation de L'OT (situation de l'OT)
     avec les angles d'euler classique, M est l'objet SE3, out = [ex ey ez psi theta phi] """
@@ -106,7 +109,7 @@ class trajectory:
             q,dq,ddq = loiPendule(robot,i*self.dt)              # pendulum law use
             robot.forwardKinematics(q,dq,ddq)
             djv = getdjv(robot,q,dq,ddq)
-            pin.updateFramePlacements(robot.model,robot.data) #update frame placement 
+            pin.updateFramePlacements(robot.model,robot.data)   #update frame placement 
             J = computePlanarJacobian(robot,q,self.IDX)
             
             self.X[i,:] = situationOT(robot.data.oMf[self.IDX])
@@ -120,6 +123,27 @@ class trajectory:
             writer.writerow(self.dotX)                          # write the values
             writer.writerow(self.ddX)
             writer.writerow(self.t)
+
+    def talker_file(self):
+        """ Publish the position, velocity and acceleration in topic """
+        pub = rospy.Publisher('Topic_file_trajectory', String, queue_size=10) #Topic name to change
+        rospy.init_node('talker_file', anonymous=True)
+        rate = rospy.Rate(10) # 10hz
+
+        while not rospy.is_shutdown():
+            TrajectoryX = "Trajectory for position %s" % rospy.get_time()
+            rospy.loginfo(TrajectoryX)
+            pub.publish(self.X)
+
+            TrajectorydX = "Trajectory for velocity %s" % rospy.get_time()
+            rospy.loginfo(TrajectorydX)
+            pub.publish(self.dotX)
+
+            TrajectoryddX = "Trajectory for acceleration %s" % rospy.get_time()
+            rospy.loginfo(TrajectoryddX)
+            pub.publish(self.ddX)
+
+            rate.sleep()
     
     def Trace(self):
         """ function to trace the values read in csv file"""
@@ -177,4 +201,8 @@ if __name__ == '__main__':
     robot = getRobot()
     traj = trajectory()
     traj.EcritureFichierCSV(N,robot,dt)
-    traj.Trace()
+    #traj.Trace()
+    try:
+        traj.talker_file()
+    except rospy.ROSInterruptException:
+        pass
