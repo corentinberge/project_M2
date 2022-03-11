@@ -8,65 +8,60 @@ SHELL ["/bin/bash", "-c"]
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Update source repositories
-RUN apt-get update
-
-# Install dependencies for all the Docker
-RUN apt-get install -y \
-    apt-utils \
-    lsb-release \
+RUN apt-get update \
+    # Install dependencies for all the Docker
+    && apt-get install -y \
     python3.8 \
-    gnupg2 \
-    git \
-    ssh \
-    wget \
+    apt-utils \
     curl \
+    wget \
     python3-pip \
-    jupyter \
     libqt5gui5 \
     qt5-default \
-    freeglut3 \
     ipython3 \
+    python3-matplotlib \
     python3-scipy \
     python3-numpy \
-    python3-matplotlib \
-    python3-pil.imagetk \
     python3-rospkg \
-    software-properties-common
-RUN pip3 install \
+    python3-rosdep \
+    # Install Python packages
+    && pip3 install \
     Pillow \
     meshcat \
     qpsolvers \
     minidom-ext \
-    rosdep
-
-# Add robotpkg source repository to install pinocchio & noetic source repository to install ros-noetic
-RUN echo "deb [arch=amd64] http://robotpkg.openrobots.org/packages/debian/pub $(lsb_release -cs) robotpkg" | sudo tee /etc/apt/sources.list.d/robotpkg.list \
-    && curl http://robotpkg.openrobots.org/packages/debian/robotpkg.key | sudo apt-key add -
-
-# Update repositories
-RUN apt-get update
-
-# Install desktop full noetic && pinocchio
-RUN apt-get install -y ros-noetic-desktop-full \
-    && source /opt/ros/noetic/setup.bash
-RUN apt-get install -y \
+    # Add robotpkg source repository to install pinocchio & noetic source repository to install ros-noetic
+    && echo "deb [arch=amd64] http://robotpkg.openrobots.org/packages/debian/pub $(lsb_release -cs) robotpkg" | sudo tee /etc/apt/sources.list.d/robotpkg.list \
+    && curl http://robotpkg.openrobots.org/packages/debian/robotpkg.key | sudo apt-key add - \
+    # Update repositories
+    && apt-get update \
+    # Install desktop full noetic && pinocchio
+    && apt-get install -y ros-noetic-desktop-full \
+    && source /opt/ros/noetic/setup.bash \
+    # Install supplementary required packages
+    # Install supplementary required packages
+    && apt-get install -y \
+    ros-noetic-rospy \
+    ros-noetic-roslaunch \
+    ros-noetic-gazebo-ros \
+    ros-noetic-gazebo-ros-control \
     ros-noetic-ros-control \
     ros-noetic-ros-controllers \
     ros-noetic-industrial-msgs \
     ros-noetic-industrial-robot-client \
-    ros-noetic-rospy ros-noetic-roslaunch \
     ros-noetic-effort-controllers \
-    python3-catkin-tools \
+    python-catkin-tools \
     robotpkg-py38-pinocchio \
     robotpkg-py38-crocoddyl \
-    robotpkg-py38-qt5-gepetto-viewer-corba 
-
-# Create new user and switch on it
-RUN useradd -ms /bin/bash linux && echo "linux:linux" | chpasswd \
+    robotpkg-py38-qt5-gepetto-viewer-corba \
+    # Create new user
+    && useradd -ms /bin/bash linux \
+    && echo "linux:linux" | chpasswd \
     && adduser linux sudo \
     && usermod -aG sudo linux \
     && echo "linux  ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/linux \
     && echo "linux ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+# Switch on this new user
 USER linux
 WORKDIR /home/linux
 
@@ -75,20 +70,22 @@ RUN echo "export PATH=/opt/openrobots/bin:$PATH" >> $HOME/.bashrc \
     && echo "export PKG_CONFIG_PATH=/opt/openrobots/lib/pkgconfig:$PKG_CONFIG_PATH" >> $HOME/.bashrc \
     && echo "export LD_LIBRARY_PATH=/opt/openrobots/lib:$LD_LIBRARY_PATH" >> $HOME/.bashrc \
     && echo "export PYTHONPATH=/opt/openrobots/lib/python3.8/site-packages:$PYTHONPATH" >> $HOME/.bashrc \
-    && echo "export CMAKE_PREFIX_PATH=/opt/openrobots:$CMAKE_PREFIX_PATH" >> $HOME/.bashrc
-
-# Create catkin_ws directory 
-RUN mkdir -p $HOME/catkin_ws/src
-
-# Initialize directory and rosdep
-# RUN git clone -b kinetic-devel https://github.com/ros-industrial/motoman.git $HOME/catkin_ws/src/motoman
-RUN cd $HOME/catkin_ws && rosdep update
-
-# Build ROS packages
-RUN cd $HOME/catkin_ws && source /opt/ros/noetic/setup.bash && sudo rosdep install -y --from-paths src/ --ignore-src --rosdistro noetic && catkin_make install
-
-# Configure envirnoment for ROS
-RUN echo "source $HOME/catkin_ws/devel/setup.bash" >> $HOME/.bashrc
-
-# Add ROS dependencies
-RUN source $HOME/catkin_ws/devel/setup.bash
+    && echo "export CMAKE_PREFIX_PATH=/opt/openrobots:$CMAKE_PREFIX_PATH" >> $HOME/.bashrc \
+    # Create catkin_ws directory 
+    && mkdir -p $HOME/catkin_ws/src \
+    # Initialize directory and rosdep
+    && cd $HOME/catkin_ws \
+    && rosdep update \
+    # Build ROS packages
+    && cd $HOME/catkin_ws \
+    && source /opt/ros/noetic/setup.bash \
+    && sudo rosdep install -y --from-paths src/ --ignore-src --rosdistro noetic \
+    && catkin_make install \
+    # Configure envirnoment for ROS
+    && echo "source $HOME/catkin_ws/devel/setup.bash" >> $HOME/.bashrc \
+    # Add ROS dependencies
+    && source $HOME/catkin_ws/devel/setup.bash \
+    # Clean apt cache
+    && sudo apt-get autoclean \
+    && sudo apt-get clean \
+    && sudo apt-get autoremove
