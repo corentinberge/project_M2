@@ -36,8 +36,8 @@ gv = robot.viewer.gui
 Tech=(1/1000)
 # INITIALISATION 
 deg_5=-0.08726646259971647
-deg_5=deg_5+0.5*deg_5# 7.5 degre
-q_start=[-3.141592653589793-2*deg_5,-3.141592653589793-2*deg_5, -0.08726646259971647-2*deg_5,-3.141592653589793-2*deg_5, -3.141592653589793-2*deg_5, -3.141592653589793-2*deg_5]
+deg_5=deg_5+0.25*deg_5
+q_start=[-3.141592653589793-1*deg_5,-3.141592653589793-1*deg_5, -0.08726646259971647-1*deg_5,-3.141592653589793-1*deg_5, -3.141592653589793-1*deg_5, -3.141592653589793-1*deg_5]
 q_end=[3.141592653589793, 3.141592653589793, 6.19591884457987, 3.141592653589793, 3.141592653589793, 3.141592653589793] 
 Vmax=[2.2689280275926285, 2.2689280275926285, 3.141592653589793, 3.141592653589793, 4.36, 4.36]
 acc_max=[4,4,4,4,4,4]
@@ -62,22 +62,23 @@ Jci_avBute=np.array([
                 ])
 
 Jcf_avBute=np.array([
-                [-math.pi-2*deg_5 ,0,acc_max[0]],
-                [-math.pi-2*deg_5,0,acc_max[1]],
-                [ -0.08726646259971647-2*deg_5,0,acc_max[2]],
-                [-math.pi-2*deg_5 ,0,acc_max[3]],
-                [-math.pi-2*deg_5 ,0,acc_max[4]],
-                [-math.pi-2*deg_5 ,0,acc_max[5]],
+                [-math.pi-1*deg_5 ,0,acc_max[0]],
+                [-math.pi-1*deg_5,0,acc_max[1]],
+                [ -0.08726646259971647-1*deg_5,0,acc_max[2]],
+                [-math.pi-1*deg_5 ,0,acc_max[3]],
+                [-math.pi-1*deg_5 ,0,acc_max[4]],
+                [-math.pi-1*deg_5 ,0,acc_max[5]],
                 ])
-                
+
 Jci_aprBute=np.array([
-                [-math.pi -2*deg_5,0,-acc_max[0]],
-                [-math.pi-2*deg_5,0,-acc_max[1]],
-                [ -0.08726646259971647-2*deg_5,0,acc_max[2]],
-                [-math.pi-2*deg_5,0,-acc_max[3]],
-                [-math.pi-2*deg_5,0,-acc_max[4]],
-                [-math.pi-2*deg_5,0,-acc_max[5]],
+                [-math.pi-1*deg_5,0,-acc_max[0]],
+                [-math.pi-1*deg_5,0,-acc_max[1]],
+                [ -0.08726646259971647-1*deg_5,0,acc_max[2]],
+                [-math.pi-1*deg_5,0,-acc_max[3]],
+                [-math.pi-1*deg_5,0,-acc_max[4]],
+                [-math.pi-1*deg_5,0,-acc_max[5]],
                 ])
+
 Jcf_aprBute=np.array([
                 [0 ,0,0],
                 [0 ,0,0],
@@ -231,6 +232,7 @@ def trajectory_axe2axe_palier_de_vitesse():
     Jcf_Homme3=Jcf_Homme[3][0]
     Jcf_Homme4=Jcf_Homme[4][0]
     Jcf_Homme5=Jcf_Homme[5][0]
+    
     pading_vect=[
                 [Jcf_Homme0,Jcf_Homme1,Jcf_Homme2,Jcf_Homme3,Jcf_Homme4,Jcf_Homme5],
                 [0,Jcf_Homme1,Jcf_Homme2,Jcf_Homme3,Jcf_Homme4,Jcf_Homme5],
@@ -1225,6 +1227,7 @@ def force_coulomb(FS,V_total,nbr_joint):
 
 
 def generateQuinticPolyTraj(Jc0,Jcf,model,param):
+
     
     q=np.zeros(param['NbSample_interpolate'])
     dq=np.zeros(param['NbSample_interpolate'])
@@ -1255,40 +1258,67 @@ def generateQuinticPolyTraj_version_GF(Jc0,Jcf,vmax,Tech):
     # q=np.zeros(NbSample_interpolate)
     # dq=np.zeros(NbSample_interpolate)
     # ddq=np.zeros(NbSample_interpolate)
-    q=[]
-    dq=[]
-    ddq=[]
-    vmax=vmax*0.75
+    # q=[]
+    # dq=[]
+    # ddq=[]
+    # vmax=vmax*0.75
     # amax=30
 
-    D=(Jcf[0]-Jc0[0])
-    # vect=[(15*D)/(8*vmax),sqrt((10*D)/(1.73*amax))]
-    tf=(15*abs(D))/(8*vmax)#np.max(np.array(vect))
+    # D=(Jcf[0]-Jc0[0])
+    # # vect=[(15*D)/(8*vmax),sqrt((10*D)/(1.73*amax))]
+    # tf=(15*abs(D))/(8*vmax)#np.max(np.array(vect))
     
-    a=np.zeros(6)
-    a[0]=Jc0[0]
-    a[1]=Jc0[1]
-    a[2]=Jc0[2]/2
-    a[3]=( 20*Jcf[0]-20*Jc0[0] -(8*Jcf[1]+12*Jc0[1])*tf -(3*Jc0[2]-Jcf[2])*tf**2 )/(2*tf**3)
-    a[4]=( 30*Jc0[0]-30*Jcf[0] +(14*Jcf[1]+16*Jc0[1])*tf +(3*Jc0[2]-2*Jcf[2])*tf**2 )/(2*tf**4)
-    a[5]=( 12*Jcf[0]-12*Jc0[0] -(6*Jcf[1]+6*Jc0[1])*tf -(Jc0[2]-Jcf[2])*tf**2 )/(2*tf**5)
+    # a=np.zeros(6)
+    # a[0]=Jc0[0]
+    # a[1]=Jc0[1]
+    # a[2]=Jc0[2]/2
+    # a[3]=( 20*Jcf[0]-20*Jc0[0] -(8*Jcf[1]+12*Jc0[1])*tf -(3*Jc0[2]-Jcf[2])*tf**2 )/(2*tf**3)
+    # a[4]=( 30*Jc0[0]-30*Jcf[0] +(14*Jcf[1]+16*Jc0[1])*tf +(3*Jc0[2]-2*Jcf[2])*tf**2 )/(2*tf**4)
+    # a[5]=( 12*Jcf[0]-12*Jc0[0] -(6*Jcf[1]+6*Jc0[1])*tf -(Jc0[2]-Jcf[2])*tf**2 )/(2*tf**5)
 
-    t=0
+    # t=0
     T=[]
       
-    while(t<tf):
-        T.append(t)
-        q_=a[0]+a[1]*t +a[2]*t**2 +a[3]*t**3   +a[4]*t**4     +a[5]*t**5
-        q.append(q_)
-        dq_=    a[1]   +2*a[2]*t  +3*a[3]*t**2 +4*a[4]*t**3    +5*a[5]*t**4
-        dq.append(dq_)
-        ddq_= +2*a[2]    +6*a[3]*t    +12*a[4]*t**2    +20*a[5]*t**3   
-        ddq.append(ddq_)
+    # while(t<tf):
+    #     T.append(t)
+    #     q_=a[0]+a[1]*t +a[2]*t**2 +a[3]*t**3   +a[4]*t**4     +a[5]*t**5
+    #     q.append(q_)
+    #     dq_=    a[1]   +2*a[2]*t  +3*a[3]*t**2 +4*a[4]*t**3    +5*a[5]*t**4
+    #     dq.append(dq_)
+    #     ddq_= +2*a[2]    +6*a[3]*t    +12*a[4]*t**2    +20*a[5]*t**3   
+    #     ddq.append(ddq_)
+    #     t=t+Tech
+
+    # print('T shape',np.array(T).shape)
+    # print('Q shape',np.array(q).shape)
+
+    
+    tf=15*np.abs(Jcf[0]-Jc0[0])/(8*vmax)
+    NbSample_interpolate=int (tf/Tech) +1
+
+    q=np.zeros(NbSample_interpolate)
+    dq=np.zeros(NbSample_interpolate)
+    ddq=np.zeros(NbSample_interpolate)
+
+    A=np.array([[1, 0, 0, 0, 0, 0],
+            [0, 1, 0, 0, 0, 0],
+            [0, 0, 2, 0, 0, 0 ],
+            [1, tf, tf**2, tf**3, tf**4, tf**5],
+            [0, 1, 2*tf, 3*tf**2, 4*tf**3, 5*tf**4],
+            [0, 0, 2, 6*tf, 12*tf**2, 20*tf**3]])
+
+
+
+    a=np.matmul(np.linalg.inv(A),np.hstack((Jc0,Jcf)))
+
+
+    t=0
+    for i in range(NbSample_interpolate):
+    
+        q[i]=a[0]+a[1]*t +a[2]*t**2 +a[3]*t**3   +a[4]*t**4      +a[5]*t**5
+        dq[i]=    a[1]   +2*a[2]*t  +3*a[3]*t**2 +4*a[4]*t**3    +5*a[5]*t**4
+        ddq[i]=          +2*a[2]    +6*a[3]*t    +12*a[4]*t**2    +20*a[5]*t**3      
         t=t+Tech
-
-    print('T shape',np.array(T).shape)
-    print('Q shape',np.array(q).shape)
-
 
     return q, dq ,ddq,T
 
