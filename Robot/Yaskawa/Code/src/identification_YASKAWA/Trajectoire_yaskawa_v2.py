@@ -1348,7 +1348,7 @@ def Bang_Bang_acceleration_profile(q_start,q_end,v_max,a_max,Tech):
         t=t+Tech
 
     return q,dq,ddq
-
+ 
 
 trajectory_axe2axe_palier_de_vitesse()
 # sampel=[]

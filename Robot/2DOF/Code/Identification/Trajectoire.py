@@ -939,6 +939,202 @@ def force_coulomb(FS,V_total,nbr_joint):
     
     return(Force)
 
+def generation_palier_vitesse_calcul_oneJoint(nbr_rep,prct,q_start,q_end,Vmax,acc_max,Tech):
+    #this function take in input :1- the number of repetition 
+    #                             2- the data of the chosen joint motion(qstart qend V acc)
+    
+    # and return the data of the chosen joint in a matrix that combine:
+    #                                                       1- position vector after  repetion 
+    #                                                       2- velosity vector after  repetion 
+    #                                                       3- acc vector after  repetion 
+    #                                                       4- time vector with after repetion     
+    # print('entrer votre pourcentage de augmenter la vitesse')
+    # prct=float(input())
+    # prct=1
+    vitesse=prct*Vmax
+    prct_var=prct
+    i=0
+    loop=0 # pour un test dans ma tete
+    Q_all=[]
+    Q=[]
+    V=[]
+    T=[]
+    tf=0
+    A=[]
+    while(vitesse<=Vmax):
+        Q_palier=calcul_Q_all_variable_a2a(nbr_rep,q_start,q_end,vitesse,acc_max,Tech)
+        #Q_all.append(Q)
+        prct_var+=prct
+        vitesse=prct_var*Vmax
+        loop+=1
+        # print('avant trajectory')      
+        q=Q_palier[0]
+        t=Q_palier[1]
+        v=Q_palier[2]
+        a=Q_palier[3]
+        # print('apres trajectory')  
+        Q.extend(q)
+        V.extend(v)
+        A.extend(a)
+        for i in range(np.array(t).size):
+            t[i]+=tf
+
+        T.extend(t)       
+        tf=T[np.array(T).size-1]
+
+    Q_all.append(Q)
+    Q_all.append(T)
+    Q_all.append(V)
+    Q_all.append(A)
+
+    return Q_all
+
+def generation_palier_vitesse_calcul_allJoint(nbr_rep,prct,nbr_joint,q_start,q_end,Vmax,acc_max,Tech):
+    
+    tf=0
+    T=[]
+    Q_palier_V_Joint=[]
+    Q_total_one_joint=[]
+    V_total_one_joint=[]
+    A_total_one_joint=[]
+    Q_total_All_Joint=[[],[],[],[],[],[]]
+    V_total_All_Joint=[[],[],[],[],[],[]]
+    A_total_All_Joint=[[],[],[],[],[],[]]
+
+    # print('Vmax[0]',Vmax[0])
+    
+    NbSample_interpolate=100
+    # j=1
+    for i in range(nbr_joint):
+
+        Q_palier_V_Joint=generation_palier_vitesse_calcul_oneJoint(nbr_rep,prct,q_start[i],q_end[i],Vmax[i],acc_max[i],Tech)
+        Q_total_one_joint,V_total_one_joint,A_total_one_joint=calcul_QVA_joints_total(nbr_joint,i,Q_palier_V_Joint)
+        Q_total_All_Joint=np.concatenate([Q_total_All_Joint,Q_total_one_joint], axis=1)
+        V_total_All_Joint=np.concatenate([V_total_All_Joint,V_total_one_joint], axis=1)
+        A_total_All_Joint=np.concatenate([A_total_All_Joint,A_total_one_joint], axis=1)
+
+
+        t=Q_palier_V_Joint[1]
+        times=t
+        for j in range(np.array(t).size):
+            t[j]+=tf
+        T.extend(t)       
+        tf=T[np.array(T).size-1]
+
+        
+        q1,dq1,ddq1,times=generateQuinticPolyTraj_version_GF(Jci_aprBute[i],Jcf_aprBute[i],Vmax[i],Tech)
+        # q1,dq1,ddq1=Bang_Bang_acceleration_profile(Jci2[i][0],Jcf2[i][0],Jci2[i][1],Jci2[i][2],Tech)
+        Q_inter1_one_joint,V_inter1_one_joint,A_inter1_one_joint=calcul_QVA_joints_total(nbr_joint,i,[q1,times,dq1,ddq1])
+        Q_total_All_Joint=np.concatenate([Q_total_All_Joint,Q_inter1_one_joint], axis=1)
+        V_total_All_Joint=np.concatenate([V_total_All_Joint,V_inter1_one_joint], axis=1)
+        A_total_All_Joint=np.concatenate([A_total_All_Joint,A_inter1_one_joint], axis=1)
+        t=times
+
+        for k in range(np.array(t).size):
+            t[k]+=tf
+        T.extend(t)       
+        tf=T[np.array(T).size-1]
+
+        if(i<nbr_joint-1):
+            q,dq,ddq,times=generateQuinticPolyTraj_version_GF(Jci_avBute[i+1],Jcf_avBute[i+1],Vmax[i+1],Tech)
+            # q,dq,ddq=Bang_Bang_acceleration_profile(Jci1[i+1][0],Jcf1[i+1][0],Jci1[i+1][1],Jci1[i+1][2],Tech)
+            Q_inter2_one_joint,V_inter2_one_joint,A_inter2_one_joint=calcul_QVA_joints_total(nbr_joint,i+1,[q,times,dq,ddq])
+            Q_total_All_Joint=np.concatenate([Q_total_All_Joint,Q_inter2_one_joint], axis=1)
+            V_total_All_Joint=np.concatenate([V_total_All_Joint,V_inter2_one_joint], axis=1)
+            A_total_All_Joint=np.concatenate([A_total_All_Joint,A_inter2_one_joint], axis=1)
+            # j=j+1
+        t=times
+
+        for l in range(np.array(t).size):
+            t[l]+=tf
+        T.extend(t)       
+        tf=T[np.array(T).size-1]
+        # plot_QVA_total(times,nbr_joint,Q_inter_one_joint,V_inter_one_joint,A_inter_one_joint,'max_')
+        
+       
+        
+
+
+            
+    print('shape of Time vect T',np.array(T).shape)
+    print('Q_total_All_Joint',np.array(Q_total_All_Joint).shape)
+    return T,Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint
+    
+def trajectory_axe2axe_palier_de_vitesse():
+# this function can operate in two mode it can generate increasing velocity for each joint upon request
+# and it can generate increasing velosity for all joint(one by one =>joint after joint)
+
+    # data from user
+    print('enter the number of Yaskawa joint you want to move (counting start from 0) ')
+    joint_i=int(input())
+    print('entre the percentage of increasing velosity')
+    prct=float(input())
+    print('enter the number of repetition of the Yaskawa joints')
+    nbr_rep=int(input())
+    nbr_joint=6 #yaskawa case
+    
+    Q_total_All_Joint=[[],[],[],[],[],[]]
+    V_total_All_Joint=[[],[],[],[],[],[]]
+    A_total_All_Joint=[[],[],[],[],[],[]]
+
+    #mode1: generating trajectorys with increasing velocity for each joint upon request
+    Jcf_Home0=Jcf_Home[0][0]
+    Jcf_Home1=Jcf_Home[1][0]
+    Jcf_Home2=Jcf_Home[2][0]
+    Jcf_Home3=Jcf_Home[3][0]
+    Jcf_Home4=Jcf_Home[4][0]
+    Jcf_Home5=Jcf_Home[5][0]
+
+    pading_vect=[
+                [Jcf_Home0,Jcf_Home1,Jcf_Home2,Jcf_Home3,Jcf_Home4,Jcf_Home5],
+                [0,Jcf_Home1,Jcf_Home2,Jcf_Home3,Jcf_Home4,Jcf_Home5],
+                [0,0,Jcf_Home2,Jcf_Home3,Jcf_Home4,Jcf_Home5],
+                [0,0,math.pi,Jcf_Home3,Jcf_Home4,Jcf_Home5],
+                [0,0,math.pi,0,Jcf_Home4,Jcf_Home5],
+                [0,0,math.pi,0,0,Jcf_Home5],
+                ]
+    
+    padind_vect_chandell=[0,0,math.pi,0,0,0]
+
+    # joint3=2
+    # q,dq,ddq,times=generateQuinticPolyTraj_version_GF(Jcf_Homme[joint3],Jci_avBute[joint3],Vmax[joint3],Tech)
+    # Q_inter_Home_joint,V_inter_Home_joint,A_inter_Home_joint=calcul_QVA_joints_total(nbr_joint,joint3,[q,times,dq,ddq])
+    # Q_total_All_Joint=np.concatenate([Q_total_All_Joint,Q_inter_Home_joint], axis=1)
+    # V_total_All_Joint=np.concatenate([V_total_All_Joint,V_inter_Home_joint], axis=1)
+    # A_total_All_Joint=np.concatenate([A_total_All_Joint,A_inter_Home_joint], axis=1)
+
+    for i in range(nbr_joint):
+        q,dq,ddq,times=generateQuinticPolyTraj_version_GF(Jcf_Home[i],Jci_avBute[i],Vmax[i],Tech)
+        Q_inter_Home_joint,V_inter_Home_joint,A_inter_Home_joint=calcul_QVA_joints_total(nbr_joint,i,[q,times,dq,ddq],pading_vect[i])
+        Q_total_All_Joint=np.concatenate([Q_total_All_Joint,Q_inter_Home_joint], axis=1)
+        V_total_All_Joint=np.concatenate([V_total_All_Joint,V_inter_Home_joint], axis=1)
+        A_total_All_Joint=np.concatenate([A_total_All_Joint,A_inter_Home_joint], axis=1)
+   
+    
+    q,dq,ddq,times=generateQuinticPolyTraj_version_GF(Jci_avBute[joint_i],Jcf_avBute[joint_i],Vmax[joint_i],Tech)
+    Q_inter_Home_joint,V_inter_Home_joint,A_inter_Home_joint=calcul_QVA_joints_total(nbr_joint,joint_i,[q,times,dq,ddq],padind_vect_chandell)
+    Q_total_All_Joint=np.concatenate([Q_total_All_Joint,Q_inter_Home_joint], axis=1)
+    V_total_All_Joint=np.concatenate([V_total_All_Joint,V_inter_Home_joint], axis=1)
+    A_total_All_Joint=np.concatenate([A_total_All_Joint,A_inter_Home_joint], axis=1)
+             
+    Q_pallier_vitesse=[]
+    Q_pallier_vitesse = generation_palier_vitesse_calcul_oneJoint(nbr_rep,prct,q_start[joint_i],q_end[joint_i],Vmax[joint_i],acc_max[joint_i],Tech)
+    Q_total_one_joint,V_total_one_joint,A_total_one_joint=calcul_QVA_joints_total(nbr_joint,joint_i,Q_pallier_vitesse,padind_vect_chandell)
+    
+    Q_total_All_Joint=np.concatenate([Q_total_All_Joint,Q_total_one_joint], axis=1)
+    V_total_All_Joint=np.concatenate([V_total_All_Joint,V_total_one_joint], axis=1)
+    A_total_All_Joint=np.concatenate([A_total_All_Joint,A_total_one_joint], axis=1)
+
+    q,dq,ddq,times=generateQuinticPolyTraj_version_GF(Jci_aprBute[joint_i],Jcf_aprBute[joint_i],Vmax[joint_i],Tech)
+    Q_inter_Home_joint,V_inter_Home_joint,A_inter_Home_joint=calcul_QVA_joints_total(nbr_joint,joint_i,[q,times,dq,ddq],padind_vect_chandell)
+    Q_total_All_Joint=np.concatenate([Q_total_All_Joint,Q_inter_Home_joint], axis=1)
+    V_total_All_Joint=np.concatenate([V_total_All_Joint,V_inter_Home_joint], axis=1)
+    A_total_All_Joint=np.concatenate([A_total_All_Joint,A_inter_Home_joint], axis=1)
+    T=[]
+
+    # # plot_Trajectory(Q_pallier_vitesse)
+    plot_QVA_total(T,nbr_joint,Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint,'joint_')
+    Generate_text_data_file_Q_txt(Q_total_All_Joint)
 
 trajectory_mode_a2a_sync()
 # Generate_text_data_file(1000)
