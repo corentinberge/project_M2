@@ -29,3 +29,5 @@ motoman_hc10:
     type: effort_controllers/JointPositionController
     joint: joint_6_t
     pid: {p: 100.0, i: 0.01, d: 10.0}
+    
+

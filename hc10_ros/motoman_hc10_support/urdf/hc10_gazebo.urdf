@@ -4,17 +4,11 @@
 <!-- |    EDITING THIS FILE BY HAND IS NOT RECOMMENDED                                 | -->
 <!-- =================================================================================== -->
 <robot name="motoman_hc10">
-
     <!-- Properties -->
-    
     <material name="yaskawa_blue">
         <color rgba="0.12941 0.14902 0.74902 1" />
     </material>
-
     <!-- link list -->
-
-    <link name="world"/>
-
     <link name="base_link">
         <visual>
             <geometry>
@@ -27,12 +21,13 @@
                 <mesh filename="package://motoman_hc10_support/meshes/hc10/collision/base_link.stl" />
             </geometry>
         </collision>
-        <inertial>
+        
+<inertial>
             <mass value="0.1" />
-            <inertia ixx="0.002" iyy="0.002" izz="0.0015" ixy="0.0" ixz="0.0" iyz="0.0" />
+            <inertia ixx="0.03" iyy="0.03" izz="0.03" ixy="0.0" ixz="0.0" iyz="0.0" />
         </inertial>
-    </link>
 
+    </link>
     <link name="link_1_s">
         <visual>
             <geometry>
@@ -45,12 +40,13 @@
                 <mesh filename="package://motoman_hc10_support/meshes/hc10/collision/link_1_s.stl" />
             </geometry>
         </collision>
-        <inertial>
+        
+<inertial>
             <mass value="0.1" />
-            <inertia ixx="0.002" iyy="0.002" izz="0.0015" ixy="0.0" ixz="0.0" iyz="0.0" />
+            <inertia ixx="0.03" iyy="0.03" izz="0.03" ixy="0.0" ixz="0.0" iyz="0.0" />
         </inertial>
-    </link>
 
+    </link>
     <link name="link_2_l">
         <visual>
             <geometry>
@@ -63,12 +59,13 @@
                 <mesh filename="package://motoman_hc10_support/meshes/hc10/collision/link_2_l.stl" />
             </geometry>
         </collision>
-        <inertial>
+        
+<inertial>
             <mass value="0.1" />
-            <inertia ixx="0.002" iyy="0.002" izz="0.0015" ixy="0.0" ixz="0.0" iyz="0.0" />
+            <inertia ixx="0.03" iyy="0.03" izz="0.03" ixy="0.0" ixz="0.0" iyz="0.0" />
         </inertial>
-    </link>
 
+    </link>
     <link name="link_3_u">
         <visual>
             <geometry>
@@ -81,12 +78,13 @@
                 <mesh filename="package://motoman_hc10_support/meshes/hc10/collision/link_3_u.stl" />
             </geometry>
         </collision>
-        <inertial>
+        
+<inertial>
             <mass value="0.1" />
-            <inertia ixx="0.002" iyy="0.002" izz="0.0015" ixy="0.0" ixz="0.0" iyz="0.0" />
+            <inertia ixx="0.03" iyy="0.03" izz="0.03" ixy="0.0" ixz="0.0" iyz="0.0" />
         </inertial>
-    </link>
 
+    </link>
     <link name="link_4_r">
         <visual>
             <geometry>
@@ -99,12 +97,13 @@
                 <mesh filename="package://motoman_hc10_support/meshes/hc10/collision/link_4_r.stl" />
             </geometry>
         </collision>
-        <inertial>
+        
+<inertial>
             <mass value="0.1" />
-            <inertia ixx="0.002" iyy="0.002" izz="0.0015" ixy="0.0" ixz="0.0" iyz="0.0" />
+            <inertia ixx="0.03" iyy="0.03" izz="0.03" ixy="0.0" ixz="0.0" iyz="0.0" />
         </inertial>
-    </link>
 
+    </link>
     <link name="link_5_b">
         <visual>
             <geometry>
@@ -117,12 +116,13 @@
                 <mesh filename="package://motoman_hc10_support/meshes/hc10/collision/link_5_b.stl" />
             </geometry>
         </collision>
-        <inertial>
+        
+<inertial>
             <mass value="0.1" />
-            <inertia ixx="0.002" iyy="0.002" izz="0.0015" ixy="0.0" ixz="0.0" iyz="0.0" />
+            <inertia ixx="0.03" iyy="0.03" izz="0.03" ixy="0.0" ixz="0.0" iyz="0.0" />
         </inertial>
-    </link>
 
+    </link>
     <link name="link_6_t">
         <visual>
             <geometry>
@@ -135,21 +135,16 @@
                 <mesh filename="package://motoman_hc10_support/meshes/hc10/collision/link_6_t.stl" />
             </geometry>
         </collision>
-        <inertial>
+        
+<inertial>
             <mass value="0.1" />
-            <inertia ixx="0.002" iyy="0.002" izz="0.0015" ixy="0.0" ixz="0.0" iyz="0.0" />
+            <inertia ixx="0.03" iyy="0.03" izz="0.03" ixy="0.0" ixz="0.0" iyz="0.0" />
         </inertial>
+
     </link>
-
     <link name="tool0" />
-
     <!-- end of link list -->
-
     <!-- joint list -->
-    <joint name="fixed" type="fixed">
-        <parent link="world" />
-        <child link="base_link" />
-    </joint>
     <joint name="joint_1_s" type="revolute">
         <parent link="base_link" />
         <child link="link_1_s" />
@@ -197,20 +192,16 @@
         <parent link="link_6_t" />
         <child link="tool0" />
     </joint>
-
     <!-- end of joint list -->
-
     <!-- ROS base_link to Robot Manufacturer World Coordinates transform -->
     <link name="base" />
-
-    <!-- Fix robot base to world -->
     <joint name="base_link-base" type="fixed">
         <origin rpy="0 0 0" xyz="0 0 0.275" />
         <parent link="base_link" />
         <child link="base" />
     </joint>
     
-    <transmission name="trans_joint_1_s">
+<transmission name="trans_joint_1_s">
         <type>transmission_interface/SimpleTransmission</type>
         <joint name="joint_1_s">
             <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
@@ -220,7 +211,6 @@
             <mechanicalReduction>1</mechanicalReduction>
         </actuator>
     </transmission>
-
     <transmission name="trans_joint_2_l">
         <type>transmission_interface/SimpleTransmission</type>
         <joint name="joint_2_l">
@@ -231,7 +221,6 @@
             <mechanicalReduction>1</mechanicalReduction>
         </actuator>
     </transmission>
-
     <transmission name="trans_joint_3_u">
         <type>transmission_interface/SimpleTransmission</type>
         <joint name="joint_3_u">
@@ -242,7 +231,6 @@
             <mechanicalReduction>1</mechanicalReduction>
         </actuator>
     </transmission>
-
     <transmission name="trans_joint_4_r">
         <type>transmission_interface/SimpleTransmission</type>
         <joint name="joint_4_r">
@@ -253,7 +241,6 @@
             <mechanicalReduction>1</mechanicalReduction>
         </actuator>
     </transmission>
-
     <transmission name="trans_joint_5_b">
         <type>transmission_interface/SimpleTransmission</type>
         <joint name="joint_5_b">
@@ -264,7 +251,6 @@
             <mechanicalReduction>1</mechanicalReduction>
         </actuator>
     </transmission>
-
     <transmission name="trans_joint_6_t">
         <type>transmission_interface/SimpleTransmission</type>
         <joint name="joint_6_t">
@@ -275,32 +261,9 @@
             <mechanicalReduction>1</mechanicalReduction>
         </actuator>
     </transmission>
-
     <gazebo>
         <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
-            <robotNamespace>/motoman_hc10</robotNamespace>
-            <robotSimType>gazebo_ros_control/DefaultRobotHWSim</robotSimType>
+            <robotNamespace>/</robotNamespace>
         </plugin>
     </gazebo>
-    <!-- <gazebo reference="${prefix}base_link">
-        <turnGravityOff>true</turnGravityOff>
-    </gazebo>
-    <gazebo reference="${prefix}link_1_s">
-        <turnGravityOff>true</turnGravityOff>
-    </gazebo>
-    <gazebo reference="${prefix}link_2_l">
-        <turnGravityOff>true</turnGravityOff>
-    </gazebo>
-    <gazebo reference="${prefix}link_3_u">
-        <turnGravityOff>true</turnGravityOff>
-    </gazebo>
-    <gazebo reference="${prefix}link_4_r">
-        <turnGravityOff>true</turnGravityOff>
-    </gazebo>
-    <gazebo reference="${prefix}link_5_b">
-        <turnGravityOff>true</turnGravityOff>
-    </gazebo>
-    <gazebo reference="${prefix}link_6_t">
-        <turnGravityOff>true</turnGravityOff>
-    </gazebo> -->
 </robot>
