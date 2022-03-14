@@ -1,4 +1,5 @@
 from cProfile import label
+from multiprocessing.dummy import Array
 from numpy.linalg.linalg import det, transpose
 import pinocchio as pin
 from pinocchio.utils import *
@@ -16,7 +17,7 @@ import os
 import csv
 
 import rospy                            # For node ROS
-from std_msgs.msg import String
+from std_msgs.msg import Float64MultiArray
 
 def situationOT(M):
 
@@ -142,30 +143,37 @@ class trajectory:
 
     def talker_file(self):
 
-        """ Publish the position, velocity and acceleration in topic """
+        """ Publish the position, velocity and acceleration in topic for commande node"""
 
-        pub = rospy.Publisher('Topic_file_trajectory', String, queue_size=10) #Topic name to change
+        pub = rospy.Publisher('Topic_file_trajectory', Float64MultiArray, queue_size=10) #Topic name to change
         rospy.init_node('talker_file', anonymous=True)
         rate = rospy.Rate(10) # 10hz
 
         while not rospy.is_shutdown():
             TrajectoryX = "Trajectory for position %s" % rospy.get_time()
             rospy.loginfo(TrajectoryX)
-            pub.publish(self.X)
+            data_to_sendX = Float64MultiArray()
+            data_to_sendX.data = self.X
+            pub.publish(data_to_sendX)
 
             TrajectorydX = "Trajectory for velocity %s" % rospy.get_time()
             rospy.loginfo(TrajectorydX)
-            pub.publish(self.dotX)
+            data_to_sendDX = Float64MultiArray()
+            data_to_sendDX.data = self.dotX
+            pub.publish(data_to_sendDX)
 
             TrajectoryddX = "Trajectory for acceleration %s" % rospy.get_time()
             rospy.loginfo(TrajectoryddX)
-            pub.publish(self.ddX)
+            data_to_sendDDX = Float64MultiArray()
+            data_to_sendDDX.data = self.ddX
+            pub.publish(data_to_sendDDX)
 
             rate.sleep()
     
     def Trace(self):
         
         """ function to trace the values read in csv file"""
+        """ Marche plus"""
 
         plt.figure()
         plt.plot(self.t,self.X[:,0], 'r--',label="Trajectoire en position X")
