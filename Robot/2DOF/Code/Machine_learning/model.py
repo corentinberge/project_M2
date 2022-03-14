@@ -1,26 +1,70 @@
 # TODO : comment récupérer les données en sortie ?
-# TODO : plot train/test
-# TODO : renvoyer figure avec couples mesurés par Fadi + couple mesuré par moi
-# TODO : semaine pro 6 degrés de liberté
-# TODO : changer batch size (augmenter, diminuer, pour "lisser" la loss)
 
-# DONE : faire les tests et vérifier accuracy
-# DONE : séparer dataset 70 train/30 test
 # q = positions, dq = vitesses, ddq = accélérations, tau = torques
 
 import numpy as np
 import pandas as pd
 import tensorflow as tf
 import matplotlib.pyplot as plt
-# import seaborn as sns
 
 from tensorflow.keras import layers
 
-# from tensorflow import keras
-# from tensorflow.python.framework import dtypes
-
 # Make numpy values easier to read
 np.set_printoptions(precision=3, suppress=True)
+
+
+def get_data(filename, sep, skiprows, column_names):
+    return pd.read_csv(filename,
+                       sep=sep,
+                       skiprows=skiprows,
+                       names=column_names)
+
+
+def separate_data(dataset, repartition):
+    train_dataset = dataset.sample(frac=repartition, random_state=0)
+    return train_dataset, dataset.drop(train_dataset.index)
+
+
+def create_model(input_shape, learning_rate):
+    inputs = tf.keras.Input(shape=input_shape)
+
+    x = layers.Dense(64, activation=tf.nn.relu)(inputs)
+    x = layers.Dense(64, activation=tf.nn.relu)(x)
+    outputs = layers.Dense(2)(x)
+
+    model = tf.keras.Model(inputs=inputs, outputs=outputs)
+    model.summary()
+
+    model.compile(
+        loss='mean_absolute_error',
+        optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
+        metrics=["accuracy"]
+    )
+
+    return model
+
+
+def train_model(model, dataset, target, batch_size, epochs, plot_loss=False, plot_accuracy=False):
+    history = model.fit(dataset, target, batch_size=batch_size, epochs=epochs, validation_split=0.2)
+
+    if plot_loss:
+        plt.plot(history.epoch, history.history['loss'], label="Train")
+        plt.title("Model loss with batch size = {}".format(batch_size))
+        plt.xlabel("Epoch")
+        plt.ylabel("Loss")
+        plt.legend()
+        plt.show()
+
+    if plot_accuracy:
+        plt.plot(history.history['accuracy'], label="Train")
+        plt.plot(history.history['val_accuracy'], label="Val")
+        plt.title("Model accuracy with batch size = {}".format(batch_size))
+        plt.ylabel('Accuracy')
+        plt.xlabel('Epoch')
+        plt.legend()
+        plt.show()
+
+    return history
 
 
 if __name__ == '__main__':
