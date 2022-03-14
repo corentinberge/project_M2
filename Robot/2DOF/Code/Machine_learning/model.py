@@ -3,8 +3,8 @@
 # TODO : renvoyer figure avec couples mesurés par Fadi + couple mesuré par moi
 # TODO : semaine pro 6 degrés de liberté
 # TODO : changer batch size (augmenter, diminuer, pour "lisser" la loss)
-# TODO : faire les tests et vérifier accuracy
 
+# DONE : faire les tests et vérifier accuracy
 # DONE : séparer dataset 70 train/30 test
 # q = positions, dq = vitesses, ddq = accélérations, tau = torques
 
