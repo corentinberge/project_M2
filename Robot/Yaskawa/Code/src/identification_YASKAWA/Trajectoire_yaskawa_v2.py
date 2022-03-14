@@ -477,7 +477,10 @@ def Generate_text_data_file_Q_txt(Q_total):
     # this function take in input q dq ddq tau for all the joint 
     # and write all the data in a file .txt
 
-    f = open('/home/fadi/projet_cobot_master2/project_M2/Robot/2DOF/Code/Identification/2dof_data_LC.txt','w')
+    # f = open('/home/fadi/projet_cobot_master2/project_M2/Robot/2DOF/Code/Identification/2dof_data_LC.txt','w')
+    package_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) 
+    file_path = package_path + '/src/identification_YASKAWA/All_positiondata_file.txt'
+    f = open(file_path,'w')
 
     nbSamples=np.array(Q_total[0]).size
     q_pin=np.array(Q_total)
