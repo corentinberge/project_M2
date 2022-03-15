@@ -283,6 +283,15 @@ def trajectory_axe2axe_palier_de_vitesse():
     # # plot_Trajectory(Q_pallier_vitesse)
     plot_QVA_total(T,nbr_joint,Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint,'joint_')
     Generate_text_data_file_Q_txt(Q_total_All_Joint)
+
+    # tau_pin,w=Generate_Torque_Regression_matrix(nbr_joint,Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint)
+    # # phi_etoile_pin=estimation_with_qp_solver(w,tau_pin)
+
+    # tau_simu_gazebo,q_simu=read_torque_fromTxt()
+    # phi_etoile=estimation_with_qp_solver(w,tau_simu_gazebo)
+
+    # force=force_coulomb(phi_etoile[21],V_total_All_Joint,nbr_joint)
+    
     # # calculs of position velosity acceleration for all joint joint with variation 
     # # of the Vmax
     # Q_total,V_total,A_total=calcul_QVA_joints_total(nbr_joint,joint_i,Q_pallier_vitesse)
@@ -291,32 +300,32 @@ def trajectory_axe2axe_palier_de_vitesse():
     
 
     #Mode 2: generating trajectory with increasing velosity for all joint(one by one =>joint after joint)
+    '''
+    T,Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint=generation_palier_vitesse_calcul_allJoint(nbr_rep,prct,nbr_joint,q_start,q_end,Vmax,acc_max,Tech)
+    Generate_text_data_file_Q_txt(Q_total_All_Joint)
+    plot_QVA_total(T,nbr_joint,Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint,'joint_')
 
-    # T,Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint=generation_palier_vitesse_calcul_allJoint(nbr_rep,prct,nbr_joint,q_start,q_end,Vmax,acc_max,Tech)
-    # Generate_text_data_file_Q_txt(Q_total_All_Joint)
-    # plot_QVA_total(T,nbr_joint,Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint,'joint_')
-
-    # for i in range(Q_total_All_Joint[0].size):
-    #     robot.display(Q_total_All_Joint[:,i])
-    #     sleep(Tech)
+    for i in range(Q_total_All_Joint[0].size):
+        robot.display(Q_total_All_Joint[:,i])
+        sleep(Tech)
 
 
-    # tau,w=Generate_Torque_Regression_matrix(nbr_joint,Q_total,V_total,A_total)
-    # phi_etoile=estimation_with_qp_solver(w,tau)
-    # Generate_text_data_file(Q_total,V_total,A_total,tau)
+    tau,w=Generate_Torque_Regression_matrix(nbr_joint,Q_total,V_total,A_total)
+    phi_etoile=estimation_with_qp_solver(w,tau)
+    Generate_text_data_file(Q_total,V_total,A_total,tau)
             
-    # force=force_coulomb(phi_etoile[21],V_total,nbr_joint)
+    force=force_coulomb(phi_etoile[21],V_total,nbr_joint)
     
-    # plt.figure('force friction')
-    # for i in range(nbr_joint):
-    #     plt.plot(V_total[i],force[i],linewidth=1, label='fric'+str(i))
-    # plt.plot(samples,q,linewidth=1, label='fric'+str(i))
-    # plt.title('friction force')
-    # plt.xlabel('v')
-    # plt.ylabel('fric')
-    # plt.legend()
-    # plt.show() 
-     
+    plt.figure('force friction')
+    for i in range(nbr_joint):
+        plt.plot(V_total[i],force[i],linewidth=1, label='fric'+str(i))
+    plt.plot(samples,q,linewidth=1, label='fric'+str(i))
+    plt.title('friction force')
+    plt.xlabel('v')
+    plt.ylabel('fric')
+    plt.legend()
+    plt.show() 
+    '''
 def trajectory_mode_a2a_sync():
     #this function dont take an input data  but ask the user to enter his own data: 
     # it returns two mode of trajectorys:
@@ -499,6 +508,67 @@ def Generate_text_data_file_Q_txt(Q_total):
         f.write('\n')
         
     f.close()
+
+def read_torque_fromTxt():
+
+    package_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) 
+    file_path = package_path + '/src/identification_YASKAWA/data_torque.txt'
+    f = open(file_path,'w')
+    
+    tau1=[]
+    tau2=[]
+    tau3=[]
+    tau4=[]
+    tau5=[]
+    tau6=[]
+    q1=[]
+    q2=[]
+    q3=[]
+    q4=[]
+    q5=[]
+    q6=[]
+    q=[]
+    tau_simu_gazebo=[]
+    for line in f:
+
+        data_split = line.strip().split('\t')
+        
+        q1.append(data_split[0])
+        q2.append(data_split[1])
+        q3.append(data_split[2])
+        q4.append(data_split[3])
+        q5.append(data_split[4])
+        q6.append(data_split[5])
+        
+        tau1.append(data_split[6])
+        tau2.append(data_split[7])
+        tau3.append(data_split[8])
+        tau4.append(data_split[9])
+        tau5.append(data_split[10])
+        tau6.append(data_split[11])
+
+        tau_simu_gazebo.append(data_split[6])
+        tau_simu_gazebo.append(data_split[7])
+        tau_simu_gazebo.append(data_split[8])
+        tau_simu_gazebo.append(data_split[9])
+        tau_simu_gazebo.append(data_split[10])
+        tau_simu_gazebo.append(data_split[11])
+    
+    f.close()
+
+    q.append(q1)
+    q.append(q2)
+    q.append(q3)
+    q.append(q4)
+    q.append(q5)
+    q.append(q6)
+    q=np.array(q)
+    q=np.double(q)
+    
+    tau_simu_gazebo=np.array(tau_simu_gazebo)
+    tau_simu_gazebo=np.double(tau_simu_gazebo)
+
+    return tau_simu_gazebo,q
 
 def plot_QVA_total(time,nbr_joint,Q_total,V_total,A_total,name):
     # # this function take in input: position of the joint qi
