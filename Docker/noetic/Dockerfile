@@ -36,7 +36,7 @@ RUN apt-get update \
     # Update repositories
     && apt-get update \
     # Install desktop full noetic && pinocchio
-    && apt-get install -y ros-noetic-desktop-full \
+    && apt-get install -y ros-noetic-desktop \
     && source /opt/ros/noetic/setup.bash \
     # Install supplementary required packages
     # Install supplementary required packages
@@ -51,10 +51,12 @@ RUN apt-get update \
     ros-noetic-industrial-robot-client \
     ros-noetic-effort-controllers \
     ros-noetic-industrial-core \
-    python-catkin-tools \
     robotpkg-py38-pinocchio \
     robotpkg-py38-crocoddyl \
     robotpkg-py38-qt5-gepetto-viewer-corba \
+    python3-osrf-pycommon \
+    python3-catkin-pkg \
+    python3-catkin-tools \
     # Create new user
     && useradd -ms /bin/bash linux \
     && echo "linux:linux" | chpasswd \

@@ -73,5 +73,6 @@ catkin_install_python(
   scripts/talker.py
   scripts/listener.py
   scripts/test_odo.py
+  scripts/subscriber.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

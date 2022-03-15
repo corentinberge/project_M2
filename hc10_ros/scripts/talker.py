@@ -2,6 +2,7 @@
 # license removed for brevity
 
 import rospy
+from subscriber import *
 
 from std_msgs.msg import Float64
 
@@ -16,19 +17,21 @@ def talker():
 
     # Open file
     f = open("data_speed.txt", "r")
+    l = f.readline()
+    
 
-    # A = [0,0,0,0,0,0]
-
-    while not rospy.is_shutdown():
+    while not (rospy.is_shutdown() and len(l) != 0):
             
         # tmp = [f.readline() for i in range(1,50)]
         l = f.readline()
+        if(len(l) == 0):
+            break
 
         # If EOF => Loop on file
-        if len(l) == 0:
-            f.close()
-            f = open("data_speed.txt", "r")
-            l = f.readline()
+        # if len(l) == 0:
+        #     f.close()
+        #     f = open("data_speed.txt", "r")
+        #     l = f.readline()
 
         q_data = l.split()
         q_data_float = [float(i) for i in q_data]
@@ -45,3 +48,5 @@ if __name__ == '__main__':
         talker()
     except rospy.ROSInterruptException:
         pass
+    print('Done!')
+    exit(0)
