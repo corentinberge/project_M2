@@ -1,9 +1,11 @@
+from contextlib import suppress
 import math
 from sqlite3 import Time
 from tkinter import W
 from numpy import double, linalg, sign, size, sqrt
 from numpy.core.fromnumeric import shape
 from numpy.lib.nanfunctions import _nanmedian_small
+from sklearn.metrics import precision_score
 from pinocchio.visualize import GepettoVisualizer
 from pinocchio.robot_wrapper import RobotWrapper
 import matplotlib.pyplot as plt
@@ -15,6 +17,8 @@ from typing import Optional
 from typing import Optional
 import qpsolvers
 from time import sleep 
+
+np.set_printoptions(precision=150,suppress=True)
 
 package_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))) + '/Modeles/'
 urdf_path = package_path + 'motoman_hc10_support/urdf/hc10_FGV.urdf'
@@ -284,6 +288,11 @@ def trajectory_axe2axe_palier_de_vitesse_one_joint():
     # # plot_Trajectory(Q_pallier_vitesse)
     plot_QVA_total(T,nbr_joint,Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint,'joint_')
     Generate_text_data_file_Q_txt(Q_total_All_Joint)
+    tau,w=Generate_Torque_Regression_matrix(nbr_joint,Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint)
+    phi_etoile,tau_estime=estimation_with_qp_solver(w,tau)
+    print("shape of phi_etoile",phi_etoile.shape)
+
+    return Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint
     
 def axe2axe_palier_de_vitesse_all_joint_one_by_one():
     #Mode 2: generating trajectory with increasing velosity for all joint(one by one =>joint after joint)
@@ -346,28 +355,6 @@ def axe2axe_palier_de_vitesse_all_joint_one_by_one():
     A_total_All_Joint=np.concatenate([A_total_All_Joint,A_total_Joint], axis=1)
     Generate_text_data_file_Q_txt(Q_total_All_Joint)
     plot_QVA_total(T,nbr_joint,Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint,'joint_')
-
-    # for i in range(Q_total_All_Joint[0].size):
-    #     robot.display(Q_total_All_Joint[:,i])
-    #     sleep(Tech)
-
-
-    # tau,w=Generate_Torque_Regression_matrix(nbr_joint,Q_total,V_total,A_total)
-    # phi_etoile=estimation_with_qp_solver(w,tau)
-    # Generate_text_data_file(Q_total,V_total,A_total,tau)
-            
-    # force=force_coulomb(phi_etoile[21],V_total,nbr_joint)
-    
-    # plt.figure('force friction')
-    # for i in range(nbr_joint):
-    #     plt.plot(V_total[i],force[i],linewidth=1, label='fric'+str(i))
-    # plt.plot(samples,q,linewidth=1, label='fric'+str(i))
-    # plt.title('friction force')
-    # plt.xlabel('v')
-    # plt.ylabel('fric')
-    # plt.legend()
-    # plt.show() 
-    
 
 def trajectory_mode_a2a_sync():
     #this function dont take an input data  but ask the user to enter his own data: 
@@ -639,6 +626,8 @@ def read_tau_q_dq_ddq_fromTxt(nbr_of_joint):
     tau_simu_gazebo=np.double(tau_simu_gazebo)
 
     ddq=[[],[],[],[],[],[]]
+    dq_th=[[],[],[],[],[],[]]
+
     for joint_index in range(nbr_of_joint):
 
         for i in range(dq[0].size-1):
@@ -650,12 +639,25 @@ def read_tau_q_dq_ddq_fromTxt(nbr_of_joint):
         ddq[joint_index].append(0)
    
     ddq=np.array(ddq)
+
+    for joint_index in range(nbr_of_joint):
+
+        for i in range(q[0].size-1):
+            j=i+1
+            dv=(q[joint_index][j]-q[joint_index][i])/Tech
+            # print('da=\t','dv',(v[j]-v[i]),'/dt',(time[j]-time[i]),'=',da)
+            dq_th[joint_index].append(dv)
+        
+        dq_th[joint_index].append(dv)
+    
+    dq_th=np.array(dq_th)
+    
     print("shape of q",q.shape)
-    print("shape of dq",dq.shape)
+    print("shape of dq",dq_th.shape)
     print("shape of ddq",ddq.shape)
     print("shape of tau_simu_gazebo",tau_simu_gazebo.shape)
 
-    return tau_simu_gazebo,q,dq,ddq
+    return tau_simu_gazebo,q,dq,ddq,dq_th
 
 def plot_QVA_total(time,nbr_joint,Q_total,V_total,A_total,name):
     # # this function take in input: position of the joint qi
@@ -947,7 +949,7 @@ def trajectory(q_start,q_end,Vmax,acc_max,Tech):
         
         t=t+Tech
         time.append(t)
-        
+
     #calculation of the velocity 
     for i in range(np.array(time).size-1):
         j=i+1
@@ -1206,7 +1208,7 @@ def Generate_Torque_Regression_matrix(nbr_joint,Q_total,V_total,A_total):
     print ('shape of tau in the function generate output',tau.shape)
 
     # # ========== Step 4 - Create IDM with pinocchio (regression matrix)
-    w = []  # Regression vector
+    w = [] # Regression vector
         ## w pour I/O generer par pinocchio
     for i in range(nbSamples):
         w.extend(pin.computeJointTorqueRegressor(model, data, q[:, i], dq[:, i], ddq[:, i]))
@@ -1215,7 +1217,7 @@ def Generate_Torque_Regression_matrix(nbr_joint,Q_total,V_total,A_total):
     # to add the friction parameters we have to add to the regression matrix a velosity vector
     #  for each joint so we add 2 new vector for each joint in the regression matrix do we will identify 
     # two new friction parameter per joint
-
+    W_test=[]
     #joint 0  
     Z=np.zeros((5*nbSamples,1))
     # print('shape of Z',Z.shape)
@@ -1228,7 +1230,9 @@ def Generate_Torque_Regression_matrix(nbr_joint,Q_total,V_total,A_total):
     dq_sign_pin=np.sign(dq_stack_pin)#adding sing(dq)
     w=np.concatenate([w,dq_stack_pin], axis=1)# adding vector to the regressor
     w=np.concatenate([w,dq_sign_pin], axis=1)# adding vector to the regressor
-
+   
+   
+    
     #joint 1  
     Z1=np.zeros((1*nbSamples,1))
     Z2=np.zeros((4*nbSamples,1))
@@ -1302,11 +1306,11 @@ def Generate_Torque_Regression_matrix(nbr_joint,Q_total,V_total,A_total):
     w=np.concatenate([w,dq_stack_pin], axis=1)# adding vector to the regressor
     w=np.concatenate([w,dq_sign_pin], axis=1)# adding vector to the regressor
 
-
-
+    
+    
     #Display of shapes
-    print('Shape of W_pin:\t',W.shape)
-
+    print('Shape of W_test:\t',np.array(W_test).shape)
+    print(W_test)
 
     return tau,w
 
@@ -1348,8 +1352,8 @@ def estimation_with_qp_solver(w,tau):
     phi_etoile=qpsolvers.solve_qp(
             P,
             q,
-            G,#G Linear inequality matrix.
-            h,#Linear inequality vector.
+            G=None,#G Linear inequality matrix.
+            h=None,#Linear inequality vector.
             A=None,
             b=None,
             lb=None,
@@ -1361,7 +1365,7 @@ def estimation_with_qp_solver(w,tau):
 
     phi_etoile=np.array(phi_etoile)
     print("shape of phi_etoile",phi_etoile.shape)
-    phi_etoile=float(phi_etoile)
+    # phi_etoile=float(phi_etoile)
 
     tau_estime=np.dot(w,phi_etoile)
 
@@ -1406,6 +1410,7 @@ def nearestPD(A):
     """
 
     B = (A + A.T) / 2
+    B=np.matrix(B,dtype='float')
     _, s, V = np.linalg.svd(B)#provides another way to factorize a matrix, into singular vectors and singular values
 
     H = np.dot(V.T, np.dot(np.diag(s), V))
@@ -1595,25 +1600,36 @@ def Bang_Bang_acceleration_profile(q_start,q_end,v_max,a_max,Tech):
 def estimated_parameters_from_data_file(nbr_joint,Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint,tau_simu_gazebo):
 
 
-    tau_simu_gazebo,w=Generate_Torque_Regression_matrix(nbr_joint,Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint)
+    tau_pin,w=Generate_Torque_Regression_matrix(nbr_joint,Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint)
     # phi_etoile_pin=estimation_with_qp_solver(w,tau_pin)
-
-    phi_etoile,tau_estime=estimation_with_qp_solver(w,tau_simu_gazebo)
+    phi_etoile,tau_estime=estimation_with_qp_solver(w,tau_pin)
     
+    
+    # plt.figure('force friction')
+    # for i in range(nbr_joint):
+    #     plt.plot(V_total[i],force[i],linewidth=1, label='fric'+str(i))
+    # plt.plot(samples,q,linewidth=1, label='fric'+str(i))
+    # plt.title('friction force')
+    # plt.xlabel('v')
+    # plt.ylabel('fric')
+    # plt.legend()
+    # plt.show() 
     force=force_coulomb(phi_etoile[21],V_total_All_Joint,nbr_joint)
-      
     
 if __name__ == "__main__":
 
-    # nbr_of_joint=6    
-    trajectory_axe2axe_palier_de_vitesse_one_joint()
+    
+    # # trajectory_axe2axe_palier_de_vitesse_one_joint()
+    
     # axe2axe_palier_de_vitesse_all_joint_one_by_one()
-
-    # tau,Q_total,V_total,A_total=read_tau_q_dq_ddq_fromTxt(nbr_of_joint)
-    # plot_QVA_total([],nbr_of_joint,Q_total,V_total,A_total,"_joint_")
-    # estimated_parameters_from_data_file(nbr_of_joint,Q_total,V_total,A_total,tau)
-    
-    
+    # Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint=trajectory_axe2axe_palier_de_vitesse_one_joint()
+    nbr_of_joint=6   
+    tau,Q_total,V_total,A_total,dq_th=read_tau_q_dq_ddq_fromTxt(nbr_of_joint)
+    plot_QVA_total([],nbr_of_joint,Q_total,V_total,A_total,"_joint_")
+    # for i in range(Q_total[0].size):
+    #     robot.display(Q_total[:,i])
+    #     sleep(Tech)
+    estimated_parameters_from_data_file(nbr_of_joint,Q_total,V_total,A_total,tau)
 
 
 
