@@ -1,5 +1,6 @@
 import math
 from sqlite3 import Time
+from tkinter import W
 from numpy import double, linalg, sign, size, sqrt
 from numpy.core.fromnumeric import shape
 from numpy.lib.nanfunctions import _nanmedian_small
@@ -282,21 +283,7 @@ def trajectory_axe2axe_palier_de_vitesse_one_joint():
 
     # # plot_Trajectory(Q_pallier_vitesse)
     plot_QVA_total(T,nbr_joint,Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint,'joint_')
-    # Generate_text_data_file_Q_txt(Q_total_All_Joint)
-
-    # tau_pin,w=Generate_Torque_Regression_matrix(nbr_joint,Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint)
-    # # phi_etoile_pin=estimation_with_qp_solver(w,tau_pin)
-
-    # tau_simu_gazebo,q_simu=read_torque_fromTxt()
-    # phi_etoile=estimation_with_qp_solver(w,tau_simu_gazebo)
-
-    # force=force_coulomb(phi_etoile[21],V_total_All_Joint,nbr_joint)
-    
-    # # calculs of position velosity acceleration for all joint joint with variation 
-    # # of the Vmax
-    # Q_total,V_total,A_total=calcul_QVA_joints_total(nbr_joint,joint_i,Q_pallier_vitesse)
-    # Q_total=np.array(Q_total) 
-    # plot_QVA_total(Q_pallier_vitesse[1],nbr_joint,Q_total,V_total,A_total,'max_')
+    Generate_text_data_file_Q_txt(Q_total_All_Joint)
     
 def axe2axe_palier_de_vitesse_all_joint_one_by_one():
     #Mode 2: generating trajectory with increasing velosity for all joint(one by one =>joint after joint)
@@ -544,7 +531,7 @@ def Generate_text_data_file_Q_txt(Q_total):
 
     # f = open('/home/fadi/projet_cobot_master2/project_M2/Robot/2DOF/Code/Identification/2dof_data_LC.txt','w')
     package_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) 
-    file_path = package_path + '/src/identification_YASKAWA/dataForAllJoint_file.txt'
+    file_path = package_path + '/src/identification_YASKAWA/All_positiondata_file.txt'
     f = open(file_path,'w')
 
     nbSamples=np.array(Q_total[0]).size
@@ -565,11 +552,11 @@ def Generate_text_data_file_Q_txt(Q_total):
         
     f.close()
 
-def read_torque_fromTxt():
+def read_tau_q_dq_ddq_fromTxt(nbr_of_joint):
 
     package_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) 
-    file_path = package_path + '/src/identification_YASKAWA/data_torque.txt'
-    f = open(file_path,'w')
+    file_path = package_path + '/src/identification_YASKAWA/data_torque _q_dq.txt'
+    f = open(file_path,'r')
     
     tau1=[]
     tau2=[]
@@ -577,6 +564,7 @@ def read_torque_fromTxt():
     tau4=[]
     tau5=[]
     tau6=[]
+    
     q1=[]
     q2=[]
     q3=[]
@@ -584,7 +572,17 @@ def read_torque_fromTxt():
     q5=[]
     q6=[]
     q=[]
+    
+    dq1=[]
+    dq2=[]
+    dq3=[]
+    dq4=[]
+    dq5=[]
+    dq6=[]
+    dq=[]
+    
     tau_simu_gazebo=[]
+
     for line in f:
 
         data_split = line.strip().split('\t')
@@ -595,23 +593,30 @@ def read_torque_fromTxt():
         q4.append(data_split[3])
         q5.append(data_split[4])
         q6.append(data_split[5])
-        
-        tau1.append(data_split[6])
-        tau2.append(data_split[7])
-        tau3.append(data_split[8])
-        tau4.append(data_split[9])
-        tau5.append(data_split[10])
-        tau6.append(data_split[11])
 
-        tau_simu_gazebo.append(data_split[6])
-        tau_simu_gazebo.append(data_split[7])
-        tau_simu_gazebo.append(data_split[8])
-        tau_simu_gazebo.append(data_split[9])
-        tau_simu_gazebo.append(data_split[10])
-        tau_simu_gazebo.append(data_split[11])
+        dq1.append(data_split[6])
+        dq2.append(data_split[7])
+        dq3.append(data_split[8])
+        dq4.append(data_split[9])
+        dq5.append(data_split[10])
+        dq6.append(data_split[11])
+        
+        tau1.append(data_split[12])
+        tau2.append(data_split[13])
+        tau3.append(data_split[14])
+        tau4.append(data_split[15])
+        tau5.append(data_split[16])
+        tau6.append(data_split[17])
+
+        tau_simu_gazebo.append(data_split[12])
+        tau_simu_gazebo.append(data_split[13])
+        tau_simu_gazebo.append(data_split[14])
+        tau_simu_gazebo.append(data_split[15])
+        tau_simu_gazebo.append(data_split[16])
+        tau_simu_gazebo.append(data_split[17])
     
     f.close()
-
+    
     q.append(q1)
     q.append(q2)
     q.append(q3)
@@ -621,10 +626,36 @@ def read_torque_fromTxt():
     q=np.array(q)
     q=np.double(q)
     
+    dq.append(dq1)
+    dq.append(dq2)
+    dq.append(dq3)
+    dq.append(dq4)
+    dq.append(dq5)
+    dq.append(dq6)
+    dq=np.array(dq)
+    dq=np.double(dq)
+
     tau_simu_gazebo=np.array(tau_simu_gazebo)
     tau_simu_gazebo=np.double(tau_simu_gazebo)
 
-    return tau_simu_gazebo,q
+    ddq=[[],[],[],[],[],[]]
+    for joint_index in range(nbr_of_joint):
+
+        for i in range(dq[0].size-1):
+            j=i+1
+            da=(dq[joint_index][j]-dq[joint_index][i])/Tech
+            # print('da=\t','dv',(v[j]-v[i]),'/dt',(time[j]-time[i]),'=',da)
+            ddq[joint_index].append(da)
+        
+        ddq[joint_index].append(0)
+   
+    ddq=np.array(ddq)
+    print("shape of q",q.shape)
+    print("shape of dq",dq.shape)
+    print("shape of ddq",ddq.shape)
+    print("shape of tau_simu_gazebo",tau_simu_gazebo.shape)
+
+    return tau_simu_gazebo,q,dq,ddq
 
 def plot_QVA_total(time,nbr_joint,Q_total,V_total,A_total,name):
     # # this function take in input: position of the joint qi
@@ -656,14 +687,14 @@ def plot_QVA_total(time,nbr_joint,Q_total,V_total,A_total,name):
     plt.legend()
     plt.show() 
 
-    # plt.figure('A_total acceleration')
-    # for i in range(nbr_joint):
-    #     plt.plot(time,A_total[i],linewidth=1, label='acc'+str(name)+str(i))
-    # plt.title('acc acceleration')
-    # plt.xlabel('t')
-    # plt.ylabel('acc')
-    # plt.legend()
-    # plt.show() 
+    plt.figure('A_total acceleration')
+    for i in range(nbr_joint):
+        plt.plot(samples,A_total[i],linewidth=1, label='acc'+str(name)+str(i))
+    plt.title('acc acceleration')
+    plt.xlabel('t')
+    plt.ylabel('acc')
+    plt.legend()
+    plt.show() 
 
 def calcul_QVA_joints_total(nbr_joint,joint_i,Q_plot,appending_vect):
     # this function take in input : number of joints 
@@ -1181,20 +1212,101 @@ def Generate_Torque_Regression_matrix(nbr_joint,Q_total,V_total,A_total):
         w.extend(pin.computeJointTorqueRegressor(model, data, q[:, i], dq[:, i], ddq[:, i]))
     w=np.array(w)
 
-    ## modification of W so it contain dq et singe(dq) for the friction param Fv et Fs
-    dq_stack=[]
-    for i in range(nbr_joint):
-        dq_stack.extend(dq[i])
-    
-    dq_stack=np.array([dq_stack])
-    dq_stack=dq_stack.T
+    # to add the friction parameters we have to add to the regression matrix a velosity vector
+    #  for each joint so we add 2 new vector for each joint in the regression matrix do we will identify 
+    # two new friction parameter per joint
 
-    # calculs of  signe(dq)
-    dq_sign=np.sign(dq_stack)
+    #joint 0  
+    Z=np.zeros((5*nbSamples,1))
+    # print('shape of Z',Z.shape)
+    dq_stack_pin=[]
+    dq_stack_pin_augmente=[]
+    dq_stack_pin.extend(dq[0])#adding joint 1 velosity vector
+    dq_stack_pin.extend(Z)# panding eith zeros
+    dq_stack_pin=np.array([dq_stack_pin])
+    dq_stack_pin=dq_stack_pin.T
+    dq_sign_pin=np.sign(dq_stack_pin)#adding sing(dq)
+    w=np.concatenate([w,dq_stack_pin], axis=1)# adding vector to the regressor
+    w=np.concatenate([w,dq_sign_pin], axis=1)# adding vector to the regressor
 
-    # modification of w
-    w=np.concatenate([w,dq_stack], axis=1)
-    w=np.concatenate([w,dq_sign], axis=1)
+    #joint 1  
+    Z1=np.zeros((1*nbSamples,1))
+    Z2=np.zeros((4*nbSamples,1))
+    # print('shape of Z',Z.shape)
+    dq_stack_pin=[]
+    dq_stack_pin_augmente=[]
+    dq_stack_pin.extend(Z1)# adding zeros
+    dq_stack_pin.extend(dq[1])#adding joint 1 velosity vector
+    dq_stack_pin.extend(Z2)# panding with zeros
+    dq_stack_pin=np.array([dq_stack_pin])
+    dq_stack_pin=dq_stack_pin.T
+    dq_sign_pin=np.sign(dq_stack_pin)#adding sing(dq)
+    w=np.concatenate([w,dq_stack_pin], axis=1)# adding vector to the regressor
+    w=np.concatenate([w,dq_sign_pin], axis=1)# adding vector to the regressor
+
+    #joint 2  
+    Z1=np.zeros((2*nbSamples,1))
+    Z2=np.zeros((3*nbSamples,1))
+    # print('shape of Z',Z.shape)
+    dq_stack_pin=[]
+    dq_stack_pin_augmente=[]
+    dq_stack_pin.extend(Z1)# adding zeros
+    dq_stack_pin.extend(dq[2])#adding joint 1 velosity vector
+    dq_stack_pin.extend(Z2)# panding with zeros
+    dq_stack_pin=np.array([dq_stack_pin])
+    dq_stack_pin=dq_stack_pin.T
+    dq_sign_pin=np.sign(dq_stack_pin)#adding sing(dq)
+    w=np.concatenate([w,dq_stack_pin], axis=1)# adding vector to the regressor
+    w=np.concatenate([w,dq_sign_pin], axis=1)# adding vector to the regressor
+
+    #joint 3  
+    Z1=np.zeros((3*nbSamples,1))
+    Z2=np.zeros((2*nbSamples,1))
+    # print('shape of Z',Z.shape)
+    dq_stack_pin=[]
+    dq_stack_pin_augmente=[]
+    dq_stack_pin.extend(Z1)# adding zeros
+    dq_stack_pin.extend(dq[3])#adding joint 1 velosity vector
+    dq_stack_pin.extend(Z2)# panding with zeros
+    dq_stack_pin=np.array([dq_stack_pin])
+    dq_stack_pin=dq_stack_pin.T
+    dq_sign_pin=np.sign(dq_stack_pin)#adding sing(dq)
+    w=np.concatenate([w,dq_stack_pin], axis=1)# adding vector to the regressor
+    w=np.concatenate([w,dq_sign_pin], axis=1)# adding vector to the regressor
+
+    #joint 4
+    Z1=np.zeros((4*nbSamples,1))
+    Z2=np.zeros((1*nbSamples,1))
+    # print('shape of Z',Z.shape)
+    dq_stack_pin=[]
+    dq_stack_pin_augmente=[]
+    dq_stack_pin.extend(Z1)# adding zeros
+    dq_stack_pin.extend(dq[4])#adding joint 1 velosity vector
+    dq_stack_pin.extend(Z2)# panding with zeros
+    dq_stack_pin=np.array([dq_stack_pin])
+    dq_stack_pin=dq_stack_pin.T
+    dq_sign_pin=np.sign(dq_stack_pin)#adding sing(dq)
+    w=np.concatenate([w,dq_stack_pin], axis=1)# adding vector to the regressor
+    W=np.concatenate([w,dq_sign_pin], axis=1)# adding vector to the regressor
+
+    #joint 5
+    Z1=np.zeros((5*nbSamples,1))
+    # print('shape of Z',Z.shape)
+    dq_stack_pin=[]
+    dq_stack_pin_augmente=[]
+    dq_stack_pin.extend(Z1)# adding zeros
+    dq_stack_pin.extend(dq[5])#adding joint 1 velosity vector
+    dq_stack_pin=np.array([dq_stack_pin])
+    dq_stack_pin=dq_stack_pin.T
+    dq_sign_pin=np.sign(dq_stack_pin)#adding sing(dq)
+    w=np.concatenate([w,dq_stack_pin], axis=1)# adding vector to the regressor
+    w=np.concatenate([w,dq_sign_pin], axis=1)# adding vector to the regressor
+
+
+
+    #Display of shapes
+    print('Shape of W_pin:\t',W.shape)
+
 
     return tau,w
 
@@ -1247,7 +1359,12 @@ def estimation_with_qp_solver(w,tau):
             sym_proj=True
             )
 
+    phi_etoile=np.array(phi_etoile)
+    print("shape of phi_etoile",phi_etoile.shape)
+    phi_etoile=float(phi_etoile)
+
     tau_estime=np.dot(w,phi_etoile)
+
     samples = []
     for i in range(np.array(tau).size):
         samples.append(i)
@@ -1272,7 +1389,7 @@ def estimation_with_qp_solver(w,tau):
 
 
 
-    return phi_etoile
+    return phi_etoile,tau_estime
 
 def nearestPD(A):
     """Find the nearest positive-definite matrix to input
@@ -1319,7 +1436,6 @@ def nearestPD(A):
 
     return A3
 
-
 def isPD(B):
     """Returns true when input is positive-definite, via Cholesky"""
     try:
@@ -1354,7 +1470,6 @@ def force_coulomb(FS,V_total,nbr_joint):
     
     return(Force)
 
-
 def generateQuinticPolyTraj(Jc0,Jcf,model,param):
 
     
@@ -1380,7 +1495,6 @@ def generateQuinticPolyTraj(Jc0,Jcf,model,param):
         dq[i]=    a[1]   +2*a[2]*t  +3*a[3]*t**2 +4*a[4]*t**3    +5*a[5]*t**4
         ddq[i]=          +2*a[2]    +6*a[3]*t    +12*a[4]*t**2    +20*a[5]*t**3       
     return q, dq ,ddq
-
 
 def generateQuinticPolyTraj_version_GF(Jc0,Jcf,vmax,Tech):
 
@@ -1477,23 +1591,32 @@ def Bang_Bang_acceleration_profile(q_start,q_end,v_max,a_max,Tech):
         t=t+Tech
 
     return q,dq,ddq
- 
-# trajectory_axe2axe_palier_de_vitesse_one_joint()
-axe2axe_palier_de_vitesse_all_joint_one_by_one()
-# sampel=[]
 
-# q,dq,ddq,T=generateQuinticPolyTraj_version_GF([-100,0,0],[-200,0,0],100,Tech)
+def estimated_parameters_from_data_file(nbr_joint,Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint,tau_simu_gazebo):
 
-# for i in range(np.array(q).size):
-#     sampel.append(i)
 
-# plt.figure('V velocity theoratical')
-# plt.plot(sampel,q,linewidth=1, label='V'+str(i))
-# plt.title('test 1 2 3 4 5 ')
-# plt.xlabel('t')
-# plt.ylabel('V')
-# plt.legend()
-# plt.show()
+    tau_simu_gazebo,w=Generate_Torque_Regression_matrix(nbr_joint,Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint)
+    # phi_etoile_pin=estimation_with_qp_solver(w,tau_pin)
+
+    phi_etoile,tau_estime=estimation_with_qp_solver(w,tau_simu_gazebo)
+    
+    force=force_coulomb(phi_etoile[21],V_total_All_Joint,nbr_joint)
+      
+    
+if __name__ == "__main__":
+
+    # nbr_of_joint=6    
+    trajectory_axe2axe_palier_de_vitesse_one_joint()
+    # axe2axe_palier_de_vitesse_all_joint_one_by_one()
+
+    # tau,Q_total,V_total,A_total=read_tau_q_dq_ddq_fromTxt(nbr_of_joint)
+    # plot_QVA_total([],nbr_of_joint,Q_total,V_total,A_total,"_joint_")
+    # estimated_parameters_from_data_file(nbr_of_joint,Q_total,V_total,A_total,tau)
+    
+    
+
+
+
 '''
 # initialisation
 q_start=[]
