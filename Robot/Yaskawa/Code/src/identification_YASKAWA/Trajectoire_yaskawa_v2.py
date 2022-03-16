@@ -1543,7 +1543,7 @@ def generateQuinticPolyTraj_version_GF(Jc0,Jcf,vmax,Tech):
 
     # print('T shape',np.array(T).shape)
     # print('Q shape',np.array(q).shape)
-
+    vmax=0.6*vmax
     
     tf=15*np.abs(Jcf[0]-Jc0[0])/(8*vmax)
     NbSample_interpolate=int (tf/Tech) +1
