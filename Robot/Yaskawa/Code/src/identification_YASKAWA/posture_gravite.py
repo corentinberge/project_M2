@@ -221,7 +221,52 @@ def Generate_posture_static():
 
     return Q_total
 
-if __name__=="__main__":
+def Generate_inertial_parameter():
+    names = []
+    for i in range(1, NJOINT):
+        names += ['m'+str(i), 'mx'+str(i), 'my'+str(i), 'mz'+str(i)]
+    print(names)
+    phi = []
+    for i in range(1, NJOINT):
+        phi.extend(model.inertias[i].toDynamicParameters())
+
+    #print('shape of phi:\t', np.array(phi).shape)   
+    return names,phi
+
+def Generate_Regression_vector(Q):
+    nbSamples = Q.shape[1]
+    #print(nbSamples)
+    W_reg=[]
+    dq_pin = np.zeros((6, 1))
+    ddq_pin = np.zeros((6, 1))
+
+    for i in range(nbSamples):
+        W_reg.extend(pin.computeJointTorqueRegressor(model, data, Q[:, i], dq_pin[:, 0], ddq_pin[:, 0]))
+    
+    W_reg=np.array(W_reg)
+    print('shape of Wreg',np.array(W_reg).shape)
+    return W_reg
+
+def Redimention_Regression_vector(W_reg_Pin):
+    newR = np.delete(W_reg_Pin, np.s_[54:60], axis = 1)
+    newR = np.delete(newR, np.s_[44:50], axis = 1)
+    newR = np.delete(newR, np.s_[34:40], axis = 1)
+    newR = np.delete(newR, np.s_[24:30], axis = 1)
+    newR = np.delete(newR, np.s_[14:20], axis = 1)
+    newR = np.delete(newR, np.s_[4:10], axis = 1)
+    return newR
+
+def Generate_text(neW_reg):
+    f = open( 'New_regresseur.txt','w')
+    for i in range(348):
+        for j in range(24):
+            text = str(neW_reg[i,j])
+            f.writelines(text)
+            f.write(', ')
+        f.write('\n')
+    f.close()
+
+if __name__=="__main__": #POur fadi
     Q_pos=[]
     Q_pos=Generate_posture_static()
     #print('shape of Q',np.array(Q).shape)
@@ -240,4 +285,5 @@ if __name__=="__main__":
     print('shape of neW_reg',np.array(neW_reg).shape)
     print(neW_reg)
     Generate_text(neW_reg)
+    print(names)
     
