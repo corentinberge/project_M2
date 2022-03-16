@@ -1,7 +1,3 @@
-# TODO : comment récupérer les données en sortie ?
-
-# q = positions, dq = vitesses, ddq = accélérations, tau = torques
-
 import numpy as np
 import pandas as pd
 import tensorflow as tf
@@ -12,59 +8,105 @@ from tensorflow.keras import layers
 # Make numpy values easier to read
 np.set_printoptions(precision=3, suppress=True)
 
-
-def get_data(filename, sep, skiprows, column_names):
-    return pd.read_csv(filename,
-                       sep=sep,
-                       skiprows=skiprows,
-                       names=column_names)
+# q = positions, dq = vitesses, ddq = accélérations, tau = torques
 
 
-def separate_data(dataset, repartition):
-    train_dataset = dataset.sample(frac=repartition, random_state=0)
-    return train_dataset, dataset.drop(train_dataset.index)
+class NeuralNetwork(tf.keras.Model):
+    def __init__(self):
+        super(NeuralNetwork, self).__init__()
+        self.dense1 = layers.Dense(64, activation=tf.nn.relu)
+        self.dense2 = layers.Dense(64, activation=tf.nn.relu)
+        self.out = layers.Dense(2)
 
+    def get_data(self, filename, sep, skiprows, column_names):
+        """
+        Function that allows the user to get data from a csv of txt file
 
-def create_model(input_shape, learning_rate):
-    inputs = tf.keras.Input(shape=input_shape)
+        :param filename: name of the file from which to get data
+        :param sep: character that separates values
+        :param skiprows: how many rows to skip
+        :param column_names: names of each column
+        :return: DataFrame with all the data from the file
+        """
+        return pd.read_csv(filename,
+                           sep=sep,
+                           skiprows=skiprows,
+                           names=column_names)
 
-    x = layers.Dense(64, activation=tf.nn.relu)(inputs)
-    x = layers.Dense(64, activation=tf.nn.relu)(x)
-    outputs = layers.Dense(2)(x)
+    def separate_data(self, dataset, repartition):
+        """
+        Function that separates data between training and test
 
-    model = tf.keras.Model(inputs=inputs, outputs=outputs)
-    model.summary()
+        :param dataset: dataset to separate
+        :param repartition: how many data to keep in learning (in %)
+        :return: a couple that contains 2 dataset : one for the training and one for the validation
+        """
+        train_dataset = dataset.sample(frac=repartition, random_state=0)
+        return train_dataset, dataset.drop(train_dataset.index)
 
-    model.compile(
-        loss='mean_absolute_error',
-        optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
-        metrics=["accuracy"]
-    )
+    def create_model(self, input_shape, learning_rate):
+        """
+        Function that creates the model.
+        It is composed by :
+            - 1 input layer
+            - 2 hidden layers
+            - 1 output layer
 
-    return model
+        :param input_shape: shape of the input
+        :param learning_rate: learning rate used by the optimizer
+        :return: the model created
+        """
+        inputs = tf.keras.Input(shape=input_shape)
 
+        x = self.dense1(inputs)
+        x = self.dense2(x)
+        outputs = self.out(x)
 
-def train_model(model, dataset, target, batch_size, epochs, plot_loss=False, plot_accuracy=False):
-    history = model.fit(dataset, target, batch_size=batch_size, epochs=epochs, validation_split=0.2)
+        model = tf.keras.Model(inputs=inputs, outputs=outputs)
+        model.summary()
 
-    if plot_loss:
-        plt.plot(history.epoch, history.history['loss'], label="Train")
-        plt.title("Model loss with batch size = {}".format(batch_size))
-        plt.xlabel("Epoch")
-        plt.ylabel("Loss")
-        plt.legend()
-        plt.show()
+        model.compile(
+            loss='mean_absolute_error',  # loss function to minimize
+            optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
+            metrics=["accuracy"]  # metrics to monitor
+        )
 
-    if plot_accuracy:
-        plt.plot(history.history['accuracy'], label="Train")
-        plt.plot(history.history['val_accuracy'], label="Val")
-        plt.title("Model accuracy with batch size = {}".format(batch_size))
-        plt.ylabel('Accuracy')
-        plt.xlabel('Epoch')
-        plt.legend()
-        plt.show()
+        return model
 
-    return history
+    def train_model(self, model, dataset, target, batch_size, epochs, plot_loss=False, plot_accuracy=False):
+        """
+        Function that trains the model with the following parameters
+
+        :param model: model to train
+        :param dataset: dataset used to train the model
+        :param target: values that the model have to found
+        :param batch_size: batch size
+        :param epochs: number of epochs
+        :param plot_loss: (False by default) if True, show the convergence of the loss
+        :param plot_accuracy: (False by default) if True, show the evolution of the accuracy
+        :return: the model trained
+        """
+        history = model.fit(dataset, target, batch_size=batch_size, epochs=epochs, validation_split=0.2)
+
+        if plot_loss:
+            plt.plot(history.epoch, history.history['loss'], label="Train")
+            plt.plot(history.epoch, history.history['val_loss'], label="Val")
+            plt.title("Model loss with batch size = {}".format(batch_size))
+            plt.xlabel("Epoch")
+            plt.ylabel("Loss")
+            plt.legend()
+            plt.show()
+
+        if plot_accuracy:
+            plt.plot(history.history['accuracy'], label="Train")
+            plt.plot(history.history['val_accuracy'], label="Val")
+            plt.title("Model accuracy with batch size = {}".format(batch_size))
+            plt.ylabel('Accuracy')
+            plt.xlabel('Epoch')
+            plt.legend()
+            plt.show()
+
+        return history
 
 
 if __name__ == '__main__':
