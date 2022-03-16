@@ -1214,10 +1214,12 @@ def Generate_Torque_Regression_matrix(nbr_joint,Q_total,V_total,A_total):
         w.extend(pin.computeJointTorqueRegressor(model, data, q[:, i], dq[:, i], ddq[:, i]))
     w=np.array(w)
 
+    print('shape of w********************************************************',w.shape)
+
     # to add the friction parameters we have to add to the regression matrix a velosity vector
     #  for each joint so we add 2 new vector for each joint in the regression matrix do we will identify 
     # two new friction parameter per joint
-    W_test=[]
+    
     #joint 0  
     Z=np.zeros((5*nbSamples,1))
     # print('shape of Z',Z.shape)
@@ -1231,7 +1233,7 @@ def Generate_Torque_Regression_matrix(nbr_joint,Q_total,V_total,A_total):
     w=np.concatenate([w,dq_stack_pin], axis=1)# adding vector to the regressor
     w=np.concatenate([w,dq_sign_pin], axis=1)# adding vector to the regressor
    
-   
+    
     
     #joint 1  
     Z1=np.zeros((1*nbSamples,1))
@@ -1247,7 +1249,7 @@ def Generate_Torque_Regression_matrix(nbr_joint,Q_total,V_total,A_total):
     dq_sign_pin=np.sign(dq_stack_pin)#adding sing(dq)
     w=np.concatenate([w,dq_stack_pin], axis=1)# adding vector to the regressor
     w=np.concatenate([w,dq_sign_pin], axis=1)# adding vector to the regressor
-
+    
     #joint 2  
     Z1=np.zeros((2*nbSamples,1))
     Z2=np.zeros((3*nbSamples,1))
@@ -1291,7 +1293,7 @@ def Generate_Torque_Regression_matrix(nbr_joint,Q_total,V_total,A_total):
     dq_stack_pin=dq_stack_pin.T
     dq_sign_pin=np.sign(dq_stack_pin)#adding sing(dq)
     w=np.concatenate([w,dq_stack_pin], axis=1)# adding vector to the regressor
-    W=np.concatenate([w,dq_sign_pin], axis=1)# adding vector to the regressor
+    w=np.concatenate([w,dq_sign_pin], axis=1)# adding vector to the regressor
 
     #joint 5
     Z1=np.zeros((5*nbSamples,1))
@@ -1309,8 +1311,8 @@ def Generate_Torque_Regression_matrix(nbr_joint,Q_total,V_total,A_total):
     
     
     #Display of shapes
-    print('Shape of W_test:\t',np.array(W_test).shape)
-    print(W_test)
+    print('Shape of w finale avec coco l\'amour:\t',np.array(w).shape)
+   
 
     return tau,w
 
@@ -1325,7 +1327,8 @@ def estimation_with_qp_solver(w,tau):
 
     #constraints
     #Any constraints that are >= must be multiplied by -1 to become a <=.
-    G=([-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    G=(
+    [-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
     [0,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
     [0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],   
     [0,0,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
@@ -1341,6 +1344,7 @@ def estimation_with_qp_solver(w,tau):
     [0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0])
 
     h=[0,-0.05,0.3,-0.05,0.3,-0.05,0.3,0,-0.05,0.3,-0.05,0.3,-0.05,0.3]
+    # h=[2,-5,3,-5,3,-5,3,2,-5,3,-5,3,-5,3]
 
     # converting to double
     G=np.array(G)
@@ -1616,21 +1620,25 @@ def estimated_parameters_from_data_file(nbr_joint,Q_total_All_Joint,V_total_All_
     # plt.show() 
     force=force_coulomb(phi_etoile[21],V_total_All_Joint,nbr_joint)
     
+    return phi_etoile
 if __name__ == "__main__":
 
-    
-    # # trajectory_axe2axe_palier_de_vitesse_one_joint()
-    
+    # trajectory_axe2axe_palier_de_vitesse_one_joint()
     # axe2axe_palier_de_vitesse_all_joint_one_by_one()
-    # Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint=trajectory_axe2axe_palier_de_vitesse_one_joint()
-    nbr_of_joint=6   
-    tau,Q_total,V_total,A_total,dq_th=read_tau_q_dq_ddq_fromTxt(nbr_of_joint)
-    plot_QVA_total([],nbr_of_joint,Q_total,V_total,A_total,"_joint_")
-    # for i in range(Q_total[0].size):
-    #     robot.display(Q_total[:,i])
-    #     sleep(Tech)
-    estimated_parameters_from_data_file(nbr_of_joint,Q_total,V_total,A_total,tau)
+    Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint=trajectory_axe2axe_palier_de_vitesse_one_joint()
 
+    nbr_of_joint=6   
+    # tau,Q_total,V_total,A_total,dq_th=read_tau_q_dq_ddq_fromTxt(nbr_of_joint)
+    # # plot_QVA_total([],nbr_of_joint,Q_total,V_total,A_total,"_joint_")
+    # # for i in range(Q_total[0].size):
+    # #     robot.display(Q_total[:,i])
+    # #     sleep(Tech)
+    # phi_etoile=estimated_parameters_from_data_file(nbr_of_joint,Q_total,V_total,A_total,tau)
+    # print(phi_etoile)
+    tau_pin,w=Generate_Torque_Regression_matrix(nbr_of_joint,Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint)
+    # phi_etoile_pin=estimation_with_qp_solver(w,tau_pin)
+    phi_etoile,tau_estime=estimation_with_qp_solver(w,tau_pin)
+    print(phi_etoile.shape)
 
 
 '''

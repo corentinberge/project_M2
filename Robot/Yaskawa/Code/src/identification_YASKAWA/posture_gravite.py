@@ -218,5 +218,5 @@ if __name__=="__main__":
     Q=Generate_posture_static()
     for i in range(Q[0].size):
         robot.display(Q[:,i])
-        sleep(0.1)
+        sleep(0.5)
 

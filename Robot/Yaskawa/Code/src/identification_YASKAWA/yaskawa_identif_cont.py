@@ -17,7 +17,7 @@ import qpsolvers
 # urdf_path = package_path + '/robots/urdf/planar_2DOF.urdf'
 
 #package_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) + '/Modeles/'
-package_path='/home/fadi/projet_cobot_master2/project_M2/Robot/Yaskawa/Modeles/'
+package_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))) + '/Modeles/'
 urdf_path = package_path + 'motoman_hc10_support/urdf/hc10_FGV.urdf'
 
 # ========== Step 1 - load model, create robot model and create robot data
