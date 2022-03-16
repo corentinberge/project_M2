@@ -1,7 +1,9 @@
+from ctypes import sizeof
 from pyexpat import model
 from numpy import double, linalg, math, sign, sqrt
 from numpy.core.fromnumeric import shape
 from numpy.lib.nanfunctions import _nanmedian_small
+#from Robot.Yaskawa.Code.src.identification_YASKAWA.Trajectoire_yaskawa_v2 import Q_total
 from pinocchio.visualize import GepettoVisualizer
 from pinocchio.robot_wrapper import RobotWrapper
 import matplotlib.pyplot as plt
@@ -16,13 +18,17 @@ from time import sleep
 
 package_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))) + '/Modeles/'
 urdf_path = package_path + 'motoman_hc10_support/urdf/hc10_FGV.urdf'
+
 robot = RobotWrapper()
 robot.initFromURDF(urdf_path, package_path, verbose=True)
 robot.initViewer(loadModel=True)
 robot.display(robot.q0)
 
+NJOINT = robot.model.njoints  # number of links
 data = robot.data
 model = robot.model
+
+
 
 def Generate_posture_static():
     
@@ -213,10 +219,69 @@ def Generate_posture_static():
 
     return Q_total
 
+def Generate_inertial_parameter():
+    names = []
+    for i in range(1, NJOINT):
+        names += ['m'+str(i), 'mx'+str(i), 'my'+str(i), 'mz'+str(i), 'Ixx'+str(i),
+                'Ixy'+str(i), 'Iyy'+str(i), 'Izx'+str(i), 'Izy'+str(i), 'Izz'+str(i)]
+    print(names)
+    phi = []
+    for i in range(1, NJOINT):
+        phi.extend(model.inertias[i].toDynamicParameters())
+
+    #print('shape of phi:\t', np.array(phi).shape)   
+    return names,phi
+
+def Generate_Regression_vector(Q):
+    nbSamples = Q.shape[1]
+    #print(nbSamples)
+    W_reg=[]
+    dq_pin = np.zeros((6, 1))
+    ddq_pin = np.zeros((6, 1))
+
+    for i in range(nbSamples):
+        W_reg.extend(pin.computeJointTorqueRegressor(model, data, Q[:, i], dq_pin[:, 0], ddq_pin[:, 0]))
+    
+    W_reg=np.array(W_reg)
+    print('shape of Wreg',np.array(W_reg).shape)
+    return W_reg
+
+def Redimention_Regression_vector():
+    newR = np.delete(W_reg, np.s_[54:60], axis = 1)
+    newR = np.delete(newR, np.s_[44:50], axis = 1)
+    newR = np.delete(newR, np.s_[34:40], axis = 1)
+    newR = np.delete(newR, np.s_[24:30], axis = 1)
+    newR = np.delete(newR, np.s_[14:20], axis = 1)
+    newR = np.delete(newR, np.s_[4:10], axis = 1)
+    return newR
+
+def Generate_text(neW_reg):
+    f = open('New_regresseur.txt','w')
+    print('OK')
+    for i in range(348):
+        for j in range(24):
+            f.writelines(str(neW_reg[i,j]))
+            f.write(', ')
+        f.write('\n')
+    f.close()
+
 if __name__=="__main__":
     Q=[]
     Q=Generate_posture_static()
+    #print('shape of Q',np.array(Q).shape)
     for i in range(Q[0].size):
         robot.display(Q[:,i])
         sleep(0.1)
+    print('shape of Q',np.array(Q).shape)
+# ========== Step 2 - generate inertial parameters for all links (excepted the base link)
+    names,phi = Generate_inertial_parameter()
+
+# ========== Step 3- Create IDM with pinocchio (regression matrix)
+    W_reg = Generate_Regression_vector(Q)
+    #print('shape of Q',np.array(Q).shape)
+# ========== Step 4- Redim regression vector (no dq,ddq)   
+    neW_reg = Redimention_Regression_vector()
+    print('shape of neW_reg',np.array(neW_reg).shape)
+    print(neW_reg)
+    Generate_text(neW_reg)
 
