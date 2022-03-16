@@ -38,7 +38,7 @@ NJOINT = robot.model.njoints  # number of links
 gv = robot.viewer.gui
 
 #sampling time 
-Tech=(1/100)
+Tech=(1/50)
 # INITIALISATION 
 deg_5=-0.08726646259971647
 deg_5=deg_5+0.25*deg_5
@@ -48,8 +48,8 @@ Vmax=[2.2689280275926285, 2.2689280275926285, 3.141592653589793, 3.1415926535897
 acc_max=[4,4,4,4,4,4]
 
 Jcf_Home=np.array([
-                [-0.959931,0,0],
-                [-0.314159,0,0],
+                [0.001,0,0],
+                [0.001,0,0],
                 [1.69297,0,0],
                 [0.05,0,0],
                 [-1.98968,0,0],
@@ -2295,9 +2295,9 @@ if __name__ == "__main__":
     # # trajectory_axe2axe_palier_de_vitesse_one_joint()
     # # axe2axe_palier_de_vitesse_all_joint_one_by_one()
     
-    # Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint=trajectory_axe2axe_palier_de_vitesse_one_joint()
+    Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint=trajectory_axe2axe_palier_de_vitesse_one_joint()
 
-    tau_experimentale,Q_total,V_total,A_total,dq_th=read_tau_q_dq_ddq_fromTxt(nbr_of_joint=6)
+    # tau_experimentale,Q_total,V_total,A_total,dq_th=read_tau_q_dq_ddq_fromTxt(nbr_of_joint=6)
 
     # nbSamples=1500
     # q_pin = np.random.rand(NQ, nbSamples) * np.pi - np.pi/2  # -pi/2 < q < pi/2
@@ -2314,7 +2314,7 @@ if __name__ == "__main__":
 
     # W_base,phi_base,tau_param_base=Base_regressor(Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint,tau_experimentale)
 
-    W_base,phi_base,tau_param_base=Base_regressor(Q_total,V_total,A_total,tau_experimentale)
+    # W_base,phi_base,tau_param_base=Base_regressor(Q_total,V_total,A_total,tau_experimentale)
      
 
 
