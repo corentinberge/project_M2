@@ -46,6 +46,8 @@ RUN apt-get update \
     ros-melodic-industrial-robot-client \
     ros-melodic-effort-controllers \
     ros-melodic-industrial-core \
+    ros-melodic-moveit \
+    ros-melodic-move-group \
     python-catkin-tools \
     robotpkg-py27-pinocchio \
     robotpkg-py27-crocoddyl \

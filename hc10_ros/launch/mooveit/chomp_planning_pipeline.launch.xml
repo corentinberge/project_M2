@@ -26,5 +26,5 @@
   <param name="capabilities" value="$(arg capabilities)" />
   <param name="disable_capabilities" value="$(arg disable_capabilities)" />
 
-  <rosparam command="load" file="$(find test_moveit_2)/config/chomp_planning.yaml" />
+  <rosparam command="load" file="$(find hc10_ros)/config/chomp_planning.yaml" />
 </launch>

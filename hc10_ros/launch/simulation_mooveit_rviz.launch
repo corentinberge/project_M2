@@ -7,7 +7,7 @@
            controller_joint_names: [joint_1, joint_2, ... joint_N] 
        - Update with joint names for your robot (in order expected by rbt controller)
        - and uncomment the following line: -->
-  <rosparam command="load" file="$(find hc10_ros)/mooveit/config/joint_names.yaml"/>
+  <rosparam command="load" file="$(find hc10_ros)/config/joint_names.yaml"/>
  
   <!-- the "sim" argument controls whether we connect to a Simulated or Real robot -->
   <!--  - if sim=false, a robot_ip argument is required -->
@@ -17,7 +17,7 @@
   <arg name="controller" default="yrc1000" unless="$(arg sim)" /> -->
  
   <!-- load the robot_description parameter before launching ROS-I nodes -->
-  <include file="$(find hc10_ros)/mooveit/launch/planning_context.launch" >
+  <include file="$(find hc10_ros)/launch/mooveit/planning_context.launch" >
     <arg name="load_robot_description" value="true" />
   </include>
 
@@ -40,10 +40,10 @@
   <!-- publish the robot state (tf transforms) -->
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
 
-  <include file="$(find hc10_ros)/mooveit/launch/move_group.launch">    <arg name="publish_monitored_planning_scene" value="true" />
+  <include file="$(find hc10_ros)/launch/mooveit/move_group.launch">    <arg name="publish_monitored_planning_scene" value="true" />
   </include>
 
-  <include file="$(find hc10_ros)/mooveit/launch/moveit_rviz.launch">
+  <include file="$(find hc10_ros)/launch/mooveit/moveit_rviz.launch">
     <arg name="config" value="true"/>
   </include>
 

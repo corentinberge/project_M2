@@ -14,12 +14,12 @@ find_package(catkin REQUIRED COMPONENTS
 
 find_package(gazebo REQUIRED)
 
-add_message_files(
-  FILES
-  JointCommands.msg
-  JointState.msg
-  JointState_noHeader.msg
-)
+# add_message_files(
+#   FILES
+#   JointCommands.msg
+#   JointState.msg
+#   JointState_noHeader.msg
+# )
 
 # add_service_files(
 #   FILES
@@ -27,10 +27,10 @@ add_message_files(
 #   joint_state.srv
 # )
 
-generate_messages(
-  DEPENDENCIES
-  std_msgs
-)
+# generate_messages(
+#   DEPENDENCIES
+#   std_msgs
+# )
 
 include_directories(include ${catkin_INCLUDE_DIRS})
 
@@ -64,14 +64,10 @@ install(
 )
 
 catkin_install_python(
-  PROGRAMS src/control_joint.py
-  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-
-catkin_install_python(
   PROGRAMS
   scripts/talker.py
   scripts/listener.py
   scripts/test_odo.py
+  scripts/execute_trajectory.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
