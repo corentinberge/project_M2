@@ -221,6 +221,7 @@ def Generate_posture_static():
 
     return Q_total
 
+<<<<<<< HEAD
 def Generate_inertial_parameter():
     names = []
     for i in range(1, NJOINT):
@@ -285,4 +286,16 @@ if __name__=="__main__":
     print('shape of neW_reg',np.array(neW_reg).shape)
     print(neW_reg)
     Generate_text(neW_reg)
+=======
+
+
+
+
+if __name__=="__main__":
+    Q=[]
+    Q=Generate_posture_static()
+    for i in range(Q[0].size):
+        robot.display(Q[:,i])
+        sleep(0.5)
+>>>>>>> 25e93cef5a785b08cb85263ecd001539b3f127a5
 
