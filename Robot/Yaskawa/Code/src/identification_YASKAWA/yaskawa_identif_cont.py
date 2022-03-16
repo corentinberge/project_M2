@@ -17,7 +17,7 @@ import qpsolvers
 # urdf_path = package_path + '/robots/urdf/planar_2DOF.urdf'
 
 #package_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) + '/Modeles/'
-package_path='/home/fadi/projet_cobot_master2/project_M2/Robot/Yaskawa/Modeles/'
+package_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))) + '/Modeles/'
 urdf_path = package_path + 'motoman_hc10_support/urdf/hc10_FGV.urdf'
 
 # ========== Step 1 - load model, create robot model and create robot data
@@ -471,7 +471,7 @@ h=np.double(h)
 #             A=None,
 #             b=None,
 #             lb=None,
-#             ub=None,
+#             ub=None,1000
 #             solver="quadprog",
 #             initvals=None,
 #             sym_proj=True
@@ -556,4 +556,7 @@ Notez que si vous multipliez le regresseur R par phi vous obtenez tau=RPhi
 
 vous cherchez donc à déterminer Phi* qui minimise l’erreur quadratique ||tau_m-RPhi  ||^2 avec tau_m le couple mesuré (celui donné par Thanh). Déjà faites cela avec qp-solvers ensuite rajouter la contrainte que les masses (elements 1 et 5 du vecteur phi) M>=0
 '''
+
+
+    
 
