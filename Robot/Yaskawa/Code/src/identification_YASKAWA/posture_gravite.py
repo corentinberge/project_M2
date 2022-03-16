@@ -16,8 +16,10 @@ from typing import Optional
 import qpsolvers
 from time import sleep
 
-package_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))) + '/Modeles/'
-urdf_path = package_path + 'motoman_hc10_support/urdf/hc10_FGV.urdf'
+pre_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+package_path = pre_path + '/Modeles'
+urdf_path = package_path + '/motoman_hc10_support/urdf/hc10_FGV.urdf'
+
 
 robot = RobotWrapper()
 robot.initFromURDF(urdf_path, package_path, verbose=True)
@@ -37,9 +39,9 @@ def Generate_posture_static():
     Q_total=np.array(Q_total)
     posture1=np.array([[0],[0],[0],[0],[0],[0]])
     Q_total=posture1
-    print("shape of posture 1",np.array(posture1).shape)
+    #print("shape of posture 1",np.array(posture1).shape)
 
-    print("shape of Q",Q_total.shape)
+    #print("shape of Q",Q_total.shape)
     Q_total=np.concatenate([Q_total,posture1], axis=1)
 
     posture2=np.array([[0],[math.pi/2],[-math.pi/2],[0],[0],[0]])
@@ -222,8 +224,7 @@ def Generate_posture_static():
 def Generate_inertial_parameter():
     names = []
     for i in range(1, NJOINT):
-        names += ['m'+str(i), 'mx'+str(i), 'my'+str(i), 'mz'+str(i), 'Ixx'+str(i),
-                'Ixy'+str(i), 'Iyy'+str(i), 'Izx'+str(i), 'Izy'+str(i), 'Izz'+str(i)]
+        names += ['m'+str(i), 'mx'+str(i), 'my'+str(i), 'mz'+str(i)]
     print(names)
     phi = []
     for i in range(1, NJOINT):
@@ -246,8 +247,8 @@ def Generate_Regression_vector(Q):
     print('shape of Wreg',np.array(W_reg).shape)
     return W_reg
 
-def Redimention_Regression_vector():
-    newR = np.delete(W_reg, np.s_[54:60], axis = 1)
+def Redimention_Regression_vector(W_reg_Pin):
+    newR = np.delete(W_reg_Pin, np.s_[54:60], axis = 1)
     newR = np.delete(newR, np.s_[44:50], axis = 1)
     newR = np.delete(newR, np.s_[34:40], axis = 1)
     newR = np.delete(newR, np.s_[24:30], axis = 1)
@@ -256,31 +257,31 @@ def Redimention_Regression_vector():
     return newR
 
 def Generate_text(neW_reg):
-    f = open('New_regresseur.txt','w')
-    print('OK')
+    f = open( 'New_regresseur.txt','w')
     for i in range(348):
         for j in range(24):
-            f.writelines(str(neW_reg[i,j]))
+            text = str(neW_reg[i,j])
+            f.writelines(text)
             f.write(', ')
         f.write('\n')
     f.close()
 
 if __name__=="__main__":
-    Q=[]
-    Q=Generate_posture_static()
+    Q_pos=[]
+    Q_pos=Generate_posture_static()
     #print('shape of Q',np.array(Q).shape)
-    for i in range(Q[0].size):
-        robot.display(Q[:,i])
+    for i in range(Q_pos[0].size):
+        robot.display(Q_pos[:,i])
         sleep(0.1)
-    print('shape of Q',np.array(Q).shape)
+    print('shape of Q',np.array(Q_pos).shape)
 # ========== Step 2 - generate inertial parameters for all links (excepted the base link)
     names,phi = Generate_inertial_parameter()
 
 # ========== Step 3- Create IDM with pinocchio (regression matrix)
-    W_reg = Generate_Regression_vector(Q)
+    W_reg_Pin = Generate_Regression_vector(Q_pos)
     #print('shape of Q',np.array(Q).shape)
 # ========== Step 4- Redim regression vector (no dq,ddq)   
-    neW_reg = Redimention_Regression_vector()
+    neW_reg = Redimention_Regression_vector(W_reg_Pin)
     print('shape of neW_reg',np.array(neW_reg).shape)
     print(neW_reg)
     Generate_text(neW_reg)
