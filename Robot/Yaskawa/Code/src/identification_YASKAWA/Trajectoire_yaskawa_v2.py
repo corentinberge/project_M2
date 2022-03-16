@@ -288,9 +288,9 @@ def trajectory_axe2axe_palier_de_vitesse_one_joint():
     # # plot_Trajectory(Q_pallier_vitesse)
     plot_QVA_total(T,nbr_joint,Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint,'joint_')
     Generate_text_data_file_Q_txt(Q_total_All_Joint)
-    tau,w=Generate_Torque_Regression_matrix(nbr_joint,Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint)
-    phi_etoile,tau_estime=estimation_with_qp_solver(w,tau)
-    print("shape of phi_etoile",phi_etoile.shape)
+    # tau,w=Generate_Torque_Regression_matrix(nbr_joint,Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint)
+    # phi_etoile,tau_estime=estimation_with_qp_solver(w,tau)
+    # print("shape of phi_etoile",phi_etoile.shape)
 
     return Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint
     
@@ -1621,25 +1621,562 @@ def estimated_parameters_from_data_file(nbr_joint,Q_total_All_Joint,V_total_All_
     force=force_coulomb(phi_etoile[21],V_total_All_Joint,nbr_joint)
     
     return phi_etoile
+
+def genrate_W_And_torque_simulation_pin(Q_total,V_total,A_total):
+
+    nbSamples=np.array(Q_total[0]).size
+    q_pin=np.array(Q_total)
+    dq_pin=np.array(V_total)
+    ddq_pin=np.array(A_total)
+
+    tau_pin=[]
+    # Generate ouput with pin
+    for i in range(nbSamples):
+        tau_pin.extend(pin.rnea(model, data, q_pin[:, i], dq_pin[:, i], ddq_pin[:, i]))
+    print('Shape of tau_pin:\t', np.array(tau_pin).shape)
+    
+    tau_pin=np.array(tau_pin)
+    w_pin=[]
+
+    ## w pour I/O generer par pinocchio
+
+    for i in range(nbSamples):
+        w_pin.extend(pin.computeJointTorqueRegressor(model, data, q_pin[:, i], dq_pin[:, i], ddq_pin[:, i]))
+    w_pin=np.array(w_pin)
+    
+    #joint 0  
+    Z=np.zeros((5*nbSamples,1))
+    # print('shape of Z',Z.shape)
+    dq_stack_pin=[]
+    dq_stack_pin_augmente=[]
+    dq_stack_pin.extend(dq_pin[0])#adding joint 1 velosity vector
+    dq_stack_pin.extend(Z)# panding eith zeros
+    dq_stack_pin=np.array([dq_stack_pin])
+    dq_stack_pin=dq_stack_pin.T
+    dq_sign_pin=np.sign(dq_stack_pin)#adding sing(dq)
+    w_pin=np.concatenate([w_pin,dq_stack_pin], axis=1)# adding vector to the regressor
+    w_pin=np.concatenate([w_pin,dq_sign_pin], axis=1)# adding vector to the regressor
+
+    #joint 1  
+    Z1=np.zeros((1*nbSamples,1))
+    Z2=np.zeros((4*nbSamples,1))
+    # print('shape of Z',Z.shape)
+    dq_stack_pin=[]
+    dq_stack_pin_augmente=[]
+    dq_stack_pin.extend(Z1)# adding zeros
+    dq_stack_pin.extend(dq_pin[1])#adding joint 1 velosity vector
+    dq_stack_pin.extend(Z2)# panding with zeros
+    dq_stack_pin=np.array([dq_stack_pin])
+    dq_stack_pin=dq_stack_pin.T
+    dq_sign_pin=np.sign(dq_stack_pin)#adding sing(dq)
+    w_pin=np.concatenate([w_pin,dq_stack_pin], axis=1)# adding vector to the regressor
+    w_pin=np.concatenate([w_pin,dq_sign_pin], axis=1)# adding vector to the regressor
+
+    #joint 2  
+    Z1=np.zeros((2*nbSamples,1))
+    Z2=np.zeros((3*nbSamples,1))
+    # print('shape of Z',Z.shape)
+    dq_stack_pin=[]
+    dq_stack_pin_augmente=[]
+    dq_stack_pin.extend(Z1)# adding zeros
+    dq_stack_pin.extend(dq_pin[2])#adding joint 1 velosity vector
+    dq_stack_pin.extend(Z2)# panding with zeros
+    dq_stack_pin=np.array([dq_stack_pin])
+    dq_stack_pin=dq_stack_pin.T
+    dq_sign_pin=np.sign(dq_stack_pin)#adding sing(dq)
+    w_pin=np.concatenate([w_pin,dq_stack_pin], axis=1)# adding vector to the regressor
+    w_pin=np.concatenate([w_pin,dq_sign_pin], axis=1)# adding vector to the regressor
+
+    #joint 3  
+    Z1=np.zeros((3*nbSamples,1))
+    Z2=np.zeros((2*nbSamples,1))
+    # print('shape of Z',Z.shape)
+    dq_stack_pin=[]
+    dq_stack_pin_augmente=[]
+    dq_stack_pin.extend(Z1)# adding zeros
+    dq_stack_pin.extend(dq_pin[3])#adding joint 1 velosity vector
+    dq_stack_pin.extend(Z2)# panding with zeros
+    dq_stack_pin=np.array([dq_stack_pin])
+    dq_stack_pin=dq_stack_pin.T
+    dq_sign_pin=np.sign(dq_stack_pin)#adding sing(dq)
+    w_pin=np.concatenate([w_pin,dq_stack_pin], axis=1)# adding vector to the regressor
+    w_pin=np.concatenate([w_pin,dq_sign_pin], axis=1)# adding vector to the regressor
+
+    #joint 4
+    Z1=np.zeros((4*nbSamples,1))
+    Z2=np.zeros((1*nbSamples,1))
+    # print('shape of Z',Z.shape)
+    dq_stack_pin=[]
+    dq_stack_pin_augmente=[]
+    dq_stack_pin.extend(Z1)# adding zeros
+    dq_stack_pin.extend(dq_pin[4])#adding joint 1 velosity vector
+    dq_stack_pin.extend(Z2)# panding with zeros
+    dq_stack_pin=np.array([dq_stack_pin])
+    dq_stack_pin=dq_stack_pin.T
+    dq_sign_pin=np.sign(dq_stack_pin)#adding sing(dq)
+    w_pin=np.concatenate([w_pin,dq_stack_pin], axis=1)# adding vector to the regressor
+    w_pin=np.concatenate([w_pin,dq_sign_pin], axis=1)# adding vector to the regressor
+
+    #joint 5
+    Z1=np.zeros((5*nbSamples,1))
+    # print('shape of Z',Z.shape)
+    dq_stack_pin=[]
+    dq_stack_pin_augmente=[]
+    dq_stack_pin.extend(Z1)# adding zeros
+    dq_stack_pin.extend(dq_pin[5])#adding joint 1 velosity vector
+    dq_stack_pin=np.array([dq_stack_pin])
+    dq_stack_pin=dq_stack_pin.T
+    dq_sign_pin=np.sign(dq_stack_pin)#adding sing(dq)
+    w_pin=np.concatenate([w_pin,dq_stack_pin], axis=1)# adding vector to the regressor
+    w_pin=np.concatenate([w_pin,dq_sign_pin], axis=1)# adding vector to the regressor
+
+    #Display of shapes
+    print('Shape of W_pin:\t',w_pin.shape)
+
+    ## calculation of a positive-definite matrix 
+    # QP_solver
+    w_pin=np.double(w_pin)
+    p_pin=np.dot(w_pin.transpose(),w_pin)
+    q_pin= -np.dot(tau_pin.transpose(),w_pin)
+    p_pin=nearestPD(p_pin)
+
+
+    G=np.zeros((18,72))
+    for i in range(4):
+        G[i,i]=-1
+        # G[i+4,i+6]=-1
+        # G[i+8,i+12]=-1
+        # G[i+12,i+18]=-1
+        # G[i+16,i+24]=-1
+        # G[i+20,i+28]=-1
+        
+    h=np.zeros((1,4))
+    # h=[-5,-5,-5,-5, -5,-5,-5,-5, -5,-5,-5,-5, -5,-5,-5,-5, -5,-5,-5,-5, -5,-5,-5,-5]
+  
+    G=np.double(G)
+    h=np.double(h)
+
+    phi_etoile_pin=qpsolvers.solve_qp(
+                p_pin,
+                q_pin,
+                G=None,
+                h=None,
+                A=None,
+                b=None,
+                lb=None,
+                ub=None,
+                solver="quadprog",
+                initvals=None,
+                sym_proj=True
+                )
+
+    print('*****************************************')
+    # print('phi_etoile',phi_etoile.shape)
+    phi_etoile_pin=np.array(phi_etoile_pin)
+    phi_etoile_pin=np.double(phi_etoile_pin)
+    print('phi_etoile_pin',phi_etoile_pin.shape)
+    print('phi_etoile_pin_yaskawa value',phi_etoile_pin)
+    print('*****************************************')
+
+    tau_estime_pin=np.dot(w_pin,phi_etoile_pin)
+    print('shape of tau_estime',tau_estime_pin.shape)
+
+    samples = []
+    for i in range(np.array(tau_pin).size):
+        samples.append(i)
+
+    err = []
+    for i in range(np.array(tau_pin).size):
+        err.append(abs(tau_pin[i] - tau_estime_pin[i]) * abs(tau_pin[i] - tau_estime_pin[i]))
+    plt.plot(samples, err, linewidth=2, label="err")
+    plt.title("erreur quadratique")
+    plt.legend()
+    plt.show()
+    return(phi_etoile_pin)
+
+def genrate_W_And_torque_pin_rand(nbSamples):
+
+    q_pin = np.random.rand(NQ, nbSamples) * np.pi - np.pi/2  # -pi/2 < q < pi/2
+    dq_pin = np.random.rand(NQ, nbSamples) * 10              # 0 < dq  < 10
+    ddq_pin = np.random.rand(NQ, nbSamples) * 2               # 0 < dq  < 2
+    # tau_pin = np.random.rand(NQ*nbSamples) * 4
+    
+    tau_pin=[]
+    # Generate ouput with pin
+    for i in range(nbSamples):
+        tau_pin.extend(pin.rnea(model, data, q_pin[:, i], dq_pin[:, i], ddq_pin[:, i]))
+    print('Shape of tau_pin:\t', np.array(tau_pin).shape)
+    
+    tau_pin=np.array(tau_pin)
+    w_pin=[]
+
+    ## w pour I/O generer par pinocchio
+
+    for i in range(nbSamples):
+        w_pin.extend(pin.computeJointTorqueRegressor(model, data, q_pin[:, i], dq_pin[:, i], ddq_pin[:, i]))
+    w_pin=np.array(w_pin)
+    
+    #joint 0  
+    Z=np.zeros((5*nbSamples,1))
+    # print('shape of Z',Z.shape)
+    dq_stack_pin=[]
+    dq_stack_pin_augmente=[]
+    dq_stack_pin.extend(dq_pin[0])#adding joint 1 velosity vector
+    dq_stack_pin.extend(Z)# panding eith zeros
+    dq_stack_pin=np.array([dq_stack_pin])
+    dq_stack_pin=dq_stack_pin.T
+    dq_sign_pin=np.sign(dq_stack_pin)#adding sing(dq)
+    w_pin=np.concatenate([w_pin,dq_stack_pin], axis=1)# adding vector to the regressor
+    w_pin=np.concatenate([w_pin,dq_sign_pin], axis=1)# adding vector to the regressor
+
+    #joint 1  
+    Z1=np.zeros((1*nbSamples,1))
+    Z2=np.zeros((4*nbSamples,1))
+    # print('shape of Z',Z.shape)
+    dq_stack_pin=[]
+    dq_stack_pin_augmente=[]
+    dq_stack_pin.extend(Z1)# adding zeros
+    dq_stack_pin.extend(dq_pin[1])#adding joint 1 velosity vector
+    dq_stack_pin.extend(Z2)# panding with zeros
+    dq_stack_pin=np.array([dq_stack_pin])
+    dq_stack_pin=dq_stack_pin.T
+    dq_sign_pin=np.sign(dq_stack_pin)#adding sing(dq)
+    w_pin=np.concatenate([w_pin,dq_stack_pin], axis=1)# adding vector to the regressor
+    w_pin=np.concatenate([w_pin,dq_sign_pin], axis=1)# adding vector to the regressor
+
+    #joint 2  
+    Z1=np.zeros((2*nbSamples,1))
+    Z2=np.zeros((3*nbSamples,1))
+    # print('shape of Z',Z.shape)
+    dq_stack_pin=[]
+    dq_stack_pin_augmente=[]
+    dq_stack_pin.extend(Z1)# adding zeros
+    dq_stack_pin.extend(dq_pin[2])#adding joint 1 velosity vector
+    dq_stack_pin.extend(Z2)# panding with zeros
+    dq_stack_pin=np.array([dq_stack_pin])
+    dq_stack_pin=dq_stack_pin.T
+    dq_sign_pin=np.sign(dq_stack_pin)#adding sing(dq)
+    w_pin=np.concatenate([w_pin,dq_stack_pin], axis=1)# adding vector to the regressor
+    w_pin=np.concatenate([w_pin,dq_sign_pin], axis=1)# adding vector to the regressor
+
+    #joint 3  
+    Z1=np.zeros((3*nbSamples,1))
+    Z2=np.zeros((2*nbSamples,1))
+    # print('shape of Z',Z.shape)
+    dq_stack_pin=[]
+    dq_stack_pin_augmente=[]
+    dq_stack_pin.extend(Z1)# adding zeros
+    dq_stack_pin.extend(dq_pin[3])#adding joint 1 velosity vector
+    dq_stack_pin.extend(Z2)# panding with zeros
+    dq_stack_pin=np.array([dq_stack_pin])
+    dq_stack_pin=dq_stack_pin.T
+    dq_sign_pin=np.sign(dq_stack_pin)#adding sing(dq)
+    w_pin=np.concatenate([w_pin,dq_stack_pin], axis=1)# adding vector to the regressor
+    w_pin=np.concatenate([w_pin,dq_sign_pin], axis=1)# adding vector to the regressor
+
+    #joint 4
+    Z1=np.zeros((4*nbSamples,1))
+    Z2=np.zeros((1*nbSamples,1))
+    # print('shape of Z',Z.shape)
+    dq_stack_pin=[]
+    dq_stack_pin_augmente=[]
+    dq_stack_pin.extend(Z1)# adding zeros
+    dq_stack_pin.extend(dq_pin[4])#adding joint 1 velosity vector
+    dq_stack_pin.extend(Z2)# panding with zeros
+    dq_stack_pin=np.array([dq_stack_pin])
+    dq_stack_pin=dq_stack_pin.T
+    dq_sign_pin=np.sign(dq_stack_pin)#adding sing(dq)
+    w_pin=np.concatenate([w_pin,dq_stack_pin], axis=1)# adding vector to the regressor
+    w_pin=np.concatenate([w_pin,dq_sign_pin], axis=1)# adding vector to the regressor
+
+    #joint 5
+    Z1=np.zeros((5*nbSamples,1))
+    # print('shape of Z',Z.shape)
+    dq_stack_pin=[]
+    dq_stack_pin_augmente=[]
+    dq_stack_pin.extend(Z1)# adding zeros
+    dq_stack_pin.extend(dq_pin[5])#adding joint 1 velosity vector
+    dq_stack_pin=np.array([dq_stack_pin])
+    dq_stack_pin=dq_stack_pin.T
+    dq_sign_pin=np.sign(dq_stack_pin)#adding sing(dq)
+    w_pin=np.concatenate([w_pin,dq_stack_pin], axis=1)# adding vector to the regressor
+    w_pin=np.concatenate([w_pin,dq_sign_pin], axis=1)# adding vector to the regressor
+
+    #Display of shapes
+    print('Shape of W_pin:\t',w_pin.shape)
+
+    ## calculation of a positive-definite matrix 
+    # QP_solver
+    w_pin=np.double(w_pin)
+    p_pin=np.dot(w_pin.transpose(),w_pin)
+    q_pin= -np.dot(tau_pin.transpose(),w_pin)
+    p_pin=nearestPD(p_pin)
+
+
+    phi_etoile_pin=qpsolvers.solve_qp(
+                p_pin,
+                q_pin,
+                G=None,
+                h=None,
+                A=None,
+                b=None,
+                lb=None,
+                ub=None,
+                solver="quadprog",
+                initvals=None,
+                sym_proj=True
+                )
+
+    print('*****************************************')
+    # print('phi_etoile',phi_etoile.shape)
+    phi_etoile_pin=np.array(phi_etoile_pin)
+    phi_etoile_pin=np.double(phi_etoile_pin)
+    print('phi_etoile_pin',phi_etoile_pin.shape)
+    print('phi_etoile_pin_yaskawa value',phi_etoile_pin)
+    print('*****************************************')
+
+    tau_estime_pin=np.dot(w_pin,phi_etoile_pin)
+    print('shape of tau_estime',tau_estime_pin.shape)
+
+    samples = []
+    for i in range(np.array(tau_pin).size):
+        samples.append(i)
+
+    err = []
+    for i in range(np.array(tau_pin).size):
+        err.append(abs(tau_pin[i] - tau_estime_pin[i]) * abs(tau_pin[i] - tau_estime_pin[i]))
+    plt.plot(samples, err, linewidth=2, label="err")
+    plt.title("erreur quadratique")
+    plt.legend()
+    plt.show()
+
+    return(phi_etoile_pin)
+
+def genrate_W_And_torque_experimentale(Q_total,V_total,A_total,tau_experimentale):
+
+    nbSamples=np.array(Q_total[0]).size
+    q_pin=np.array(Q_total)
+    dq_pin=np.array(V_total)
+    ddq_pin=np.array(A_total)
+
+    
+    
+    tau_pin=np.array(tau_experimentale)
+    w_pin=[]
+
+    ## w pour I/O generer par pinocchio
+
+    for i in range(nbSamples):
+        w_pin.extend(pin.computeJointTorqueRegressor(model, data, q_pin[:, i], dq_pin[:, i], ddq_pin[:, i]))
+    w_pin=np.array(w_pin)
+    
+    #joint 0  
+    Z=np.zeros((5*nbSamples,1))
+    # print('shape of Z',Z.shape)
+    dq_stack_pin=[]
+    dq_stack_pin_augmente=[]
+    dq_stack_pin.extend(dq_pin[0])#adding joint 1 velosity vector
+    dq_stack_pin.extend(Z)# panding eith zeros
+    dq_stack_pin=np.array([dq_stack_pin])
+    dq_stack_pin=dq_stack_pin.T
+    dq_sign_pin=np.sign(dq_stack_pin)#adding sing(dq)
+    w_pin=np.concatenate([w_pin,dq_stack_pin], axis=1)# adding vector to the regressor
+    w_pin=np.concatenate([w_pin,dq_sign_pin], axis=1)# adding vector to the regressor
+
+    #joint 1  
+    Z1=np.zeros((1*nbSamples,1))
+    Z2=np.zeros((4*nbSamples,1))
+    # print('shape of Z',Z.shape)
+    dq_stack_pin=[]
+    dq_stack_pin_augmente=[]
+    dq_stack_pin.extend(Z1)# adding zeros
+    dq_stack_pin.extend(dq_pin[1])#adding joint 1 velosity vector
+    dq_stack_pin.extend(Z2)# panding with zeros
+    dq_stack_pin=np.array([dq_stack_pin])
+    dq_stack_pin=dq_stack_pin.T
+    dq_sign_pin=np.sign(dq_stack_pin)#adding sing(dq)
+    w_pin=np.concatenate([w_pin,dq_stack_pin], axis=1)# adding vector to the regressor
+    w_pin=np.concatenate([w_pin,dq_sign_pin], axis=1)# adding vector to the regressor
+
+    #joint 2  
+    Z1=np.zeros((2*nbSamples,1))
+    Z2=np.zeros((3*nbSamples,1))
+    # print('shape of Z',Z.shape)
+    dq_stack_pin=[]
+    dq_stack_pin_augmente=[]
+    dq_stack_pin.extend(Z1)# adding zeros
+    dq_stack_pin.extend(dq_pin[2])#adding joint 1 velosity vector
+    dq_stack_pin.extend(Z2)# panding with zeros
+    dq_stack_pin=np.array([dq_stack_pin])
+    dq_stack_pin=dq_stack_pin.T
+    dq_sign_pin=np.sign(dq_stack_pin)#adding sing(dq)
+    w_pin=np.concatenate([w_pin,dq_stack_pin], axis=1)# adding vector to the regressor
+    w_pin=np.concatenate([w_pin,dq_sign_pin], axis=1)# adding vector to the regressor
+
+    #joint 3  
+    Z1=np.zeros((3*nbSamples,1))
+    Z2=np.zeros((2*nbSamples,1))
+    # print('shape of Z',Z.shape)
+    dq_stack_pin=[]
+    dq_stack_pin_augmente=[]
+    dq_stack_pin.extend(Z1)# adding zeros
+    dq_stack_pin.extend(dq_pin[3])#adding joint 1 velosity vector
+    dq_stack_pin.extend(Z2)# panding with zeros
+    dq_stack_pin=np.array([dq_stack_pin])
+    dq_stack_pin=dq_stack_pin.T
+    dq_sign_pin=np.sign(dq_stack_pin)#adding sing(dq)
+    w_pin=np.concatenate([w_pin,dq_stack_pin], axis=1)# adding vector to the regressor
+    w_pin=np.concatenate([w_pin,dq_sign_pin], axis=1)# adding vector to the regressor
+
+    #joint 4
+    Z1=np.zeros((4*nbSamples,1))
+    Z2=np.zeros((1*nbSamples,1))
+    # print('shape of Z',Z.shape)
+    dq_stack_pin=[]
+    dq_stack_pin_augmente=[]
+    dq_stack_pin.extend(Z1)# adding zeros
+    dq_stack_pin.extend(dq_pin[4])#adding joint 1 velosity vector
+    dq_stack_pin.extend(Z2)# panding with zeros
+    dq_stack_pin=np.array([dq_stack_pin])
+    dq_stack_pin=dq_stack_pin.T
+    dq_sign_pin=np.sign(dq_stack_pin)#adding sing(dq)
+    w_pin=np.concatenate([w_pin,dq_stack_pin], axis=1)# adding vector to the regressor
+    w_pin=np.concatenate([w_pin,dq_sign_pin], axis=1)# adding vector to the regressor
+
+    #joint 5
+    Z1=np.zeros((5*nbSamples,1))
+    # print('shape of Z',Z.shape)
+    dq_stack_pin=[]
+    dq_stack_pin_augmente=[]
+    dq_stack_pin.extend(Z1)# adding zeros
+    dq_stack_pin.extend(dq_pin[5])#adding joint 1 velosity vector
+    dq_stack_pin=np.array([dq_stack_pin])
+    dq_stack_pin=dq_stack_pin.T
+    dq_sign_pin=np.sign(dq_stack_pin)#adding sing(dq)
+    w_pin=np.concatenate([w_pin,dq_stack_pin], axis=1)# adding vector to the regressor
+    w_pin=np.concatenate([w_pin,dq_sign_pin], axis=1)# adding vector to the regressor
+
+    #Display of shapes
+    print('Shape of W_pin:\t',w_pin.shape)
+
+    ## calculation of a positive-definite matrix 
+    # QP_solver
+    w_pin=np.double(w_pin)
+    p_pin=np.dot(w_pin.transpose(),w_pin)
+    q_pin= -np.dot(tau_pin.transpose(),w_pin)
+    p_pin=nearestPD(p_pin)
+
+    # G=np.zeros((24,72))
+    #constraint masse positive
+    # for i in range(4):
+    #     G[i,i]=-1
+    #     G[i+4,i+6]=-1
+    #     G[i+8,i+12]=-1
+    #     G[i+12,i+18]=-1
+    #     G[i+16,i+24]=-1
+    #     G[i+20,i+28]=-1
+    G=np.zeros((6,72))
+    i=0
+    G[i,i]=-1
+    G[i+1,i+10]=-1
+    G[i+2,i+20]=-1
+    G[i+3,i+30]=-1
+    G[i+4,i+40]=-1
+    G[i+5,i+50]=-1
+        
+    # h=np.zeros((1,24))
+    # h=[-1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1, -1,-1,-1,-1]
+    h=[-5,-5,-5,-5,-5,-4]
+    G=np.double(G)
+    h=np.double(h)
+        #constraint masse positive
+    # G=([-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    #    [0,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    #    [0,0,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    #    [0,0,0,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+    #    [0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0,0,0,0,0,0,0],
+    #    [0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0,0,0,0,0,0],
+    #    [0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0,0,0,0,0],
+    #    [0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0,0,0,0])
+    # h=[0,0,0,0,0,0,0,0]
+
+    phi_etoile_pin=qpsolvers.solve_qp(
+                p_pin,
+                q_pin,
+                G,
+                h,
+                A=None,
+                b=None,
+                lb=None,
+                ub=None,
+                solver="quadprog",
+                initvals=None,
+                sym_proj=True
+                )
+
+    print('*****************************************')
+    # print('phi_etoile',phi_etoile.shape)
+    phi_etoile_pin=np.array(phi_etoile_pin)
+    phi_etoile_pin=np.double(phi_etoile_pin)
+    print('phi_etoile_pin',phi_etoile_pin.shape)
+    print('phi_etoile_pin_yaskawa value',phi_etoile_pin)
+    print('*****************************************')
+
+    tau_estime_pin=np.dot(w_pin,phi_etoile_pin)
+    print('shape of tau_estime',tau_estime_pin.shape)
+
+    samples = []
+    for i in range(np.array(tau_pin).size):
+        samples.append(i)
+
+    err = []
+    for i in range(np.array(tau_pin).size):
+        err.append(abs(tau_pin[i] - tau_estime_pin[i]) * abs(tau_pin[i] - tau_estime_pin[i]))
+    plt.plot(samples, err, linewidth=2, label="err")
+    plt.title("erreur quadratique")
+    plt.legend()
+    plt.show()
+
+    return(phi_etoile_pin)
+
 if __name__ == "__main__":
 
-    # trajectory_axe2axe_palier_de_vitesse_one_joint()
-    # axe2axe_palier_de_vitesse_all_joint_one_by_one()
+    # # trajectory_axe2axe_palier_de_vitesse_one_joint()
+    # # axe2axe_palier_de_vitesse_all_joint_one_by_one()
+    
     Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint=trajectory_axe2axe_palier_de_vitesse_one_joint()
+    phi_etoile=genrate_W_And_torque_simulation_pin(Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint)
+   
 
-    nbr_of_joint=6   
-    # tau,Q_total,V_total,A_total,dq_th=read_tau_q_dq_ddq_fromTxt(nbr_of_joint)
+    # # genrate_W_And_torque_pin_rand(1000)
+
+    # nbr_of_joint=6   
+    # tau_experimentale,Q_total,V_total,A_total,dq_th=read_tau_q_dq_ddq_fromTxt(nbr_of_joint)
+
+    # print('shape of q data file',np.array(Q_total).shape)
+    # # print('shape of q trajectoire',np.array(Q_total_All_Joint).shape)
+
     # # plot_QVA_total([],nbr_of_joint,Q_total,V_total,A_total,"_joint_")
-    # # for i in range(Q_total[0].size):
-    # #     robot.display(Q_total[:,i])
-    # #     sleep(Tech)
-    # phi_etoile=estimated_parameters_from_data_file(nbr_of_joint,Q_total,V_total,A_total,tau)
-    # print(phi_etoile)
-    tau_pin,w=Generate_Torque_Regression_matrix(nbr_of_joint,Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint)
-    # phi_etoile_pin=estimation_with_qp_solver(w,tau_pin)
-    phi_etoile,tau_estime=estimation_with_qp_solver(w,tau_pin)
-    print(phi_etoile.shape)
+    # phi_etoile=genrate_W_And_torque_experimentale(Q_total,V_total,A_total,tau_experimentale)
 
+    # for i in range(4):
+    #     print('phi_etoile',i,phi_etoile[i])
+    #     print('phi_etoile',i+6,phi_etoile[i+6])
+    #     print('phi_etoile',i+12,phi_etoile[i+12])
+    #     print('phi_etoile',i+18,phi_etoile[i+18])
+    #     print('phi_etoile',i+24,phi_etoile[i+24])
+    #     print('phi_etoile',i+28,phi_etoile[i+28])
+        
+    print('m1  : ',phi_etoile[0])
+    print('m2 : ',phi_etoile[10])
+    print('m3 : ',phi_etoile[20])
+    print('m4 : ',phi_etoile[30])
+
+    print('m5  : ',phi_etoile[40])
+    print('m6 : ',phi_etoile[50])
+    # print('my2 : ',phi_etoile[12])
+    # print('mz2 : ',phi_etoile[13])
+ 
 
 '''
 # initialisation
