@@ -4,12 +4,12 @@
   <arg name="cfg" />
 
   <!-- Load URDF -->
-  <include file="$(find hc10_ros)/launch/mooveit/planning_context.launch">
+  <include file="$(find hc10_ros)/launch/planning_context.launch">
     <arg name="load_robot_description" value="true"/>
   </include>
 
   <!-- Start the database -->
-  <include file="$(find hc10_ros)/launch/mooveit/warehouse.launch">
+  <include file="$(find hc10_ros)/launch/warehouse.launch">
     <arg name="moveit_warehouse_database_path" value="moveit_ompl_benchmark_warehouse"/>
   </include>
 

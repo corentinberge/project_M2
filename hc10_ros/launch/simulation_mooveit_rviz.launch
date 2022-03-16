@@ -17,7 +17,7 @@
   <arg name="controller" default="yrc1000" unless="$(arg sim)" /> -->
  
   <!-- load the robot_description parameter before launching ROS-I nodes -->
-  <include file="$(find hc10_ros)/launch/mooveit/planning_context.launch" >
+  <include file="$(find hc10_ros)/launch/planning_context.launch" >
     <arg name="load_robot_description" value="true" />
   </include>
 
@@ -40,15 +40,17 @@
   <!-- publish the robot state (tf transforms) -->
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
 
-  <include file="$(find hc10_ros)/launch/mooveit/move_group.launch">    <arg name="publish_monitored_planning_scene" value="true" />
+  <include file="$(find hc10_ros)/launch/move_group.launch">    <arg name="publish_monitored_planning_scene" value="true" />
   </include>
 
-  <include file="$(find hc10_ros)/launch/mooveit/moveit_rviz.launch">
+  <include file="$(find hc10_ros)/launch/moveit_rviz.launch">
     <arg name="config" value="true"/>
   </include>
 
-
+  <!-- add interferences using python script -->
+  <node name="add_interferences" pkg="hc10_ros" type="add_interferences.py" />
+  
 <!--  
-  <include file="$(find motoman_hc10_moveit_config)/launch/default_warehouse_db.launch" />
+  <include file="$(find hc10_ros)/launch/default_warehouse_db.launch" />
 -->
 </launch>
