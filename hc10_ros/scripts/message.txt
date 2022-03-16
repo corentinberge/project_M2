@@ -1,13 +1,5 @@
 rostopic pub /motoman_hc10/joint3_position_controller/command std_msgs/Float64 "data: 0.9"
 
-rostopic pub /motoman_hc10/joint1_position_controller/command std_msgs/Float64 "data: -0.959931"
-rostopic pub /motoman_hc10/joint2_position_controller/command std_msgs/Float64 "data: -0.314159"
-rostopic pub /motoman_hc10/joint3_position_controller/command std_msgs/Float64 "data: 1.69297"
-rostopic pub /motoman_hc10/joint4_position_controller/command std_msgs/Float64 "data: 0.05"
-rostopic pub /motoman_hc10/joint5_position_controller/command std_msgs/Float64 "data: -1.98968"
-rostopic pub /motoman_hc10/joint6_position_controller/command std_msgs/Float64 "data: 0.959931"
-					
-
 Récupération couple vitesse accélération 
 Lecture fichier texte (parsing) => application commande
 

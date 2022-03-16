@@ -282,25 +282,4 @@
             <robotSimType>gazebo_ros_control/DefaultRobotHWSim</robotSimType>
         </plugin>
     </gazebo>
-    <!-- <gazebo reference="${prefix}base_link">
-        <turnGravityOff>true</turnGravityOff>
-    </gazebo>
-    <gazebo reference="${prefix}link_1_s">
-        <turnGravityOff>true</turnGravityOff>
-    </gazebo>
-    <gazebo reference="${prefix}link_2_l">
-        <turnGravityOff>true</turnGravityOff>
-    </gazebo>
-    <gazebo reference="${prefix}link_3_u">
-        <turnGravityOff>true</turnGravityOff>
-    </gazebo>
-    <gazebo reference="${prefix}link_4_r">
-        <turnGravityOff>true</turnGravityOff>
-    </gazebo>
-    <gazebo reference="${prefix}link_5_b">
-        <turnGravityOff>true</turnGravityOff>
-    </gazebo>
-    <gazebo reference="${prefix}link_6_t">
-        <turnGravityOff>true</turnGravityOff>
-    </gazebo> -->
 </robot>

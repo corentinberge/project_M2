@@ -9,14 +9,14 @@ import math
 
 def orientationEuler(self,R):
     """ Renvois l'orientation selon la valeurs des angles d'euler  
-   prend une matrice de rotation 3x3 en entree"""
+   prend une matrice de rotation 3x3 en entrée"""
 
     if(abs(R[2,2]) != 1):
         psi = math.atan2(R[0,2],-R[1,2])
         theta = math.acos(R[2,2])
         phi = math.atan2(R[2,0],R[2,1])
-    else : # attention psi et phi ne sont pas definis ici phi = 2*psi => evite la division par 0 
-        #print("attention psi et phi ne sont pas definis ici ils seront pris egaux")
+    else : # attention psi et phi ne sont pas définis ici phi = 2*psi => évite la division par 0 
+        #print("attention psi et phi ne sont pas définis ici ils seront pris égaux")
         a = math.atan2(R[0,1],R[0,0])
         psi = a/(1-2*R[2,2])
         theta = math.pi*(1-R[2,2])/2
@@ -25,7 +25,7 @@ def orientationEuler(self,R):
 
 
 def situationOT(M):
-    """ cette fonction permets a partir d'un objet SE3, d'obtenir un vecteur X contenant la transaltion et la rotation de L'OT (situation de l'OT)
+    """ cette fonction permets à partir d'un objet SE3, d'obtenir un vecteur X contenant la transaltion et la rotation de L'OT (situation de l'OT)
     avec les angles d'euler classique, M est l'objet SE3, out = [ex ey ez psi theta phi] """
     p = M.translation
     delta = orientationEuler(M.rotation)
@@ -80,7 +80,7 @@ def computedTorqueController(Xd,X,dXd,dX,ddXd,ddXn,J,A,H):
     """
             this is the controller of the computed torque control 
             she compute the error, and return the tau ( corresponding to U(t) )
-            Kp = wj^2
+            Kp = wj²
             Kd = 2zetawj
             Xd = traj EF desired at instant t 2x1
             X =  current position of the EF 2x1
