@@ -213,10 +213,6 @@ def Generate_posture_static():
 
     return Q_total
 
-
-
-
-
 if __name__=="__main__":
     Q=[]
     Q=Generate_posture_static()
