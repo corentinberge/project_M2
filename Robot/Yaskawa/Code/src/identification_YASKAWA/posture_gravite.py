@@ -1,7 +1,9 @@
+from ctypes import sizeof
 from pyexpat import model
 from numpy import double, linalg, math, sign, sqrt
 from numpy.core.fromnumeric import shape
 from numpy.lib.nanfunctions import _nanmedian_small
+#from Robot.Yaskawa.Code.src.identification_YASKAWA.Trajectoire_yaskawa_v2 import Q_total
 from pinocchio.visualize import GepettoVisualizer
 from pinocchio.robot_wrapper import RobotWrapper
 import matplotlib.pyplot as plt
@@ -14,15 +16,21 @@ from typing import Optional
 import qpsolvers
 from time import sleep
 
-package_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))) + '/Modeles/'
-urdf_path = package_path + 'motoman_hc10_support/urdf/hc10_FGV.urdf'
+pre_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+package_path = pre_path + '/Modeles'
+urdf_path = package_path + '/motoman_hc10_support/urdf/hc10_FGV.urdf'
+
+
 robot = RobotWrapper()
 robot.initFromURDF(urdf_path, package_path, verbose=True)
 robot.initViewer(loadModel=True)
 robot.display(robot.q0)
 
+NJOINT = robot.model.njoints  # number of links
 data = robot.data
 model = robot.model
+
+
 
 def Generate_posture_static():
     
@@ -31,9 +39,9 @@ def Generate_posture_static():
     Q_total=np.array(Q_total)
     posture1=np.array([[0],[0],[0],[0],[0],[0]])
     Q_total=posture1
-    print("shape of posture 1",np.array(posture1).shape)
+    #print("shape of posture 1",np.array(posture1).shape)
 
-    print("shape of Q",Q_total.shape)
+    #print("shape of Q",Q_total.shape)
     Q_total=np.concatenate([Q_total,posture1], axis=1)
 
     posture2=np.array([[0],[math.pi/2],[-math.pi/2],[0],[0],[0]])
@@ -214,9 +222,22 @@ def Generate_posture_static():
     return Q_total
 
 if __name__=="__main__":
-    Q=[]
-    Q=Generate_posture_static()
-    for i in range(Q[0].size):
-        robot.display(Q[:,i])
-        sleep(0.5)
+    Q_pos=[]
+    Q_pos=Generate_posture_static()
+    #print('shape of Q',np.array(Q).shape)
+    for i in range(Q_pos[0].size):
+        robot.display(Q_pos[:,i])
+        sleep(0.1)
+    print('shape of Q',np.array(Q_pos).shape)
+# ========== Step 2 - generate inertial parameters for all links (excepted the base link)
+    names,phi = Generate_inertial_parameter()
 
+# ========== Step 3- Create IDM with pinocchio (regression matrix)
+    W_reg_Pin = Generate_Regression_vector(Q_pos)
+    #print('shape of Q',np.array(Q).shape)
+# ========== Step 4- Redim regression vector (no dq,ddq)   
+    neW_reg = Redimention_Regression_vector(W_reg_Pin)
+    print('shape of neW_reg',np.array(neW_reg).shape)
+    print(neW_reg)
+    Generate_text(neW_reg)
+    
