@@ -18,19 +18,19 @@ class NeuralNetwork(tf.keras.Model):
         self.dense2 = layers.Dense(64, activation=tf.nn.relu)
         self.out = layers.Dense(2)
 
-    def get_data(self, filename, sep, skiprows, column_names):
+    def get_data(self, filename, separator, skip_rows, column_names):
         """
         Function that allows the user to get data from a csv of txt file
 
         :param filename: name of the file from which to get data
-        :param sep: character that separates values
-        :param skiprows: how many rows to skip
+        :param separator: character that separates values
+        :param skip_rows: how many rows to skip
         :param column_names: names of each column
         :return: DataFrame with all the data from the file
         """
         return pd.read_csv(filename,
-                           sep=sep,
-                           skiprows=skiprows,
+                           sep=separator,
+                           skiprows=skip_rows,
                            names=column_names)
 
     def separate_data(self, dataset, repartition):
