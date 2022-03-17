@@ -117,6 +117,35 @@ class NeuralNetwork(tf.keras.Model):
 
         return history
 
+    def get_target(self, train_dataset, test_dataset, nb_axes):
+        """
+        Function that gives targets for the train and for the test according to the number of joints used
+
+        :param train_dataset:
+        :param test_dataset:
+        :param nb_axes: number of joints used
+        :return: 2 dataset with only the target in it, one for training and one for test
+        """
+        index = nb_axes * 3     # *3 to have q, dq, ddq for each joint
+        return train_dataset.T[index:].T, test_dataset.T[index:].T
+
+    def evaluate_model(self, model, dataset, target, show_result=False):
+        """
+        Function that evaluates the model in order to see if the neural network is learning well
+
+        :param model: model to evaluate
+        :param dataset: dataset on which to evalaute the model
+        :param target: target to aim
+        :param show_result: (False by default) if True, show values of the loss and the accuracy
+        :return: the model evaluated
+        """
+        result = {'model': model.evaluate(dataset, target)}
+
+        if show_result:
+            print("Loss : {} / Accuracy : {}".format(result['model'][0], result['model'][1]))
+
+        return result
+
 
 if __name__ == '__main__':
     # filename = "../Identification/2dof_data_LC.txt"
