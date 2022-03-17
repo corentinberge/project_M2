@@ -1,3 +1,4 @@
+from cmath import tau
 from contextlib import suppress
 import math
 from sqlite3 import Time
@@ -40,7 +41,7 @@ NJOINT = robot.model.njoints  # number of links
 gv = robot.viewer.gui
 
 #sampling time 
-Tech=(1/50)
+Tech=(1/100)
 # INITIALISATION 
 deg_5=-0.08726646259971647
 deg_5=deg_5+0.25*deg_5
@@ -546,7 +547,7 @@ def read_tau_q_dq_ddq_fromTxt(nbr_of_joint):
     package_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) 
     file_path = package_path + '/src/identification_YASKAWA/data_torque _q_dq.txt'
     f = open(file_path,'r')
-    
+    tau_par_ordre=[]
     tau1=[]
     tau2=[]
     tau3=[]
@@ -627,39 +628,46 @@ def read_tau_q_dq_ddq_fromTxt(nbr_of_joint):
     tau_simu_gazebo=np.array(tau_simu_gazebo)
     tau_simu_gazebo=np.double(tau_simu_gazebo)
 
-    ddq=[[],[],[],[],[],[]]
-    dq_th=[[],[],[],[],[],[]]
+    tau_par_ordre.extend(tau1)
+    tau_par_ordre.extend(tau2)
+    tau_par_ordre.extend(tau3)
+    tau_par_ordre.extend(tau4)
+    tau_par_ordre.extend(tau5)
+    tau_par_ordre.extend(tau6)
+    tau_par_ordre=np.array(tau_par_ordre)
+    tau_par_ordre=np.double(tau_par_ordre)
 
-    for joint_index in range(nbr_of_joint):
+    # ddq=[[],[],[],[],[],[]]
+    # dq_th=[[],[],[],[],[],[]]
 
-        for i in range(dq[0].size-1):
-            j=i+1
-            da=(dq[joint_index][j]-dq[joint_index][i])/Tech
-            # print('da=\t','dv',(v[j]-v[i]),'/dt',(time[j]-time[i]),'=',da)
-            ddq[joint_index].append(da)
+    # for joint_index in range(nbr_of_joint):
+
+    #     for i in range(dq[0].size-1):
+    #         j=i+1
+    #         da=(dq[joint_index][j]-dq[joint_index][i])/Tech
+    #         # print('da=\t','dv',(v[j]-v[i]),'/dt',(time[j]-time[i]),'=',da)
+    #         ddq[joint_index].append(da)
         
-        ddq[joint_index].append(0)
+    #     ddq[joint_index].append(0)
    
-    ddq=np.array(ddq)
+    # ddq=np.array(ddq)
 
-    for joint_index in range(nbr_of_joint):
+    # for joint_index in range(nbr_of_joint):
 
-        for i in range(q[0].size-1):
-            j=i+1
-            dv=(q[joint_index][j]-q[joint_index][i])/Tech
-            # print('da=\t','dv',(v[j]-v[i]),'/dt',(time[j]-time[i]),'=',da)
-            dq_th[joint_index].append(dv)
+    #     for i in range(q[0].size-1):
+    #         j=i+1
+    #         dv=(q[joint_index][j]-q[joint_index][i])/Tech
+    #         # print('da=\t','dv',(v[j]-v[i]),'/dt',(time[j]-time[i]),'=',da)
+    #         dq_th[joint_index].append(dv)
         
-        dq_th[joint_index].append(dv)
+    #     dq_th[joint_index].append(dv)
     
-    dq_th=np.array(dq_th)
+    # dq_th=np.array(dq_th)
     
     print("shape of q",q.shape)
-    print("shape of dq",dq_th.shape)
-    print("shape of ddq",ddq.shape)
     print("shape of tau_simu_gazebo",tau_simu_gazebo.shape)
 
-    return tau_simu_gazebo,q,dq,ddq,dq_th
+    return tau_simu_gazebo,q,dq,tau_par_ordre
 
 def plot_QVA_total(time,nbr_joint,Q_total,V_total,A_total,name):
     # # this function take in input: position of the joint qi
@@ -2165,12 +2173,18 @@ def Base_regressor(Q_total,V_total,A_total,tau_experimentale):
 
     # # ========== Step 4 - Create IDM with pinocchio (regression matrix)
     # w = []  # Regression vector
+    
     w_pin=[]
-    ## w pour I/O generer par pinocchio
+    # w pour I/O generer par pinocchio
+
     for i in range(nbSamples):
         w_pin.extend(pin.computeJointTorqueRegressor(model, data, q_pin[:, i], dq_pin[:, i], ddq_pin[:, i]))
     w_pin=np.array(w_pin)
 
+    # for i in range(6):
+    #     w_pin.extend(pin.computeJointTorqueRegressor(model, data, q_pin[i, :], dq_pin[i,:], ddq_pin[i,:]))
+    # w_pin=np.array(w_pin)
+    
     # ========== Step 5 - Remove non dynamic effect columns then remove zero value columns then remove the parameters related to zero value columns at the end we will have a matix W_modified et Phi_modified
 
     threshold = 0.000001
@@ -2181,16 +2195,17 @@ def Base_regressor(Q_total,V_total,A_total,tau_experimentale):
 
     # W_modified = np.array(w[:])
     W_modified = np.array(w_pin[:])
-
-    tmp = []
-    for i in range(len(phi)):
-        if (np.dot([W_modified[:, i]], np.transpose([W_modified[:, i]]))[0][0] <= threshold):
-            tmp.append(i)
-    tmp.sort(reverse=True)
+    index_param_to_delete=[0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 12]
+    indexQR=48
+    # tmp = []
+    # for i in range(len(phi)):
+    #     if (np.dot([W_modified[:, i]], np.transpose([W_modified[:, i]]))[0][0] <= threshold):
+    #         tmp.append(i)
+    # tmp.sort(reverse=True)
 
     phi_modified = phi[:]
     names_modified = names[:]
-    for i in tmp:
+    for i in index_param_to_delete:
         W_modified = np.delete(W_modified, i, 1)
         phi_modified = np.delete(phi_modified, i, 0)
         names_modified = np.delete(names_modified, i, 0)
@@ -2204,25 +2219,29 @@ def Base_regressor(Q_total,V_total,A_total,tau_experimentale):
     (Q, R, P) = sp.qr(W_modified, pivoting=True)
 
     # ========== Step 7 - Calculate base parameters
-    tmp = 0
+    # tmp = 0
 
-    for i in range(np.diag(R).shape[0]):
-            if abs(np.diag(R)[i]) < threshold:
-                tmp = i
+    # for i in range(np.diag(R).shape[0]):
+    #         if abs(np.diag(R)[i]) < threshold:
+    #             tmp = i
 
-    R1 = R[:tmp, :tmp]
-    R2 = R[:tmp, tmp:]
-    Q1 = Q[:, :tmp]
-   
-    for i in (tmp, len(P)-1):
-        names.pop(P[i])
+    R1 = R[:indexQR, :indexQR]
+    R2 = R[:indexQR, indexQR:]
+    Q1 = Q[:, :indexQR]
     
-    beta = np.dot(np.linalg.inv(R1), R2)
+    for i in (indexQR, len(P)-1):
+        names.pop(P[i])
+    print('shape of R1',np.array(R1).shape)
+    print('shape of R2',np.array(R2).shape)
+
+    beta = np.dot(np.linalg.pinv(R1), R2)
     print('Shape of beta:\t', np.array(beta).shape)
 
     # ========== Step 8 - Calculate the Phi modified
 
-    phi_base = np.dot(np.linalg.inv(R1), np.dot(Q1.T,tau))  # Base parameters
+    phi_base = np.dot(np.linalg.pinv(R1), np.dot(Q1.T,tau))  # Base parameters
+    print('shape of phi_base:\t', np.array(phi_base).shape)
+
     W_base = np.dot(Q1, R1)                             # Base regressor
     print('Shape of W_base:\t', np.array(W_base).shape)
 
@@ -2238,14 +2257,14 @@ def Base_regressor(Q_total,V_total,A_total,tau_experimentale):
         params_rsortedname.append(names_modified[ind])
 
 
-    params_idp_val = params_rsortedphi[:tmp]
-    params_rgp_val = params_rsortedphi[tmp]
-    params_idp_name =params_rsortedname[:tmp]
-    params_rgp_name = params_rsortedname[tmp]
+    params_idp_val = params_rsortedphi[:indexQR]
+    params_rgp_val = params_rsortedphi[indexQR]
+    params_idp_name =params_rsortedname[:indexQR]
+    params_rgp_name = params_rsortedname[indexQR]
     params_base = []
     params_basename=[]
 
-    for i in range(tmp):
+    for i in range(indexQR):
     # for i in range(tmp+1):
         if beta[i] == 0:
             params_base.append(params_idp_val[i])
@@ -2263,9 +2282,46 @@ def Base_regressor(Q_total,V_total,A_total,tau_experimentale):
     print('shape of bqse param vector',np.array(params_base).shape)
     # calculation of the torque vector using the base regressor and the base parameter 
     tau_param_base=np.dot(W_base,params_base)
+    
+    tau1=tau_param_base[0:tau_param_base.size -5:6]
+    tau2=tau_param_base[1:tau_param_base.size -4:6]
+    tau3=tau_param_base[2:tau_param_base.size -3:6]
+    tau4=tau_param_base[3:tau_param_base.size -2:6]
+    tau5=tau_param_base[4:tau_param_base.size -1:6]#[start:stop:step]
+    tau6=tau_param_base[5:tau_param_base.size -0:6]
+    # print('shape of tau1 <3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<',np.array(tau1).shape)
+    # reshaping tau 
+    tau_reshape=[]
+    tau_reshape.extend(tau1)
+    tau_reshape.extend(tau2)
+    tau_reshape.extend(tau3)
+    tau_reshape.extend(tau4)
+    tau_reshape.extend(tau5)
+    tau_reshape.extend(tau6)
+    
+    tau_reshape=np.array(tau_reshape)
 
+
+    # print('shape of tau_reshape <3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<',tau_reshape.shape)
+    
+
+
+    return W_base,phi_base,tau_reshape
+
+def filter_butterworth(sampling_freq,f_coupure,signale):
+    sfreq = sampling_freq
+    f_p = f_coupure
+    nyq=sfreq/2
+    
+    sos = signal.iirfilter(5, f_p / nyq, btype='low', ftype='butter', output='sos')
+    signal_filtrer = signal.sosfiltfilt(sos, signale)
+
+    return signal_filtrer
+    
+def plot_torque_qnd_error(tau,tau_param_base):
+    
     samples = []
-    for i in range(NQ*nbSamples):
+    for i in range(tau.size):
             samples.append(i)
 
     # if we use W_modified=w_pin the we plot tau_pin (generated by Pin)
@@ -2273,7 +2329,7 @@ def Base_regressor(Q_total,V_total,A_total,tau_experimentale):
 
     plt.figure('torque pin/than et torque base parameters')
     # plt.plot(samples, tau_pin, 'g', linewidth=2, label='tau')
-    plt.plot(samples, tau, 'g', linewidth=2, label='tau')
+    plt.plot(samples, tau, 'g', linewidth=1, label='tau')
     plt.plot(samples,tau_param_base, 'b', linewidth=1, label='tau base param ')
     plt.title('tau tau_estime with base param ')
     plt.xlabel('2000 Samples')
@@ -2289,95 +2345,80 @@ def Base_regressor(Q_total,V_total,A_total,tau_experimentale):
     plt.title("erreur quadratique")
     plt.legend()
     plt.show()
-    return W_base,phi_base,tau_param_base
-
-
-def filter_butterworth(sampling_freq,f_coupure,signale):
-    sfreq = sampling_freq
-    f_p = f_coupure
-    nyq=sfreq/2
-    
-    sos = signal.iirfilter(5, f_p / nyq, btype='low', ftype='butter', output='sos')
-    signal_filtrer = signal.sosfiltfilt(sos, signale)
-
-    return signal_filtrer
-    
 
 
 if __name__ == "__main__":
 
     # # trajectory_axe2axe_palier_de_vitesse_one_joint()
-    # # axe2axe_palier_de_vitesse_all_joint_one_by_one()
-    
+    # # axe2axe_palier_de_vitesse_all_joint_one_samp=[]
+    # for i in range(np.array(V_filtrer).size):
+    #     samp.append(i)
+    # plt.figure('V velocity calculated via derivation(dq)')
+    # plt.title('V velocity calculated via derivation(dq)')
+    # plt.plot(samp,(V_filtrer),linewidth=2, label='V_filtr')
+    # plt.plot(samp,(V_total[0]),linewidth=1, label='V')
+    # plt.xlabel('t sec')
+    # plt.ylabel('V(m/s)')
+    # plt.legend()
+    # plt.show()by_one()
+    nbr_of_joint=6
     Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint=trajectory_axe2axe_palier_de_vitesse_one_joint()
+    
+    Q_filtrer=[[],[],[],[],[],[]]
+    V_filtrer=[[],[],[],[],[],[]]
+    A_filtrer=[[],[],[],[],[],[]]
 
-    tau_experimentale,Q_total,V_total,A_total,dq_th=read_tau_q_dq_ddq_fromTxt(nbr_of_joint=6)
-    V_filtrer=filter_butterworth(500,100,V_total[0])
-    samp=[]
-    for i in range(np.array(V_filtrer).size):
-        samp.append(i)
-    plt.figure('V velocity calculated via derivation(dq)')
-    plt.title('V velocity calculated via derivation(dq)')
-    plt.plot(samp,(V_filtrer),linewidth=1, label='V_filtr')
-    plt.plot(samp,(V_total[0]),linewidth=1, label='V')
-    plt.xlabel('t sec')
-    plt.ylabel('V(m/s)')
-    plt.legend()
-    plt.show()
+    tau_simu_mauvais_ordre,Q_total,V_total,tau_simu_par_ordre=read_tau_q_dq_ddq_fromTxt(nbr_of_joint)# gazebo
 
-    # plot_QVA_total([],6,Q_total,V_total,A_total,'test')
+    tau_simu_mauvais_ordre=filter_butterworth(100,5,tau_simu_mauvais_ordre)
+    tau_filtrer=filter_butterworth(100,5,tau_simu_par_ordre)
+    # tau_filtrer=tau_simu_par_ordre
+    
+    
 
-    # nbSamples=1500
-    # q_pin = np.random.rand(NQ, nbSamples) * np.pi - np.pi/2  # -pi/2 < q < pi/2
-    # dq_pin = np.random.rand(NQ, nbSamples) * 10              # 0 < dq  < 10
-    # ddq_pin = np.random.rand(NQ, nbSamples) * 2               # 0 < dq  < 2
-    # # tau_pin = np.random.rand(NQ*nbSamples) * 4
-    # tau_pin=[]
-    # # Generate ouput with pin
-    # for i in range(nbSamples):
-    #     tau_pin.extend(pin.rnea(model, data, q_pin[:, i], dq_pin[:, i], ddq_pin[:, i]))
-    # print('Shape of tau_pin:\t', np.array(tau_pin).shape)
-    # tau_pin=np.array(tau_pin)
-    # tau_pin=np.double(tau_pin)
+    for i in range(6):
+        Q_filtrer[i]=filter_butterworth(100,5,Q_total[i])
+        V_filtrer[i]=filter_butterworth(100,5,V_total[i])
+    dq=V_filtrer
 
-    # W_base,phi_base,tau_param_base=Base_regressor(Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint,tau_experimentale)
+    ddq=[[],[],[],[],[],[]]
+    
+    for joint_index in range(nbr_of_joint):
 
-    # W_base,phi_base,tau_param_base=Base_regressor(Q_total,V_total,A_total,tau_experimentale)
-     
-
-
-    # phi_etoile=genrate_W_And_torque_simulation_pin(Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint)
-   
-
-    # # genrate_W_And_torque_pin_rand(1000)
-
-    # nbr_of_joint=6   
-    # tau_experimentale,Q_total,V_total,A_total,dq_th=read_tau_q_dq_ddq_fromTxt(nbr_of_joint)
-
-    # print('shape of q data file',np.array(Q_total).shape)
-    # # print('shape of q trajectoire',np.array(Q_total_All_Joint).shape)
-
-    # # plot_QVA_total([],nbr_of_joint,Q_total,V_total,A_total,"_joint_")
-    # phi_etoile=genrate_W_And_torque_experimentale(Q_total,V_total,A_total,tau_experimentale)
-
-    # for i in range(4):
-    #     print('phi_etoile',i,phi_etoile[i])
-    #     print('phi_etoile',i+6,phi_etoile[i+6])
-    #     print('phi_etoile',i+12,phi_etoile[i+12])
-    #     print('phi_etoile',i+18,phi_etoile[i+18])
-    #     print('phi_etoile',i+24,phi_etoile[i+24])
-    #     print('phi_etoile',i+28,phi_etoile[i+28])
+        for i in range(dq[0].size-1):
+            j=i+1
+            da=(dq[joint_index][j]-dq[joint_index][i])/Tech
+            # print('da=\t','dv',(v[j]-v[i]),'/dt',(time[j]-time[i]),'=',da)
+            ddq[joint_index].append(da)
         
-    # print('m1  : ',phi_etoile[0])
-    # print('m2 : ',phi_etoile[10])
-    # print('m3 : ',phi_etoile[20])
-    # print('m4 : ',phi_etoile[30])
+        ddq[joint_index].append(0)
+   
+    ddq=np.array(ddq)
 
-    # print('m5  : ',phi_etoile[40])
-    # print('m6 : ',phi_etoile[50])
-    # print('my2 : ',phi_etoile[12])
-    # print('mz2 : ',phi_etoile[13])
- 
+    plot_QVA_total([],nbr_of_joint,Q_filtrer,V_filtrer,ddq,'name')
+
+    # samp=[]
+    # for i in range(np.array(V_filtrer[0]).size):
+    #     samp.append(i)
+    # plt.figure('V velocity calculated via derivation(dq)')
+    # plt.title('V velocity calculated via derivation(dq)')
+    # # plt.plot(samp,(V_filtrer),linewidth=2, label='V_filtr')
+    # plt.plot(samp,(ddq[0]),linewidth=1, label='V')
+    # plt.xlabel('t sec')
+    # plt.ylabel('V(m/s)')
+    # plt.legend()
+    # plt.show()
+
+    Q_filtrer=np.array(Q_filtrer)
+    V_filtrer=np.array(V_filtrer)
+    A_filtrer=np.array(ddq)
+    print(Q_filtrer.shape)
+    print(V_filtrer.shape)
+    print(A_filtrer.shape)
+
+    W_base,phi_base,tau_param_base_reshaped=Base_regressor(Q_filtrer,V_filtrer,A_filtrer,tau_simu_mauvais_ordre)
+    plot_torque_qnd_error(tau_filtrer,tau_param_base_reshaped)
+
 
 '''
 # initialisation
