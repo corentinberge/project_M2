@@ -17,6 +17,8 @@ from typing import Optional
 from typing import Optional
 import qpsolvers
 from time import sleep 
+import scipy
+from scipy import signal
 
 np.set_printoptions(precision=150,suppress=True)
 
@@ -1543,7 +1545,7 @@ def generateQuinticPolyTraj_version_GF(Jc0,Jcf,vmax,Tech):
 
     # print('T shape',np.array(T).shape)
     # print('Q shape',np.array(q).shape)
-    vmax=0.6*vmax
+    # vmax=0.6*vmax
     
     tf=15*np.abs(Jcf[0]-Jc0[0])/(8*vmax)
     NbSample_interpolate=int (tf/Tech) +1
@@ -2290,6 +2292,18 @@ def Base_regressor(Q_total,V_total,A_total,tau_experimentale):
     return W_base,phi_base,tau_param_base
 
 
+def filter_butterworth(sampling_freq,f_coupure,signale):
+    sfreq = sampling_freq
+    f_p = f_coupure
+    nyq=sfreq/2
+    
+    sos = signal.iirfilter(5, f_p / nyq, btype='low', ftype='butter', output='sos')
+    signal_filtrer = signal.sosfiltfilt(sos, signale)
+
+    return signal_filtrer
+    
+
+
 if __name__ == "__main__":
 
     # # trajectory_axe2axe_palier_de_vitesse_one_joint()
@@ -2297,7 +2311,21 @@ if __name__ == "__main__":
     
     Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint=trajectory_axe2axe_palier_de_vitesse_one_joint()
 
-    # tau_experimentale,Q_total,V_total,A_total,dq_th=read_tau_q_dq_ddq_fromTxt(nbr_of_joint=6)
+    tau_experimentale,Q_total,V_total,A_total,dq_th=read_tau_q_dq_ddq_fromTxt(nbr_of_joint=6)
+    V_filtrer=filter_butterworth(500,100,V_total[0])
+    samp=[]
+    for i in range(np.array(V_filtrer).size):
+        samp.append(i)
+    plt.figure('V velocity calculated via derivation(dq)')
+    plt.title('V velocity calculated via derivation(dq)')
+    plt.plot(samp,(V_filtrer),linewidth=1, label='V_filtr')
+    plt.plot(samp,(V_total[0]),linewidth=1, label='V')
+    plt.xlabel('t sec')
+    plt.ylabel('V(m/s)')
+    plt.legend()
+    plt.show()
+
+    # plot_QVA_total([],6,Q_total,V_total,A_total,'test')
 
     # nbSamples=1500
     # q_pin = np.random.rand(NQ, nbSamples) * np.pi - np.pi/2  # -pi/2 < q < pi/2

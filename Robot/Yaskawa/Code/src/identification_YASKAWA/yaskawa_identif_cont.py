@@ -56,7 +56,7 @@ nbSamples = 1000  # number of samples
 # the idea is to have severale input/output so we can test the identification method
 #l'idee d'avoir plusieure input/output afin de mieux tester la methode d'identification
 q_pin = np.random.rand(NQ, nbSamples) * np.pi - np.pi/2  # -pi/2 < q < pi/2
-dq_pin = np.random.rand(NQ, nbSamples) * 10              # 0 < dq  < 10
+dq_pin = np.random.rand(NQ, nbSamples) * 10              # 0 < dq  < 10 revoir max 2,3,4
 ddq_pin = np.random.rand(NQ, nbSamples) * 2               # 0 < dq  < 2
 # tau_pin = np.random.rand(NQ*nbSamples) * 4
 tau_pin=[]
