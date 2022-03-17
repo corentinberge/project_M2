@@ -225,7 +225,7 @@ def Generate_inertial_parameter():
     names = []
     for i in range(1, NJOINT):
         names += ['m'+str(i), 'mx'+str(i), 'my'+str(i), 'mz'+str(i)]
-    print(names)
+    #print(names)
     phi = []
     for i in range(1, NJOINT):
         phi.extend(model.inertias[i].toDynamicParameters())
@@ -256,6 +256,20 @@ def Redimention_Regression_vector(W_reg_Pin):
     newR = np.delete(newR, np.s_[4:10], axis = 1)
     return newR
 
+def Redimention_No_Regression_vector(W_reg_Pin):
+    newR = np.delete(W_reg_Pin, np.s_[49:55], axis = 1)
+    print('shape of 1',np.array(newR).shape)
+    newR = np.delete(newR, np.s_[39:45], axis = 1)
+    print('shape of 2',np.array(newR).shape)
+    newR = np.delete(newR, np.s_[29:35], axis = 1)
+    print('shape of 3',np.array(newR).shape)
+    newR = np.delete(newR, np.s_[19:25], axis = 1)
+    print('shape of 4',np.array(newR).shape)
+    newR = np.delete(newR, np.s_[9:15], axis = 1)
+    print('shape of 5',np.array(newR).shape)
+    newR = np.delete(newR, np.s_[:5], axis = 1)
+    print('shape of 6',np.array(newR).shape)
+    return newR
 def Generate_text(neW_reg):
     f = open( 'New_regresseur.txt','w')
     for i in range(348):
@@ -266,7 +280,7 @@ def Generate_text(neW_reg):
         f.write('\n')
     f.close()
 
-if __name__=="__main__": #POur fadi
+if __name__=="__main__": 
     Q_pos=[]
     Q_pos=Generate_posture_static()
     #print('shape of Q',np.array(Q).shape)
@@ -281,9 +295,9 @@ if __name__=="__main__": #POur fadi
     W_reg_Pin = Generate_Regression_vector(Q_pos)
     #print('shape of Q',np.array(Q).shape)
 # ========== Step 4- Redim regression vector (no dq,ddq)   
-    neW_reg = Redimention_Regression_vector(W_reg_Pin)
-    print('shape of neW_reg',np.array(neW_reg).shape)
-    print(neW_reg)
+    neW_reg = Redimention_No_Regression_vector(W_reg_Pin)
+    print('shape of Fin',np.array(neW_reg).shape)
+    #print(neW_reg)
     Generate_text(neW_reg)
     print(names)
     
