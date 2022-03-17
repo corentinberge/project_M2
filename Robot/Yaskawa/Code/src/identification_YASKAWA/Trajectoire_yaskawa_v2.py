@@ -45,8 +45,8 @@ Tech=(1/100)
 # INITIALISATION 
 deg_5=-0.08726646259971647
 deg_5=deg_5+0.25*deg_5
-q_start=[-3.141592653589793-1*deg_5,-3.141592653589793-1*deg_5, -0.08726646259971647-1*deg_5,-3.141592653589793-1*deg_5, -3.141592653589793-1*deg_5, -3.141592653589793-1*deg_5]
-q_end=[3.141592653589793, 3.141592653589793, 6.19591884457987, 3.141592653589793, 3.141592653589793, 3.141592653589793] 
+q_start=[-3.141592653589793-1*deg_5,-3.141592653589793/4-1*deg_5, -0.08726646259971647-1*deg_5,-3.141592653589793-1*deg_5, -3.141592653589793-1*deg_5, -3.141592653589793-1*deg_5]
+q_end=[3.141592653589793, 3.141592653589793/4, 6.19591884457987, 3.141592653589793, 3.141592653589793, 3.141592653589793] 
 Vmax=[2.2689280275926285, 2.2689280275926285, 3.141592653589793, 3.141592653589793, 4.36, 4.36]
 acc_max=[4,4,4,4,4,4]
 
@@ -70,7 +70,7 @@ Jci_avBute=np.array([
 
 Jcf_avBute=np.array([
                 [-math.pi-1*deg_5 ,0,acc_max[0]],
-                [-math.pi-1*deg_5,0,acc_max[1]],
+                [-math.pi/4-1*deg_5,0,acc_max[1]],
                 [ -0.08726646259971647-1*deg_5,0,acc_max[2]],
                 [-math.pi-1*deg_5 ,0,acc_max[3]],
                 [-math.pi-1*deg_5 ,0,acc_max[4]],
@@ -79,7 +79,7 @@ Jcf_avBute=np.array([
 
 Jci_aprBute=np.array([
                 [-math.pi-1*deg_5,0,-acc_max[0]],
-                [-math.pi-1*deg_5,0,-acc_max[1]],
+                [-math.pi/4-1*deg_5,0,-acc_max[1]],
                 [ -0.08726646259971647-1*deg_5,0,acc_max[2]],
                 [-math.pi-1*deg_5,0,-acc_max[3]],
                 [-math.pi-1*deg_5,0,-acc_max[4]],
@@ -2348,8 +2348,8 @@ def plot_torque_qnd_error(tau,tau_param_base):
 
 
 if __name__ == "__main__":
-
-    # # trajectory_axe2axe_palier_de_vitesse_one_joint()
+    axe2axe_palier_de_vitesse_all_joint_one_by_one()
+    # trajectory_axe2axe_palier_de_vitesse_one_joint()
     # # axe2axe_palier_de_vitesse_all_joint_one_samp=[]
     # for i in range(np.array(V_filtrer).size):
     #     samp.append(i)
@@ -2362,8 +2362,8 @@ if __name__ == "__main__":
     # plt.legend()
     # plt.show()by_one()
     nbr_of_joint=6
-    Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint=trajectory_axe2axe_palier_de_vitesse_one_joint()
-    
+    # Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint=trajectory_axe2axe_palier_de_vitesse_one_joint()
+
     Q_filtrer=[[],[],[],[],[],[]]
     V_filtrer=[[],[],[],[],[],[]]
     A_filtrer=[[],[],[],[],[],[]]
@@ -2372,10 +2372,7 @@ if __name__ == "__main__":
 
     tau_simu_mauvais_ordre=filter_butterworth(100,5,tau_simu_mauvais_ordre)
     tau_filtrer=filter_butterworth(100,5,tau_simu_par_ordre)
-    # tau_filtrer=tau_simu_par_ordre
     
-    
-
     for i in range(6):
         Q_filtrer[i]=filter_butterworth(100,5,Q_total[i])
         V_filtrer[i]=filter_butterworth(100,5,V_total[i])
