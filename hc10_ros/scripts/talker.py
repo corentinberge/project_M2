@@ -17,7 +17,7 @@ def talker():
         rate = rospy.Rate(10) # 10hz
 
     # Open file
-    f = open("trajectoire.txt", "r")
+    f = open("data/trajectoire_simple.txt", "r")
 
     # robot = RobotWrapper()
     # robot.initFromURDF(urdf_path, package_path, verbose=True)
@@ -27,14 +27,14 @@ def talker():
 
     while not rospy.is_shutdown():
             
-        tmp = [f.readline() for i in range(1,250)]
+        # tmp = [f.readline() for i in range(1,250)]
         l = f.readline()
 
         # If EOF => Loop on file
-        if len(l) == 0:
-            f.close()
-            f = open("trajectoire.txt", "r")
-            l = f.readline()
+        # if len(l) == 0:
+        #     f.close()
+        #     f = open("trajectoire.txt", "r")
+        #     l = f.readline()
 
         q_data = l.split()
         q_data_float = [float(i) for i in q_data]

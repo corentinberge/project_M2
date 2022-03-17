@@ -66,8 +66,7 @@ install(
 catkin_install_python(
   PROGRAMS
   scripts/talker.py
-  scripts/listener.py
-  scripts/test_odo.py
+  scripts/test.py
   scripts/execute_trajectory.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
