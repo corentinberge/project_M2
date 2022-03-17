@@ -290,7 +290,7 @@ def trajectory_axe2axe_palier_de_vitesse_one_joint():
 
     # # plot_Trajectory(Q_pallier_vitesse)
     plot_QVA_total(T,nbr_joint,Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint,'joint_')
-    Generate_text_data_file_Q_txt(Q_total_All_Joint)
+    Generate_text_data_file_Q_txt(Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint)
     # tau,w=Generate_Torque_Regression_matrix(nbr_joint,Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint)
     # phi_etoile,tau_estime=estimation_with_qp_solver(w,tau)
     # print("shape of phi_etoile",phi_etoile.shape)
@@ -515,7 +515,7 @@ def trajectory_mode_a2a_sync():
 
     return Q_total,V_total,A_total,time,force
 
-def Generate_text_data_file_Q_txt(Q_total):
+def Generate_text_data_file_Q_txt(Q_total,V_total,A_total):
     # this function take in input q dq ddq tau for all the joint 
     # and write all the data in a file .txt
 
@@ -526,6 +526,8 @@ def Generate_text_data_file_Q_txt(Q_total):
 
     nbSamples=np.array(Q_total[0]).size
     q_pin=np.array(Q_total)
+    dq_pin=np.array(V_total)
+    ddq_pin=np.array(A_total)
     print('shape of Q ',q_pin.shape)
 
     i=0
@@ -536,7 +538,9 @@ def Generate_text_data_file_Q_txt(Q_total):
     
     for i in range(nbSamples):
         line=[str(q_pin[0][i]),'\t',str(q_pin[1][i]),'\t',str(q_pin[2][i]),'\t',str(q_pin[3][i]),'\t',str(q_pin[4][i]),
-                '\t',str(q_pin[5][i])]
+                '\t',str(q_pin[5][i]) ,'\t',str(dq_pin[0][i]),'\t',str(dq_pin[1][i]),'\t',str(dq_pin[2][i]),'\t',str(dq_pin[3][i]),'\t',str(dq_pin[4][i]),
+                '\t',str(dq_pin[5][i]) ,'\t',str(ddq_pin[0][i]),'\t',str(ddq_pin[1][i]),'\t',str(ddq_pin[2][i]),'\t',str(ddq_pin[3][i]),'\t',str(ddq_pin[4][i]),
+                '\t',str(ddq_pin[5][i])]
         f.writelines(line)
         f.write('\n')
         
@@ -545,7 +549,10 @@ def Generate_text_data_file_Q_txt(Q_total):
 def read_tau_q_dq_ddq_fromTxt(nbr_of_joint):
 
     package_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) 
-    file_path = package_path + '/src/identification_YASKAWA/data_torque _q_dq.txt'
+    # file_path = package_path + '/src/identification_YASKAWA/data_torque_q_dq.txt'
+    file_path = package_path + '/src/identification_YASKAWA/data_all_1.txt'
+    # file_path = package_path + '/src/identification_YASKAWA/data_all_2_one_by_one.txt'
+    
     f = open(file_path,'r')
     tau_par_ordre=[]
     tau1=[]
@@ -2348,8 +2355,8 @@ def plot_torque_qnd_error(tau,tau_param_base):
 
 
 if __name__ == "__main__":
-    axe2axe_palier_de_vitesse_all_joint_one_by_one()
-    # trajectory_axe2axe_palier_de_vitesse_one_joint()
+    # axe2axe_palier_de_vitesse_all_joint_one_by_one()
+    trajectory_axe2axe_palier_de_vitesse_one_joint()
     # # axe2axe_palier_de_vitesse_all_joint_one_samp=[]
     # for i in range(np.array(V_filtrer).size):
     #     samp.append(i)
