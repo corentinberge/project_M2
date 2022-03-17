@@ -44,7 +44,10 @@ class NeuralNetwork(tf.keras.Model):
         train_dataset = dataset.sample(frac=repartition, random_state=0)
         return train_dataset, dataset.drop(train_dataset.index)
 
-    def create_model(self, input_shape, learning_rate):
+    def normalize_data(self):
+        return tf.keras.layers.Normalization(axis=-1)
+
+    def create_model(self, input_shape, learning_rate, show_summary=False):
         """
         Function that creates the model.
         It is composed by :
@@ -54,16 +57,22 @@ class NeuralNetwork(tf.keras.Model):
 
         :param input_shape: shape of the input
         :param learning_rate: learning rate used by the optimizer
-        :return: the model created
+        :param show_summary: (False by default) if True, show the architecture of the model
+        :return: the created model
         """
+        normalizer = self.normalize_data()
+
         inputs = tf.keras.Input(shape=input_shape)
 
-        x = self.dense1(inputs)
+        x = normalizer(inputs)
+        x = self.dense1(x)
         x = self.dense2(x)
         outputs = self.out(x)
 
         model = tf.keras.Model(inputs=inputs, outputs=outputs)
-        model.summary()
+
+        if show_summary:
+            model.summary()
 
         model.compile(
             loss='mean_absolute_error',  # loss function to minimize
