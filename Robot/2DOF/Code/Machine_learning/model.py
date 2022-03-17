@@ -151,33 +151,45 @@ class NeuralNetwork(tf.keras.Model):
 
 
 if __name__ == '__main__':
-    # filename = "../Identification/2dof_data_LC.txt"
+    # Initialisation of the parameters
+    filename = "../Identification/2dof_data_LC.txt"
     # filename = "../Identification/2dof_data_LC_V1.txt"
-    filename = "../Identification/2dof_data_LC_V3_syncronized.txt"
+    # filename = "../Identification/2dof_data_LC_V3_syncronized.txt"
 
-    my_model = NeuralNetwork()
-    raw_dataset = my_model.get_data(filename, '\t', 1, ["q1", "q2", "dq1", "dq2", "ddq1", "ddq2", "tau1", "tau2"])
-
-    dataset = raw_dataset.copy()
-
-    train_dataset, test_dataset = my_model.separate_data(dataset, 0.8)
-
-    model = my_model.create_model((8, ), 0.001)
-
-    train_que_tau = train_dataset.T[6:].T
-    test_que_tau = test_dataset.T[6:].T
+    column_names = ["q1", "q2", "dq1", "dq2", "ddq1", "ddq2", "tau1", "tau2"]
 
     batch_size = 64
     epochs = 100
 
-    history = my_model.train_model(model, train_dataset, train_que_tau, batch_size, epochs, True, True)
+    nb_axes = 3
 
-    test_results = {'model': model.evaluate(test_dataset, test_que_tau)}
+    # Creation of the object
+    my_model = NeuralNetwork()
 
-    print("\t ----- Test -----")
-    print("Loss : ", test_results['model'][0])
-    print("Accuracy : ", test_results['model'][1])
+    """
+    Functions calls
+    """
+    # Get data from file
+    raw_dataset = my_model.get_data(filename, '\t', 1, column_names)
 
+    dataset = raw_dataset.copy()
+
+    # Separate data between train and test
+    train_dataset, test_dataset = my_model.separate_data(dataset, repartition=0.8)
+
+    # Create model
+    model = my_model.create_model((8, ), learning_rate=0.001)
+
+    # Get target from both train and test dataset
+    train_que_tau, test_que_tau = my_model.get_target(train_dataset, test_dataset, nb_axes)
+
+    # Train the model
+    history = my_model.train_model(model, train_dataset, train_que_tau, batch_size, epochs, plot_loss=True, plot_accuracy=True)
+
+    # Evaluate the model
+    result = my_model.evaluate_model(model, test_dataset, test_que_tau, show_result=True)
+
+    # Predictions
     test_predictions = model.predict(test_dataset).flatten()
 
     print()
