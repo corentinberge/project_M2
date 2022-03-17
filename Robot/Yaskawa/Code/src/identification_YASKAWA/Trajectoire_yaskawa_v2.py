@@ -550,8 +550,8 @@ def read_tau_q_dq_ddq_fromTxt(nbr_of_joint):
 
     package_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) 
     # file_path = package_path + '/src/identification_YASKAWA/data_torque_q_dq.txt'
-    file_path = package_path + '/src/identification_YASKAWA/data_all_1.txt'
-    # file_path = package_path + '/src/identification_YASKAWA/data_all_2_one_by_one.txt'
+    # file_path = package_path + '/src/identification_YASKAWA/data_all_1.txt'
+    file_path = package_path + '/src/identification_YASKAWA/data_all_2_one_by_one.txt'
     
     f = open(file_path,'r')
     tau_par_ordre=[]
@@ -2356,7 +2356,7 @@ def plot_torque_qnd_error(tau,tau_param_base):
 
 if __name__ == "__main__":
     # axe2axe_palier_de_vitesse_all_joint_one_by_one()
-    trajectory_axe2axe_palier_de_vitesse_one_joint()
+    # trajectory_axe2axe_palier_de_vitesse_one_joint()
     # # axe2axe_palier_de_vitesse_all_joint_one_samp=[]
     # for i in range(np.array(V_filtrer).size):
     #     samp.append(i)
@@ -2420,8 +2420,8 @@ if __name__ == "__main__":
     print(V_filtrer.shape)
     print(A_filtrer.shape)
 
-    W_base,phi_base,tau_param_base_reshaped=Base_regressor(Q_filtrer,V_filtrer,A_filtrer,tau_simu_mauvais_ordre)
-    plot_torque_qnd_error(tau_filtrer,tau_param_base_reshaped)
+    # W_base,phi_base,tau_param_base_reshaped=Base_regressor(Q_filtrer,V_filtrer,A_filtrer,tau_simu_mauvais_ordre)
+    # plot_torque_qnd_error(tau_filtrer,tau_param_base_reshaped)
 
 
 '''
