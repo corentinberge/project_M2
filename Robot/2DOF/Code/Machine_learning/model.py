@@ -45,6 +45,9 @@ class NeuralNetwork(tf.keras.Model):
         return train_dataset, dataset.drop(train_dataset.index)
 
     def normalize_data(self):
+        """
+        :return: one layer of normalization
+        """
         return tf.keras.layers.Normalization(axis=-1)
 
     def create_model(self, input_shape, learning_rate, show_summary=False):
