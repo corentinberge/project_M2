@@ -161,7 +161,7 @@ if __name__ == '__main__':
     batch_size = 64
     epochs = 100
 
-    nb_axes = 3
+    nb_axes = 2
 
     # Creation of the object
     my_model = NeuralNetwork()
