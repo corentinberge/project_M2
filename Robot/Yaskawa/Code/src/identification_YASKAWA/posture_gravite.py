@@ -368,7 +368,7 @@ if __name__=="__main__":
     #print('shape of Q',np.array(Q).shape)
     for i in range(Q_pos[0].size):
         robot.display(Q_pos[:,i])
-        sleep(0.05)
+        sleep(0.8)
     print('shape of Q',np.array(Q_pos).shape)
 
 # ========== Step 2 - generate inertial parameters for all links (excepted the base link)
@@ -409,4 +409,3 @@ if __name__=="__main__":
     plt.legend()
     plt.show()
 #   print(names)
-    
