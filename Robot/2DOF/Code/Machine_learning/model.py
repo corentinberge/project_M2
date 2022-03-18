@@ -198,7 +198,7 @@ if __name__ == '__main__':
     train_dataset, test_dataset = my_model.separate_data(dataset, repartition=0.8)
 
     # Create model
-    model = my_model.create_model((8, ), learning_rate=0.001)
+    model = my_model.create_model((8, ), learning_rate=0.001, show_summary=True)
 
     # Get target from both train and test dataset
     train_que_tau, test_que_tau = my_model.get_target(train_dataset, test_dataset, nb_axes)
@@ -209,8 +209,11 @@ if __name__ == '__main__':
     # Evaluate the model
     result = my_model.evaluate_model(model, test_dataset, test_que_tau, show_result=True)
 
-    # Predictions
+    # Get all predicted torques
     predictions = my_model.get_predictions_all_torques(model, test_dataset)
+
+    # Get each predicted torques in a list
     tau1 = my_model.get_predictions_one_torque(predictions, 1)
+    tau2 = my_model.get_predictions_one_torque(predictions, 2)
 
     print()
