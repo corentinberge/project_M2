@@ -291,13 +291,13 @@ def Redimention_Regression_vector(W_reg_Pin,phi,names):
     print('the index vector to delete',index_vector_to_delete)
     return W_modified,phi_modified,names_modified
 
-def Calculate_base_param(Q, R, P):
+def Calculate_base_param(Q, R, P,Tau):
     tmp = 0
-    indexQR=0
+    #indexQR=0
     for i in range(np.diag(R).shape[0]):
             if abs(np.diag(R)[i]) < 0.000001:
                 tmp = i
-                indexQR=i
+                #indexQR=i
 
     print('index QR <3<3<3<3<3<3<3<3<3<3<3<3<3<3',indexQR)
     R1 = R[:tmp, :tmp]
@@ -315,7 +315,7 @@ def Calculate_base_param(Q, R, P):
     beta = np.dot(sp.pinv(R1), R2)
     print('Shape of beta:\t', np.array(beta).shape)
 
-    phi_base = np.dot(np.linalg.inv(R1), np.dot(Q1.T,tau))  # Base parameters
+    phi_base = np.dot(np.linalg.inv(R1), np.dot(Q1.T,Tau))  # Base parameters
     W_base = np.dot(Q1, R1)                             # Base regressor
     print('Shape of W_base:\t', np.array(W_base).shape)
     print('Shape of Phi_base:\t', np.array(phi_base).shape)
@@ -323,17 +323,20 @@ def Calculate_base_param(Q, R, P):
     return R1,R2,Q1,W_base,phi_base
 
 def Redimention_x2(Regresseur):
-    Regresseur =  np.array(Regresseur)
+    Exp_Regrs,T = Generate_Regression_vector(Q_pos,Q_pos.shape[1])
+    Regresseur =  np.array(Exp_Regrs)
     Regresseur = np.delete(Regresseur,index_vector_to_delete, axis=1)
-    Regresseur = np.delete(Regresseur,indexQR, axis=1)
+    (Q_1, R_1, P_1) = sp.qr(Regresseur, pivoting=True)
+    R1_1,R1_1,Q1_1,W_base1,phi_base1 = Calculate_base_param(Q_1, R_1, P_1,T)
+    #Regresseur = np.delete(Regresseur,indexQR, axis=1)
     print ('Shape of Regresseur',np.array(Regresseur).shape)
-    return Regresseur
+    return W_base1
 
 def Conditionnement(M_for_Cond,Q_pos):
     M_for_Cond = np.array(M_for_Cond)
     #Genrate regressor matric form experiences
-    Exp_Regrs,T = Generate_Regression_vector(Q_pos,Q_pos.shape[1])
-    Redim_Exp_Regrs = Redimention_x2(Exp_Regrs)
+    
+    Redim_Exp_Regrs = Redimention_x2(M_for_Cond)
     Redim_Exp_Regrs = np.array(Redim_Exp_Regrs)
     #======================================
     print ('shape of Redim_Exp_Regrs',np.array(Redim_Exp_Regrs).shape)
@@ -368,13 +371,14 @@ if __name__=="__main__":
     #print('shape of Q',np.array(Q).shape)
     for i in range(Q_pos[0].size):
         robot.display(Q_pos[:,i])
-        sleep(0.8)
+        sleep(0.1)
     print('shape of Q',np.array(Q_pos).shape)
 
 # ========== Step 2 - generate inertial parameters for all links (excepted the base link)
     names,phi = Generate_inertial_parameter()
 
 # ========== Step 3- Create IDM with pinocchio (regression matrix)
+    # Generate a regressor matrix with random value
     nbSample =10
     q_random= np.random.rand(NQ, nbSample) * np.pi - np.pi/2
     W_reg_Pin,tau = Generate_Regression_vector(q_random,nbSample)
@@ -392,12 +396,13 @@ if __name__=="__main__":
     print('shape of P:\t', np.array(P).shape)
 
 # ========== Step 6 - Calculate base parameters /Calculate the Phi modified
-    R1,R2,Q1,W_base,phi_base = Calculate_base_param(Q, R, P)
+    R1,R2,Q1,W_base,phi_base = Calculate_base_param(Q, R, P,tau)
 
 # ========== Step 7 - Conditionnement with exp add.
     Cond, Nbr_exp = Conditionnement(W_base,Q_pos)
     
-    
+    Cond = np.delete(Cond,[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16], axis=0)
+    Nbr_exp = np.delete(Nbr_exp,[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16], axis=0)
 # ========== Step 8 - Affichage with exp add.    
     print(Cond)
     print(Nbr_exp)
