@@ -85,6 +85,18 @@ class NeuralNetwork(tf.keras.Model):
 
         return model
 
+    def get_target(self, train_dataset, test_dataset, nb_axes):
+        """
+        Function that gives targets for the train and for the test according to the number of joints used
+
+        :param train_dataset:
+        :param test_dataset:
+        :param nb_axes: number of joints used
+        :return: 2 dataset with only the target in it, one for training and one for test
+        """
+        index = nb_axes * 3     # *3 to have q, dq, ddq for each joint
+        return train_dataset.T[index:].T, test_dataset.T[index:].T
+
     def train_model(self, model, dataset, target, batch_size, epochs, plot_loss=False, plot_accuracy=False):
         """
         Function that trains the model with the following parameters
@@ -120,18 +132,6 @@ class NeuralNetwork(tf.keras.Model):
 
         return history
 
-    def get_target(self, train_dataset, test_dataset, nb_axes):
-        """
-        Function that gives targets for the train and for the test according to the number of joints used
-
-        :param train_dataset:
-        :param test_dataset:
-        :param nb_axes: number of joints used
-        :return: 2 dataset with only the target in it, one for training and one for test
-        """
-        index = nb_axes * 3     # *3 to have q, dq, ddq for each joint
-        return train_dataset.T[index:].T, test_dataset.T[index:].T
-
     def evaluate_model(self, model, dataset, target, show_result=False):
         """
         Function that evaluates the model in order to see if the neural network is learning well
@@ -148,6 +148,26 @@ class NeuralNetwork(tf.keras.Model):
             print("Loss : {} / Accuracy : {}".format(result['model'][0], result['model'][1]))
 
         return result
+
+    def get_predictions_all_torques(self, model, dataset):
+        """
+        Function that makes predictions for the torques
+
+        :param model: model from which to get predictions
+        :param dataset: dataset to use
+        :return: list of all the predicted values of all the torques
+        """
+        return model.predict(dataset)
+
+    def get_predictions_one_torque(self, predictions, which_torque):
+        """
+        Function that gives the predictions for only one torque
+
+        :param predictions: list of the predictions from which to get the predicted value for the torque
+        :param which_torque: number of the torque to get
+        :return: list of all the predicted values of the chosen torque
+        """
+        return predictions.T[which_torque-1:which_torque].T
 
 
 if __name__ == '__main__':
@@ -190,6 +210,7 @@ if __name__ == '__main__':
     result = my_model.evaluate_model(model, test_dataset, test_que_tau, show_result=True)
 
     # Predictions
-    test_predictions = model.predict(test_dataset).flatten()
+    predictions = my_model.get_predictions_all_torques(model, test_dataset)
+    tau1 = my_model.get_predictions_one_torque(predictions, 1)
 
     print()
