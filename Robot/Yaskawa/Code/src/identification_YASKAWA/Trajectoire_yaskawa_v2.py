@@ -41,7 +41,7 @@ NJOINT = robot.model.njoints  # number of links
 gv = robot.viewer.gui
 
 #sampling time 
-Tech=(1/100)
+Tech=(1/15)
 # INITIALISATION 
 deg_5=-0.08726646259971647
 deg_5=deg_5+0.25*deg_5
@@ -555,10 +555,10 @@ def read_tau_q_dq_ddq_fromTxt(nbr_of_joint):
 
     # file_path = package_path + '/src/identification_YASKAWA/data_all_2_one_by_one.txt'
 
-    # file_path = package_path + '/src/identification_YASKAWA/cuting data test.txt'# un palier a 0.2 
+    file_path = package_path + '/src/identification_YASKAWA/cuting data test.txt'# un palier a 0.2 
     # file_path = package_path + '/src/identification_YASKAWA/cuting data 2.txt'# 2 palier a 0.2
     
-    file_path = package_path + '/src/identification_YASKAWA/Yaskawa max min.txt'
+    # file_path = package_path + '/src/identification_YASKAWA/Yaskawa max min.txt'
     # file_path = package_path + '/src/identification_YASKAWA/cuting data just palier.txt'
     # file_path = package_path + '/src/identification_YASKAWA/Cuting data 0.20.4palier.txt '
 
@@ -2411,16 +2411,16 @@ if __name__ == "__main__":
 
     tau_simu_mauvais_ordre,Q_total,V_total,tau_simu_par_ordre,dq_th,ddq_th=read_tau_q_dq_ddq_fromTxt(nbr_of_joint)# gazebo
     # tau_simu_mauvais_ordre=tau_simu_mauvais_ordre
-    tau_simu_mauvais_ordre=filter_butterworth(int (1/Tech),10,tau_simu_mauvais_ordre)
+    tau_simu_mauvais_ordre=filter_butterworth(int (1/Tech),5,tau_simu_mauvais_ordre)
     # tau_filtrer=tau_simu_par_ordre
-    tau_filtrer=-filter_butterworth(int (1/Tech),10,tau_simu_par_ordre)
+    tau_filtrer=filter_butterworth(int (1/Tech),5,tau_simu_par_ordre)
     
     for i in range(6):
         
-        Q_filtrer[i]=Q_total[i]#filter_butterworth(int (1/Tech),10,Q_total[i])
-        V_filtrer[i]=V_total[i]#filter_butterworth(int (1/Tech),10,V_total[i])
-        dq_th[i]=dq_th[i]#ffilter_butterworth(int (1/Tech),10,dq_th[i])
-        ddq_th[i]=ddq_th[i]#filter_butterworth(int (1/Tech),10,ddq_th[i])
+        Q_filtrer[i]=filter_butterworth(int (1/Tech),5,Q_total[i])
+        V_filtrer[i]=filter_butterworth(int (1/Tech),5,V_total[i])
+        dq_th[i]=filter_butterworth(int (1/Tech),5,dq_th[i])
+        ddq_th[i]=filter_butterworth(int (1/Tech),5,ddq_th[i])
 
     # plot_QVA_total([],nbr_of_joint,Q_filtrer,V_filtrer,ddq,'name')
     # for i in range(Q_filtrer[0].size):
@@ -2428,7 +2428,6 @@ if __name__ == "__main__":
     #     sleep(0.8)
     
     plot_QVA_total([],nbr_of_joint,Q_filtrer,dq_th,ddq_th,'name')
-
     
     W_base,phi_base,tau_param_base_reshaped=Base_regressor(Q_filtrer,dq_th,ddq_th,tau_simu_mauvais_ordre)
    
