@@ -3,7 +3,7 @@ from operator import index
 from pyexpat import model
 from random import random
 from termios import TCSAFLUSH
-from numpy import double, linalg, math, sign, sqrt
+from numpy import double, linalg, math, sign, sqrt, transpose
 from numpy.core.fromnumeric import shape
 from numpy.lib.nanfunctions import _nanmedian_small
 #from Robot.Yaskawa.Code.src.identification_YASKAWA.Trajectoire_yaskawa_v2 import Q_total
@@ -15,7 +15,7 @@ import pinocchio as pin
 import numpy as np
 from tabulate import tabulate
 import os
-from typing import Optional
+from typing import Any, Optional
 from typing import Optional
 import qpsolvers
 from time import sleep
@@ -66,7 +66,6 @@ def iden_model(model, data, q, dq, ddq, param):
                 W[j*param['NbSample'] + i, 10*model.nq+2*j + 1] = np.sign(dq[i, j])
 
     return tau, W
-
 
 
 def eliminateNonAffecting(W_, params_std, tol_e):
@@ -250,5 +249,15 @@ if __name__=="__main__":
     Tau, W = iden_model(model, data, q_random, dq, ddq, param)
     print('shape of Tau',np.array(Tau).shape)
     print('shape of W',np.array(W).shape)
+    print(Tau)
+    
+    names = []
+    for i in range(1, NJOINT):
+        names += ['m'+str(i), 'mx'+str(i), 'my'+str(i), 'mz'+str(i), 'Ixx'+str(i),
+              'Ixy'+str(i), 'Iyy'+str(i), 'Izx'+str(i), 'Izy'+str(i), 'Izz'+str(i) ,'Fs'+str(i) ,'Fv'+str(i)]
+    #names_list = list(names)
+    W_e, params_r = eliminateNonAffecting(W,params_std=none,tol_e=0.0001)
+    print('shape of W_e',np.array(W_e).shape)
+    print('shape of params_r',np.array(params_r).shape)
 
     
