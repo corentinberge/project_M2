@@ -104,7 +104,7 @@ for i in range(len(phi)):
         tmp.append(i)
         index_vector_to_delete.append(i)
 tmp.sort(reverse=True)
-
+index_vector_to_delete.sort(reverse=True)
 phi_modified = phi[:]
 names_modified = names[:]
 print(names_modified)
@@ -134,6 +134,7 @@ for i in range(np.diag(R).shape[0]):
             tmp = i
             
 index_vector_to_delete.append(tmp)
+QRindex=tmp
 # for i in range(len(R[0])):
 #     if R[i, i] > threshold:
 #         tmp = i
@@ -165,6 +166,7 @@ print('shape of phi ',np.array(phi).shape)
 print('shape of phi_base ',np.array(phi_base).shape)
 print('shape of vector_index',np.array(index_vector_to_delete).shape)
 print(index_vector_to_delete)
+print('index qr ',QRindex)
 
 # print('Shape of phi_m:\t', np.array(phi_modified).shape)
 # print('Shape of W_m:\t', np.array(W_modified).shape)

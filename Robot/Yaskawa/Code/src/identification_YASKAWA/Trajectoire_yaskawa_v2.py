@@ -1,3 +1,4 @@
+from cmath import tau
 from contextlib import suppress
 import math
 from sqlite3 import Time
@@ -17,6 +18,8 @@ from typing import Optional
 from typing import Optional
 import qpsolvers
 from time import sleep 
+import scipy
+from scipy import signal
 
 np.set_printoptions(precision=150,suppress=True)
 
@@ -38,20 +41,20 @@ NJOINT = robot.model.njoints  # number of links
 gv = robot.viewer.gui
 
 #sampling time 
-Tech=(1/50)
+Tech=(1/100)
 # INITIALISATION 
 deg_5=-0.08726646259971647
 deg_5=deg_5+0.25*deg_5
-q_start=[-3.141592653589793-1*deg_5,-3.141592653589793-1*deg_5, -0.08726646259971647-1*deg_5,-3.141592653589793-1*deg_5, -3.141592653589793-1*deg_5, -3.141592653589793-1*deg_5]
-q_end=[3.141592653589793, 3.141592653589793, 6.19591884457987, 3.141592653589793, 3.141592653589793, 3.141592653589793] 
+q_start=[-3.141592653589793-1*deg_5,-3.141592653589793/4-1*deg_5, -0.08726646259971647-1*deg_5,-3.141592653589793-1*deg_5, -3.141592653589793-1*deg_5, -3.141592653589793-1*deg_5]
+q_end=[3.141592653589793, 3.141592653589793/4, 6.19591884457987, 3.141592653589793, 3.141592653589793, 3.141592653589793] 
 Vmax=[2.2689280275926285, 2.2689280275926285, 3.141592653589793, 3.141592653589793, 4.36, 4.36]
 acc_max=[4,4,4,4,4,4]
 
 Jcf_Home=np.array([
-                [0.001,0,0],
-                [0.001,0,0],
+                [3.141592653589793/4,0,0],
+                [3.141592653589793/4,0,0],
                 [1.69297,0,0],
-                [0.05,0,0],
+                [3.141592653589793/4,0,0],
                 [-1.98968,0,0],
                 [0.959931 ,0,0],
                 ])
@@ -59,28 +62,28 @@ Jcf_Home=np.array([
 Jci_avBute=np.array([
                 [0 ,0,0],
                 [0 ,0,0],
-                [math.pi ,0,0],
+                [3.141592653589793,0,0],
                 [0 ,0,0],
                 [0 ,0,0],
                 [0 ,0,0],
                 ])
 
 Jcf_avBute=np.array([
-                [-math.pi-1*deg_5 ,0,acc_max[0]],
-                [-math.pi-1*deg_5,0,acc_max[1]],
+                [-3.141592653589793-1*deg_5 ,0,acc_max[0]],
+                [-3.141592653589793/4-1*deg_5,0,acc_max[1]],
                 [ -0.08726646259971647-1*deg_5,0,acc_max[2]],
-                [-math.pi-1*deg_5 ,0,acc_max[3]],
-                [-math.pi-1*deg_5 ,0,acc_max[4]],
-                [-math.pi-1*deg_5 ,0,acc_max[5]],
+                [-3.141592653589793-1*deg_5 ,0,acc_max[3]],
+                [-3.141592653589793-1*deg_5 ,0,acc_max[4]],
+                [-3.141592653589793-1*deg_5 ,0,acc_max[5]],
                 ])
 
 Jci_aprBute=np.array([
-                [-math.pi-1*deg_5,0,-acc_max[0]],
-                [-math.pi-1*deg_5,0,-acc_max[1]],
+                [-3.141592653589793-1*deg_5,0,-acc_max[0]],
+                [-3.141592653589793/4-1*deg_5,0,-acc_max[1]],
                 [ -0.08726646259971647-1*deg_5,0,acc_max[2]],
-                [-math.pi-1*deg_5,0,-acc_max[3]],
-                [-math.pi-1*deg_5,0,-acc_max[4]],
-                [-math.pi-1*deg_5,0,-acc_max[5]],
+                [-3.141592653589793-1*deg_5,0,-acc_max[3]],
+                [-3.141592653589793-1*deg_5,0,-acc_max[4]],
+                [-3.141592653589793-1*deg_5,0,-acc_max[5]],
                 ])
 
 Jcf_aprBute=np.array([
@@ -287,7 +290,7 @@ def trajectory_axe2axe_palier_de_vitesse_one_joint():
 
     # # plot_Trajectory(Q_pallier_vitesse)
     plot_QVA_total(T,nbr_joint,Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint,'joint_')
-    Generate_text_data_file_Q_txt(Q_total_All_Joint)
+    Generate_text_data_file_Q_txt(Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint)
     # tau,w=Generate_Torque_Regression_matrix(nbr_joint,Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint)
     # phi_etoile,tau_estime=estimation_with_qp_solver(w,tau)
     # print("shape of phi_etoile",phi_etoile.shape)
@@ -512,7 +515,7 @@ def trajectory_mode_a2a_sync():
 
     return Q_total,V_total,A_total,time,force
 
-def Generate_text_data_file_Q_txt(Q_total):
+def Generate_text_data_file_Q_txt(Q_total,V_total,A_total):
     # this function take in input q dq ddq tau for all the joint 
     # and write all the data in a file .txt
 
@@ -523,6 +526,8 @@ def Generate_text_data_file_Q_txt(Q_total):
 
     nbSamples=np.array(Q_total[0]).size
     q_pin=np.array(Q_total)
+    dq_pin=np.array(V_total)
+    ddq_pin=np.array(A_total)
     print('shape of Q ',q_pin.shape)
 
     i=0
@@ -533,7 +538,9 @@ def Generate_text_data_file_Q_txt(Q_total):
     
     for i in range(nbSamples):
         line=[str(q_pin[0][i]),'\t',str(q_pin[1][i]),'\t',str(q_pin[2][i]),'\t',str(q_pin[3][i]),'\t',str(q_pin[4][i]),
-                '\t',str(q_pin[5][i])]
+                '\t',str(q_pin[5][i]) ,'\t',str(dq_pin[0][i]),'\t',str(dq_pin[1][i]),'\t',str(dq_pin[2][i]),'\t',str(dq_pin[3][i]),'\t',str(dq_pin[4][i]),
+                '\t',str(dq_pin[5][i]) ,'\t',str(ddq_pin[0][i]),'\t',str(ddq_pin[1][i]),'\t',str(ddq_pin[2][i]),'\t',str(ddq_pin[3][i]),'\t',str(ddq_pin[4][i]),
+                '\t',str(ddq_pin[5][i])]
         f.writelines(line)
         f.write('\n')
         
@@ -542,9 +549,27 @@ def Generate_text_data_file_Q_txt(Q_total):
 def read_tau_q_dq_ddq_fromTxt(nbr_of_joint):
 
     package_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) 
-    file_path = package_path + '/src/identification_YASKAWA/data_torque _q_dq.txt'
-    f = open(file_path,'r')
+    # file_path_pos = package_path + '/src/identification_YASKAWA/position yaskawa.txt'
+    # file_path_V = package_path + '/src/identification_YASKAWA/velosity yaskawa.txt'
+    # file_path_torque = package_path + '/src/identification_YASKAWA/torque_yaskawa.txt '
+
+    # file_path = package_path + '/src/identification_YASKAWA/data_all_2_one_by_one.txt'
+
+    # file_path = package_path + '/src/identification_YASKAWA/cuting data test.txt'# un palier a 0.2 
+    # file_path = package_path + '/src/identification_YASKAWA/cuting data 2.txt'# 2 palier a 0.2
     
+    file_path = package_path + '/src/identification_YASKAWA/Yaskawa max min.txt'
+    # file_path = package_path + '/src/identification_YASKAWA/cuting data just palier.txt'
+    # file_path = package_path + '/src/identification_YASKAWA/Cuting data 0.20.4palier.txt '
+
+
+    
+    # f_pos = open(file_path_pos,'r')
+    # f_V = open(file_path_V,'r')
+    # f_torque = open(file_path_torque,'r')
+    tau_par_ordre=[]
+    f=open(file_path,'r')
+    # tau = [float(i) for i in f_torque.split()]
     tau1=[]
     tau2=[]
     tau3=[]
@@ -580,14 +605,19 @@ def read_tau_q_dq_ddq_fromTxt(nbr_of_joint):
         q4.append(data_split[3])
         q5.append(data_split[4])
         q6.append(data_split[5])
-
+    # for line in f_V:
+    #     data_split = line.strip().split('\t')
+        
         dq1.append(data_split[6])
         dq2.append(data_split[7])
         dq3.append(data_split[8])
         dq4.append(data_split[9])
         dq5.append(data_split[10])
         dq6.append(data_split[11])
-        
+
+    # for line in f_V:
+    #     data_split = line.strip().split('\t')   
+
         tau1.append(data_split[12])
         tau2.append(data_split[13])
         tau3.append(data_split[14])
@@ -602,8 +632,10 @@ def read_tau_q_dq_ddq_fromTxt(nbr_of_joint):
         tau_simu_gazebo.append(data_split[16])
         tau_simu_gazebo.append(data_split[17])
     
+    # f_pos.close()
+    # f_V.close()
+    # f_torque.close()
     f.close()
-    
     q.append(q1)
     q.append(q2)
     q.append(q3)
@@ -625,20 +657,17 @@ def read_tau_q_dq_ddq_fromTxt(nbr_of_joint):
     tau_simu_gazebo=np.array(tau_simu_gazebo)
     tau_simu_gazebo=np.double(tau_simu_gazebo)
 
+    tau_par_ordre.extend(tau1)
+    tau_par_ordre.extend(tau2)
+    tau_par_ordre.extend(tau3)
+    tau_par_ordre.extend(tau4)
+    tau_par_ordre.extend(tau5)
+    tau_par_ordre.extend(tau6)
+    tau_par_ordre=np.array(tau_par_ordre)
+    tau_par_ordre=np.double(tau_par_ordre)
+
     ddq=[[],[],[],[],[],[]]
     dq_th=[[],[],[],[],[],[]]
-
-    for joint_index in range(nbr_of_joint):
-
-        for i in range(dq[0].size-1):
-            j=i+1
-            da=(dq[joint_index][j]-dq[joint_index][i])/Tech
-            # print('da=\t','dv',(v[j]-v[i]),'/dt',(time[j]-time[i]),'=',da)
-            ddq[joint_index].append(da)
-        
-        ddq[joint_index].append(0)
-   
-    ddq=np.array(ddq)
 
     for joint_index in range(nbr_of_joint):
 
@@ -652,12 +681,21 @@ def read_tau_q_dq_ddq_fromTxt(nbr_of_joint):
     
     dq_th=np.array(dq_th)
     
+    for joint_index in range(nbr_of_joint):
+
+        for i in range(dq_th[0].size-1):
+            j=i+1
+            da=(dq_th[joint_index][j]-dq_th[joint_index][i])/Tech
+            # print('da=\t','dv',(v[j]-v[i]),'/dt',(time[j]-time[i]),'=',da)
+            ddq[joint_index].append(da)
+        
+        ddq[joint_index].append(0)
+   
+    ddq=np.array(ddq)
     print("shape of q",q.shape)
-    print("shape of dq",dq_th.shape)
-    print("shape of ddq",ddq.shape)
     print("shape of tau_simu_gazebo",tau_simu_gazebo.shape)
 
-    return tau_simu_gazebo,q,dq,ddq,dq_th
+    return tau_simu_gazebo,q,dq,tau_par_ordre,dq_th,ddq
 
 def plot_QVA_total(time,nbr_joint,Q_total,V_total,A_total,name):
     # # this function take in input: position of the joint qi
@@ -930,51 +968,63 @@ def trajectory(q_start,q_end,Vmax,acc_max,Tech):
     #calculation of q in each intervel of time 
     if(t<=time1):
         q.append(q_start+0.5*t*t*acc_max*sign(D))
+        v.append(t*acc_max*sign(D))
+        a.append(acc_max*sign(D))
     elif(t<=(timeEnd-time1)):
         q.append(q_start+(t-(time1/2))*Vmax*sign(D))
+        v.append(Vmax*sign(D))
+        a.append(0)
     elif(t<=timeEnd):
         q.append(q_end-0.5*(timeEnd-t)*(timeEnd-t)*acc_max*sign(D))
+        v.append((timeEnd-t)*acc_max*sign(D))
+        a.append(-acc_max*sign(D))
     else:
         print('time out of bound')
     
     while(abs(t-timeEnd)>0.01):
         if(t<=time1):
             q.append(q_start+0.5*t*t*acc_max*sign(D))
+            v.append(t*acc_max*sign(D))
+            a.append(acc_max*sign(D))
         elif(t<=(timeEnd-time1)):
             q.append(q_start+(t-(time1/2))*Vmax*sign(D))
+            v.append(Vmax*sign(D))
+            a.append(0)
         elif(t<=timeEnd):
             q.append(q_end-0.5*(timeEnd-t)*(timeEnd-t)*acc_max*sign(D))
+            v.append((timeEnd-t)*acc_max*sign(D))
+            a.append(-acc_max*sign(D))
         else:
             print('time out of bound')
         
         t=t+Tech
         time.append(t)
 
-    #calculation of the velocity 
-    for i in range(np.array(time).size-1):
-        j=i+1
-        dv=(q[j]-q[i])/(time[j]-time[i])
-        # print('dv=\t',dv)
-        v.append(dv)
-    v.append(dv)
-    v=np.array(v)
-    vreturn=v
-    v=abs(v)
-    print('shape of time',np.array(time).shape)
-    print('shape of v',np.array(v).shape)
+    # #calculation of the velocity 
+    # for i in range(np.array(time).size-1):
+    #     j=i+1
+    #     dv=(q[j]-q[i])/(time[j]-time[i])
+    #     # print('dv=\t',dv)
+    #     v.append(dv)
+    # v.append(dv)
+    # v=np.array(v)
+    # vreturn=v
+    # v=abs(v)
+    # print('shape of time',np.array(time).shape)
+    # print('shape of v',np.array(v).shape)
     
-    #calculation of acceleration
+    # #calculation of acceleration
     
-    for i in range(np.array(v).size-1):
-        j=i+1
-        da=(v[j]-v[i])/(time[j]-time[i])
-        # print('da=\t','dv',(v[j]-v[i]),'/dt',(time[j]-time[i]),'=',da)
-        a.append(da)
-    a.append(0)
-    print('shape of time',np.array(time).shape)
-    print('shape of a',np.array(a).shape)
+    # for i in range(np.array(v).size-1):
+    #     j=i+1
+    #     da=(v[j]-v[i])/(time[j]-time[i])
+    #     # print('da=\t','dv',(v[j]-v[i]),'/dt',(time[j]-time[i]),'=',da)
+    #     a.append(da)
+    # a.append(0)
+    # print('shape of time',np.array(time).shape)
+    # print('shape of a',np.array(a).shape)
 
-    return q,time,vreturn,a
+    return q,time,v,a
 
 def Data_Alltrajectory(Nmbrofjoint,Tech):
 
@@ -1543,7 +1593,7 @@ def generateQuinticPolyTraj_version_GF(Jc0,Jcf,vmax,Tech):
 
     # print('T shape',np.array(T).shape)
     # print('Q shape',np.array(q).shape)
-    vmax=0.6*vmax
+    vmax=vmax
     
     tf=15*np.abs(Jcf[0]-Jc0[0])/(8*vmax)
     NbSample_interpolate=int (tf/Tech) +1
@@ -2129,6 +2179,16 @@ def genrate_W_And_torque_experimentale(Q_total,V_total,A_total,tau_experimentale
     for i in range(np.array(tau_pin).size):
         samples.append(i)
 
+    plt.figure('torque estime et torque mesure par le robot')
+    # plt.plot(samples, tau_pin, 'g', linewidth=2, label='tau')
+    plt.plot(samples, tau_pin, 'g', linewidth=1, label='tau_robot')
+    plt.plot(samples,tau_estime_pin, 'b', linewidth=1, label='tau estime ')
+    plt.title('tau robot et tau estime')
+    plt.xlabel(' Samples')
+    plt.ylabel('parametres')
+    plt.legend()
+    plt.show()
+    
     err = []
     for i in range(np.array(tau_pin).size):
         err.append(abs(tau_pin[i] - tau_estime_pin[i]) * abs(tau_pin[i] - tau_estime_pin[i]))
@@ -2159,36 +2219,46 @@ def Base_regressor(Q_total,V_total,A_total,tau_experimentale):
 
     # ========== Step 3 - Generate input and output - 1000 samples (than's data) 
 
-    tau=tau_experimentale
+    tau=tau_experimentale#
 
     # # ========== Step 4 - Create IDM with pinocchio (regression matrix)
     # w = []  # Regression vector
+    
     w_pin=[]
-    ## w pour I/O generer par pinocchio
+    # w pour I/O generer par pinocchio
+
     for i in range(nbSamples):
         w_pin.extend(pin.computeJointTorqueRegressor(model, data, q_pin[:, i], dq_pin[:, i], ddq_pin[:, i]))
     w_pin=np.array(w_pin)
 
+    # for i in range(6):
+    #     w_pin.extend(pin.computeJointTorqueRegressor(model, data, q_pin[i, :], dq_pin[i,:], ddq_pin[i,:]))
+    # w_pin=np.array(w_pin)
+    
     # ========== Step 5 - Remove non dynamic effect columns then remove zero value columns then remove the parameters related to zero value columns at the end we will have a matix W_modified et Phi_modified
 
     threshold = 0.000001
     ## we have just to change the w_modified so we can work with the different input/output
     #  w is calculated with the input/output from than's data file
     #  W_pin is calculated with the input/output generated by pinocchio
-
+    
 
     # W_modified = np.array(w[:])
-    W_modified = np.array(w_pin[:])
 
-    tmp = []
-    for i in range(len(phi)):
-        if (np.dot([W_modified[:, i]], np.transpose([W_modified[:, i]]))[0][0] <= threshold):
-            tmp.append(i)
-    tmp.sort(reverse=True)
+    W_modified = np.array(w_pin[:])
+    index_param_to_delete=[12, 10, 8, 7, 6, 5, 4, 3, 2, 1, 0]
+    
+    indexQR=48
+    
+    # tmp = []
+    # for i in range(len(phi)):
+    #     if (np.dot([W_modified[:, i]], np.transpose([W_modified[:, i]]))[0][0] <= threshold):
+    #         tmp.append(i)
+    # tmp.sort(reverse=True)
 
     phi_modified = phi[:]
     names_modified = names[:]
-    for i in tmp:
+    for i in index_param_to_delete:
         W_modified = np.delete(W_modified, i, 1)
         phi_modified = np.delete(phi_modified, i, 0)
         names_modified = np.delete(names_modified, i, 0)
@@ -2202,28 +2272,33 @@ def Base_regressor(Q_total,V_total,A_total,tau_experimentale):
     (Q, R, P) = sp.qr(W_modified, pivoting=True)
 
     # ========== Step 7 - Calculate base parameters
-    tmp = 0
+    # tmp = 0
 
-    for i in range(np.diag(R).shape[0]):
-            if abs(np.diag(R)[i]) < threshold:
-                tmp = i
+    # for i in range(np.diag(R).shape[0]):
+    #         if abs(np.diag(R)[i]) < threshold:
+    #             tmp = i
 
-    R1 = R[:tmp, :tmp]
-    R2 = R[:tmp, tmp:]
-    Q1 = Q[:, :tmp]
-   
-    for i in (tmp, len(P)-1):
-        names.pop(P[i])
+    R1 = R[:indexQR, :indexQR]
+    R2 = R[:indexQR, indexQR:]
+    Q1 = Q[:, :indexQR]
     
-    beta = np.dot(np.linalg.inv(R1), R2)
+    for i in (indexQR, len(P)-1):
+        names.pop(P[i])
+    print('shape of R1',np.array(R1).shape)
+    print('shape of R2',np.array(R2).shape)
+
+    beta = np.dot(np.linalg.pinv(R1), R2)
     print('Shape of beta:\t', np.array(beta).shape)
 
     # ========== Step 8 - Calculate the Phi modified
 
-    phi_base = np.dot(np.linalg.inv(R1), np.dot(Q1.T,tau))  # Base parameters
+    phi_base = np.dot(np.linalg.pinv(R1), np.dot(Q1.T,tau))  # Base parameters
+    print('shape of phi_base:\t', np.array(phi_base).shape)
+
     W_base = np.dot(Q1, R1)                             # Base regressor
     print('Shape of W_base:\t', np.array(W_base).shape)
-
+    cond=np.linalg.cond(W_base)
+    print('conditionnement******************',cond)
     inertialParameters = {names_modified[i]: phi_base[i]
                         for i in range(len(phi_base))}
     
@@ -2236,14 +2311,14 @@ def Base_regressor(Q_total,V_total,A_total,tau_experimentale):
         params_rsortedname.append(names_modified[ind])
 
 
-    params_idp_val = params_rsortedphi[:tmp]
-    params_rgp_val = params_rsortedphi[tmp]
-    params_idp_name =params_rsortedname[:tmp]
-    params_rgp_name = params_rsortedname[tmp]
+    params_idp_val = params_rsortedphi[:indexQR]
+    params_rgp_val = params_rsortedphi[indexQR]
+    params_idp_name =params_rsortedname[:indexQR]
+    params_rgp_name = params_rsortedname[indexQR]
     params_base = []
     params_basename=[]
 
-    for i in range(tmp):
+    for i in range(indexQR):
     # for i in range(tmp+1):
         if beta[i] == 0:
             params_base.append(params_idp_val[i])
@@ -2261,9 +2336,46 @@ def Base_regressor(Q_total,V_total,A_total,tau_experimentale):
     print('shape of bqse param vector',np.array(params_base).shape)
     # calculation of the torque vector using the base regressor and the base parameter 
     tau_param_base=np.dot(W_base,params_base)
+    
+    tau1=tau_param_base[0:tau_param_base.size -5:6]
+    tau2=tau_param_base[1:tau_param_base.size -4:6]
+    tau3=tau_param_base[2:tau_param_base.size -3:6]
+    tau4=tau_param_base[3:tau_param_base.size -2:6]
+    tau5=tau_param_base[4:tau_param_base.size -1:6]#[start:stop:step]
+    tau6=tau_param_base[5:tau_param_base.size -0:6]
+    # print('shape of tau1 <3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<',np.array(tau1).shape)
+    # reshaping tau 
+    tau_reshape=[]
+    tau_reshape.extend(tau1)
+    tau_reshape.extend(tau2)
+    tau_reshape.extend(tau3)
+    tau_reshape.extend(tau4)
+    tau_reshape.extend(tau5)
+    tau_reshape.extend(tau6)
+    
+    tau_reshape=np.array(tau_reshape)
 
+
+    # print('shape of tau_reshape <3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<',tau_reshape.shape)
+    
+
+
+    return W_base,phi_base,tau_reshape
+
+def filter_butterworth(sampling_freq,f_coupure,signale):
+    sfreq = sampling_freq
+    f_p = f_coupure
+    nyq=sfreq/2
+    
+    sos = signal.iirfilter(5, f_p / nyq, btype='low', ftype='butter', output='sos')
+    signal_filtrer = signal.sosfiltfilt(sos, signale)
+
+    return signal_filtrer
+    
+def plot_torque_qnd_error(tau,tau_param_base):
+    
     samples = []
-    for i in range(NQ*nbSamples):
+    for i in range(tau.size):
             samples.append(i)
 
     # if we use W_modified=w_pin the we plot tau_pin (generated by Pin)
@@ -2271,10 +2383,10 @@ def Base_regressor(Q_total,V_total,A_total,tau_experimentale):
 
     plt.figure('torque pin/than et torque base parameters')
     # plt.plot(samples, tau_pin, 'g', linewidth=2, label='tau')
-    plt.plot(samples, tau, 'g', linewidth=2, label='tau')
+    plt.plot(samples, tau, 'g', linewidth=1, label='tau')
     plt.plot(samples,tau_param_base, 'b', linewidth=1, label='tau base param ')
     plt.title('tau tau_estime with base param ')
-    plt.xlabel('2000 Samples')
+    plt.xlabel('nbr Samples')
     plt.ylabel('parametres')
     plt.legend()
     plt.show()
@@ -2287,69 +2399,44 @@ def Base_regressor(Q_total,V_total,A_total,tau_experimentale):
     plt.title("erreur quadratique")
     plt.legend()
     plt.show()
-    return W_base,phi_base,tau_param_base
 
 
 if __name__ == "__main__":
 
-    # # trajectory_axe2axe_palier_de_vitesse_one_joint()
-    # # axe2axe_palier_de_vitesse_all_joint_one_by_one()
+    nbr_of_joint=6
     
-    Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint=trajectory_axe2axe_palier_de_vitesse_one_joint()
+    Q_filtrer=[[],[],[],[],[],[]]
+    V_filtrer=[[],[],[],[],[],[]]
+    A_filtrer=[[],[],[],[],[],[]]
 
-    # tau_experimentale,Q_total,V_total,A_total,dq_th=read_tau_q_dq_ddq_fromTxt(nbr_of_joint=6)
-
-    # nbSamples=1500
-    # q_pin = np.random.rand(NQ, nbSamples) * np.pi - np.pi/2  # -pi/2 < q < pi/2
-    # dq_pin = np.random.rand(NQ, nbSamples) * 10              # 0 < dq  < 10
-    # ddq_pin = np.random.rand(NQ, nbSamples) * 2               # 0 < dq  < 2
-    # # tau_pin = np.random.rand(NQ*nbSamples) * 4
-    # tau_pin=[]
-    # # Generate ouput with pin
-    # for i in range(nbSamples):
-    #     tau_pin.extend(pin.rnea(model, data, q_pin[:, i], dq_pin[:, i], ddq_pin[:, i]))
-    # print('Shape of tau_pin:\t', np.array(tau_pin).shape)
-    # tau_pin=np.array(tau_pin)
-    # tau_pin=np.double(tau_pin)
-
-    # W_base,phi_base,tau_param_base=Base_regressor(Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint,tau_experimentale)
-
-    # W_base,phi_base,tau_param_base=Base_regressor(Q_total,V_total,A_total,tau_experimentale)
-     
-
-
-    # phi_etoile=genrate_W_And_torque_simulation_pin(Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint)
-   
-
-    # # genrate_W_And_torque_pin_rand(1000)
-
-    # nbr_of_joint=6   
-    # tau_experimentale,Q_total,V_total,A_total,dq_th=read_tau_q_dq_ddq_fromTxt(nbr_of_joint)
-
-    # print('shape of q data file',np.array(Q_total).shape)
-    # # print('shape of q trajectoire',np.array(Q_total_All_Joint).shape)
-
-    # # plot_QVA_total([],nbr_of_joint,Q_total,V_total,A_total,"_joint_")
-    # phi_etoile=genrate_W_And_torque_experimentale(Q_total,V_total,A_total,tau_experimentale)
-
-    # for i in range(4):
-    #     print('phi_etoile',i,phi_etoile[i])
-    #     print('phi_etoile',i+6,phi_etoile[i+6])
-    #     print('phi_etoile',i+12,phi_etoile[i+12])
-    #     print('phi_etoile',i+18,phi_etoile[i+18])
-    #     print('phi_etoile',i+24,phi_etoile[i+24])
-    #     print('phi_etoile',i+28,phi_etoile[i+28])
+    tau_simu_mauvais_ordre,Q_total,V_total,tau_simu_par_ordre,dq_th,ddq_th=read_tau_q_dq_ddq_fromTxt(nbr_of_joint)# gazebo
+    # tau_simu_mauvais_ordre=tau_simu_mauvais_ordre
+    tau_simu_mauvais_ordre=filter_butterworth(int (1/Tech),10,tau_simu_mauvais_ordre)
+    # tau_filtrer=tau_simu_par_ordre
+    tau_filtrer=-filter_butterworth(int (1/Tech),10,tau_simu_par_ordre)
+    
+    for i in range(6):
         
-    # print('m1  : ',phi_etoile[0])
-    # print('m2 : ',phi_etoile[10])
-    # print('m3 : ',phi_etoile[20])
-    # print('m4 : ',phi_etoile[30])
+        Q_filtrer[i]=Q_total[i]#filter_butterworth(int (1/Tech),10,Q_total[i])
+        V_filtrer[i]=V_total[i]#filter_butterworth(int (1/Tech),10,V_total[i])
+        dq_th[i]=dq_th[i]#ffilter_butterworth(int (1/Tech),10,dq_th[i])
+        ddq_th[i]=ddq_th[i]#filter_butterworth(int (1/Tech),10,ddq_th[i])
 
-    # print('m5  : ',phi_etoile[40])
-    # print('m6 : ',phi_etoile[50])
-    # print('my2 : ',phi_etoile[12])
-    # print('mz2 : ',phi_etoile[13])
- 
+    # plot_QVA_total([],nbr_of_joint,Q_filtrer,V_filtrer,ddq,'name')
+    # for i in range(Q_filtrer[0].size):
+    #     robot.display(np.array(Q_filtrer)[:,i])
+    #     sleep(0.8)
+    
+    plot_QVA_total([],nbr_of_joint,Q_filtrer,dq_th,ddq_th,'name')
+
+    
+    W_base,phi_base,tau_param_base_reshaped=Base_regressor(Q_filtrer,dq_th,ddq_th,tau_simu_mauvais_ordre)
+   
+    plot_torque_qnd_error(tau_param_base_reshaped,tau_filtrer)
+
+    genrate_W_And_torque_experimentale(Q_filtrer,dq_th,ddq_th,tau_simu_mauvais_ordre)
+    
+
 
 '''
 # initialisation
