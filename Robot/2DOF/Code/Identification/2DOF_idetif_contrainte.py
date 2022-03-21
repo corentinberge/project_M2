@@ -16,10 +16,10 @@ import qpsolvers
 # package_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # urdf_path = package_path + '/robots/urdf/planar_2DOF.urdf'
 
-# package_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) + '/Modeles/'
-# urdf_path = package_path + 'planar_2DOF/URDF/planar_2DOF.urdf'
-package_path='/home/fadi/projet_cobot_master2/project_M2/Robot/2DOF/Modeles/'
+package_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) + '/Modeles/'
 urdf_path = package_path + 'planar_2DOF/URDF/planar_2DOF.urdf'
+# package_path='/home/fadi/projet_cobot_master2/project_M2/Robot/2DOF/Modeles/'
+# urdf_path = package_path + 'planar_2DOF/URDF/planar_2DOF.urdf'
 
 
 # ========== Step 1 - load model, create robot model and create robot data
@@ -66,20 +66,27 @@ ddq=[]
 tau=[]
 
 # open data_2dof file
-f = open('/home/fadi/projet_cobot_master2/project_M2/Robot/2DOF/Code/Identification/data_2dof.txt','r')
+# f = open('/home/fadi/projet_cobot_master2/project_M2/Robot/2DOF/Code/Identification/data_2dof.txt','r')
 
-# getting data from file getting q dq ddq experimentelly from than's data file
+package_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) 
+file_path = package_path + '/Identification/data_2dof.txt'
+f=open(file_path,'r')
+
 for line in f:
     data_split = line.strip().split('\t')
     q1.append(data_split[0])
     q2.append(data_split[1])
+    
     dq1.append(data_split[2])
     dq2.append(data_split[3])
+    
     ddq1.append(data_split[4])
     ddq2.append(data_split[5])
+
     tau1.append(data_split[6])
     tau2.append(data_split[7])
-    tau.append(data_split[6])
+    
+    tau.append(data_split[6])# ordre 1-2 1-2
     tau.append(data_split[7])
 f.close()
 ## the data file was modified so we eliminated the first line who dont contain numbers 
