@@ -1,8 +1,10 @@
+from cmath import tau
 from ctypes import sizeof
 from operator import index
 from pyexpat import model
 from random import random
 from termios import TCSAFLUSH
+from turtle import Shape
 from numpy import double, linalg, math, sign, sqrt, transpose
 from numpy.core.fromnumeric import shape
 from numpy.lib.nanfunctions import _nanmedian_small
@@ -20,6 +22,13 @@ from typing import Optional
 import qpsolvers
 from time import sleep
 import random
+from Trajectoire_yaskawa_v2 import read_tau_q_dq_ddq_fromTxt
+from Trajectoire_yaskawa_v2  import filter_butterworth
+from Trajectoire_yaskawa_v2 import plot_torque_qnd_error
+from Trajectoire_yaskawa_v2 import plot_QVA_total
+from Trajectoire_yaskawa_v2 import estimation_with_qp_solver
+
+
 #----------------------------------------------------
 pre_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 package_path = pre_path + '/Modeles'
@@ -36,6 +45,60 @@ data = robot.data
 model = robot.model
 NQ = robot.nq  
 #------------------------------------------------------
+param={
+        'nb_iter_OEM':2, # number of OEM to be optimized
+        'tf':1,# duration of one OEM
+        'freq': 1, # frequency of the fourier serie coefficient
+        'nb_repet_trap': 2, # number of repetition of the trapezoidal motions
+        'q_safety': 0.08, # value in radian (=5deg) to remove from the actual joint limits
+        'q_lim_def': 1.57,# default value for joint limits in cas the URDF does not have the info
+        'dq_lim_def':4, # in rad.s-1
+        'ddq_lim_def':20, # in rad.s-2
+        'tau_lim_def':3, # in N.m
+        'trapez_vel_steps':20,# Velocity step in % of the max velocity
+        'ts_OEM':1/100,# Sampling frequency of the optimisation process
+        'ts':1/1000,# Sampling frequency of the trajectory to be recorded
+        'Friction':True,
+        'fv':0.01,# default values of the joint viscous friction in case they are used
+        'fc':0.1,# default value of the joint static friction in case they are used
+        'K_1':1, # default values of drive gains in case they are used
+        'K_2':2, # default values of drive gains in case they are used
+        'nb_harmonics': 2,# number of harmonics of the fourier serie
+        'mass_load':3.0,
+        'idx_base_param':(1, 3, 6, 11, 13, 16),# retrieved from previous analysis
+        'sync_joint_motion':0, # move all joint simultaneously when using quintic polynomial interpolation
+        'eps_gradient':1e-6,# numerical gradient step
+        'ANIMATE':0,# plot flag for gepetto-viewer
+        'SAVE_FILE':0,
+        'isFrictionincld':1
+    }
+param['NbSample']=int (param['tf']/param['ts'])
+
+def standardParameters(model, param):
+    """This function prints out the standard inertial parameters obtained from 3D design.
+            Note: a flag IsFrictioncld to include in standard parameters
+            Input: 	njoints: number of joints
+            Output: params_std: a dictionary of parameter names and their values"""
+    params_name = ['m', 'mx', 'my', 'mz', 'Ixx',
+                   'Ixy', 'Iyy', 'Ixz', 'Iyz', 'Izz']
+    phi = []
+    params = []
+
+    for i in range(1, model.njoints):
+        P = model.inertias[i].toDynamicParameters()
+        for k in P:
+            phi.append(k)
+        for j in params_name:
+            params.append(j + str(i))
+
+    if param['isFrictionincld']:
+        for k in range(1, model.njoints):
+            # Here we add arbitrary values
+            
+            phi.extend([param['fv'], param['fc']])
+            params.extend(['fv' + str(k), 'fc' + str(k)])
+    params_std = dict(zip(params, phi))
+    return params_std
 
 def iden_model(model, data, q, dq, ddq, param):
 #This function calculates joint torques and generates the joint torque regressor.
@@ -67,7 +130,6 @@ def iden_model(model, data, q, dq, ddq, param):
 
     return tau, W
 
-
 def eliminateNonAffecting(W_, params_std, tol_e):
 #This function eliminates columns which has L2 norm smaller than tolerance.
 #Input: W: joint torque regressor
@@ -87,7 +149,6 @@ def eliminateNonAffecting(W_, params_std, tol_e):
 
     W_e = np.delete(W_, idx_e, 1)
     return W_e, params_r
-
 
 def double_QR(tau, W_e, params_r, params_std=None):
 #This function calculates QR decompostion 2 times, first to find symbolic
@@ -203,8 +264,8 @@ def double_QR(tau, W_e, params_r, params_std=None):
     base_parameters = dict(zip(params_base, phi_b))
     print('base parameters and their identified values: ')
     table = [params_base, phi_b]
-    print(tabulate(table))
-
+    #print(tabulate(table))
+    print(table)
     if params_std is not None:
         return W_b, base_parameters, params_base, phi_b, phi_std
     else:
@@ -213,51 +274,30 @@ def double_QR(tau, W_e, params_r, params_std=None):
 #=============================================================================
 #=============================================================================
 if __name__=="__main__": 
-    param={
-        'nb_iter_OEM':2, # number of OEM to be optimized
-        'tf':1,# duration of one OEM
-        'freq': 1, # frequency of the fourier serie coefficient
-        'nb_repet_trap': 2, # number of repetition of the trapezoidal motions
-        'q_safety': 0.08, # value in radian (=5deg) to remove from the actual joint limits
-        'q_lim_def': 1.57,# default value for joint limits in cas the URDF does not have the info
-        'dq_lim_def':4, # in rad.s-1
-        'ddq_lim_def':20, # in rad.s-2
-        'tau_lim_def':3, # in N.m
-        'trapez_vel_steps':20,# Velocity step in % of the max velocity
-        'ts_OEM':1/100,# Sampling frequency of the optimisation process
-        'ts':1/1000,# Sampling frequency of the trajectory to be recorded
-        'Friction':True,
-        'fv':0.01,# default values of the joint viscous friction in case they are used
-        'fc':0.1,# default value of the joint static friction in case they are used
-        'K_1':1, # default values of drive gains in case they are used
-        'K_2':2, # default values of drive gains in case they are used
-        'nb_harmonics': 2,# number of harmonics of the fourier serie
-        'mass_load':3.0,
-        'idx_base_param':(1, 3, 6, 11, 13, 16),# retrieved from previous analysis
-        'sync_joint_motion':0, # move all joint simultaneously when using quintic polynomial interpolation
-        'eps_gradient':1e-6,# numerical gradient step
-        'ANIMATE':0,# plot flag for gepetto-viewer
-        'SAVE_FILE':0
-    }
-    param['NbSample']=int (param['tf']/param['ts'])
 
-    nbSamples = param['NbSample']
-    q_random= np.random.rand(nbSamples, NQ) * np.pi - np.pi/2
-    dq = np.zeros((nbSamples, NQ))# matrice des zero 6 lignes nbr de posture en colones 
-    ddq = np.zeros((nbSamples, NQ)) # matrice des zero 6 lignes nbr de posture en colones
+    # nbSamples = param['NbSample']
+    # q= np.random.rand(nbSamples, NQ) * np.pi - np.pi/2
+    # dq= np.random.rand(nbSamples, NQ)# matrice des zero 6 lignes nbr de posture en colones 
+    # ddq= np.random.rand(nbSamples, NQ)# matrice des zero 6 lignes nbr de posture en colones
 
-    Tau, W = iden_model(model, data, q_random, dq, ddq, param)
-    print('shape of Tau',np.array(Tau).shape)
-    print('shape of W',np.array(W).shape)
-    print(Tau)
+    q,dq,ddq,tau_robot=read_tau_q_dq_ddq_fromTxt(6)
+    plot_QVA_total([],6,(q.T),(dq.T),(ddq.T),'joint')
+    print('shape of q',np.array(q).shape)
+    param['NbSample']=int(1264)
+
+    param_std= standardParameters(model, param)
     
-    names = []
-    for i in range(1, NJOINT):
-        names += ['m'+str(i), 'mx'+str(i), 'my'+str(i), 'mz'+str(i), 'Ixx'+str(i),
-              'Ixy'+str(i), 'Iyy'+str(i), 'Izx'+str(i), 'Izy'+str(i), 'Izz'+str(i) ,'Fs'+str(i) ,'Fv'+str(i)]
-    #names_list = list(names)
-    W_e, params_r = eliminateNonAffecting(W,params_std=none,tol_e=0.0001)
-    print('shape of W_e',np.array(W_e).shape)
-    print('shape of params_r',np.array(params_r).shape)
+    _ , W=iden_model(model, data, q, dq, ddq, param)
+    
+    W_e, params_r=eliminateNonAffecting(W, param_std, 0.00001)
+    
+    W_b, base_parameters, params_base, phi_b, phi_std=double_QR(tau_robot, W_e, params_r, param_std)
+    con=np.linalg.cond(W_b)
 
+    print('lez conditionnement est ',con)
+
+    tau_base=np.dot(W_b,phi_b)
+    plot_torque_qnd_error(tau_robot,tau_base)
+    estimation_with_qp_solver(W,tau_robot)
+    
     

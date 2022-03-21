@@ -41,7 +41,7 @@ NJOINT = robot.model.njoints  # number of links
 gv = robot.viewer.gui
 
 #sampling time 
-Tech=(1/15)
+Tech=(1/200)
 # INITIALISATION 
 deg_5=-0.08726646259971647
 deg_5=deg_5+0.25*deg_5
@@ -49,6 +49,33 @@ q_start=[-3.141592653589793-1*deg_5,-3.141592653589793/4-1*deg_5, -0.08726646259
 q_end=[3.141592653589793, 3.141592653589793/4, 6.19591884457987, 3.141592653589793, 3.141592653589793, 3.141592653589793] 
 Vmax=[2.2689280275926285, 2.2689280275926285, 3.141592653589793, 3.141592653589793, 4.36, 4.36]
 acc_max=[4,4,4,4,4,4]
+param={
+        'nb_iter_OEM':2, # number of OEM to be optimized
+        'tf':1,# duration of one OEM
+        'freq': 1, # frequency of the fourier serie coefficient
+        'nb_repet_trap': 2, # number of repetition of the trapezoidal motions
+        'q_safety': 0.08, # value in radian (=5deg) to remove from the actual joint limits
+        'q_lim_def': 1.57,# default value for joint limits in cas the URDF does not have the info
+        'dq_lim_def':4, # in rad.s-1
+        'ddq_lim_def':20, # in rad.s-2
+        'tau_lim_def':3, # in N.m
+        'trapez_vel_steps':20,# Velocity step in % of the max velocity
+        'ts_OEM':1/100,# Sampling frequency of the optimisation process
+        'ts':1/1000,# Sampling frequency of the trajectory to be recorded
+        'Friction':True,
+        'fv':0.01,# default values of the joint viscous friction in case they are used
+        'fc':0.1,# default value of the joint static friction in case they are used
+        'K_1':1, # default values of drive gains in case they are used
+        'K_2':2, # default values of drive gains in case they are used
+        'nb_harmonics': 2,# number of harmonics of the fourier serie
+        'mass_load':3.0,
+        'idx_base_param':(1, 3, 6, 11, 13, 16),# retrieved from previous analysis
+        'sync_joint_motion':0, # move all joint simultaneously when using quintic polynomial interpolation
+        'eps_gradient':1e-6,# numerical gradient step
+        'ANIMATE':0,# plot flag for gepetto-viewer
+        'SAVE_FILE':0
+    }
+param['NbSample']=int (param['tf']/param['ts'])
 
 Jcf_Home=np.array([
                 [3.141592653589793/4,0,0],
@@ -625,16 +652,14 @@ def read_tau_q_dq_ddq_fromTxt(nbr_of_joint):
         tau5.append(data_split[16])
         tau6.append(data_split[17])
 
-        tau_simu_gazebo.append(data_split[12])
-        tau_simu_gazebo.append(data_split[13])
-        tau_simu_gazebo.append(data_split[14])
-        tau_simu_gazebo.append(data_split[15])
-        tau_simu_gazebo.append(data_split[16])
-        tau_simu_gazebo.append(data_split[17])
+        # tau_simu_gazebo.append(data_split[12])
+        # tau_simu_gazebo.append(data_split[13])
+        # tau_simu_gazebo.append(data_split[14])
+        # tau_simu_gazebo.append(data_split[15])
+        # tau_simu_gazebo.append(data_split[16])
+        # tau_simu_gazebo.append(data_split[17])
     
-    # f_pos.close()
-    # f_V.close()
-    # f_torque.close()
+    
     f.close()
     q.append(q1)
     q.append(q2)
@@ -656,7 +681,8 @@ def read_tau_q_dq_ddq_fromTxt(nbr_of_joint):
 
     tau_simu_gazebo=np.array(tau_simu_gazebo)
     tau_simu_gazebo=np.double(tau_simu_gazebo)
-
+    tau4=np.double(tau4)
+    tau4=abs(tau4)
     tau_par_ordre.extend(tau1)
     tau_par_ordre.extend(tau2)
     tau_par_ordre.extend(tau3)
@@ -692,10 +718,22 @@ def read_tau_q_dq_ddq_fromTxt(nbr_of_joint):
         ddq[joint_index].append(0)
    
     ddq=np.array(ddq)
+
+    tau_par_ordre=filter_butterworth(int (1/Tech),5,tau_par_ordre)
+
+    for i in range(6):
+        q[i]=filter_butterworth(int (1/Tech),5,q[i])
+        dq_th[i]=filter_butterworth(int (1/Tech),5,dq_th[i])
+        ddq[i]=filter_butterworth(int (1/Tech),5,ddq[i])
     print("shape of q",q.shape)
     print("shape of tau_simu_gazebo",tau_simu_gazebo.shape)
+    
+    q=q.T
+    dq=dq.T
+    ddq=ddq.T
+    dq_th=dq_th.T
 
-    return tau_simu_gazebo,q,dq,tau_par_ordre,dq_th,ddq
+    return q,dq_th,ddq,tau_par_ordre
 
 def plot_QVA_total(time,nbr_joint,Q_total,V_total,A_total,name):
     # # this function take in input: position of the joint qi
@@ -1375,33 +1413,6 @@ def estimation_with_qp_solver(w,tau):
     # test if P is positive-definite if not then p=spd (spd=symmetric positive semidefinite)
     P=nearestPD(P)
 
-    #constraints
-    #Any constraints that are >= must be multiplied by -1 to become a <=.
-    G=(
-    [-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-    [0,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-    [0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],   
-    [0,0,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-    [0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-    [0,0,0,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-    [0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0,0,0,0,0,0,0,-1,0,0,0,0,0,0,0,0],
-    [0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0])
-
-    h=[0,-0.05,0.3,-0.05,0.3,-0.05,0.3,0,-0.05,0.3,-0.05,0.3,-0.05,0.3]
-    # h=[2,-5,3,-5,3,-5,3,2,-5,3,-5,3,-5,3]
-
-    # converting to double
-    G=np.array(G)
-    h=np.array(h)
-    G=np.double(G)
-    h=np.double(h)
-
     # phi_etoile=qpsolvers.solve_ls(P,q,None,None)
     phi_etoile=qpsolvers.solve_qp(
             P,
@@ -1427,15 +1438,15 @@ def estimation_with_qp_solver(w,tau):
     for i in range(np.array(tau).size):
         samples.append(i)
 
-    # plt.figure('torque et torque estime')
-    # plt.plot(samples, tau, 'g', linewidth=1, label='tau')
-    # plt.plot(samples,tau_estime, 'b:', linewidth=0.4, label='tau estime')
-    # # plt.plot(samples, tau_estime1, 'r', linewidth=1, label='tau estime 1')
-    # plt.title('tau and tau_estime')
-    # plt.xlabel('2000 Samples')
-    # plt.ylabel('parametres')
-    # plt.legend()
-    # plt.show()
+    plt.figure('torque et torque estime')
+    plt.plot(samples, tau, 'g', linewidth=1, label='tau')
+    plt.plot(samples,tau_estime, 'b:', linewidth=0.4, label='tau estime')
+    # plt.plot(samples, tau_estime1, 'r', linewidth=1, label='tau estime 1')
+    plt.title('tau and tau_estime')
+    plt.xlabel('2000 Samples')
+    plt.ylabel('parametres')
+    plt.legend()
+    plt.show()
 
     err = []
     for i in range(np.array(tau).size):
@@ -2008,7 +2019,8 @@ def genrate_W_And_torque_experimentale(Q_total,V_total,A_total,tau_experimentale
     q_pin=np.array(Q_total)
     dq_pin=np.array(V_total)
     ddq_pin=np.array(A_total)
-
+    
+    param['NbSample']=int(nbSamples)
     
     
     tau_pin=np.array(tau_experimentale)
@@ -2019,7 +2031,17 @@ def genrate_W_And_torque_experimentale(Q_total,V_total,A_total,tau_experimentale
     for i in range(nbSamples):
         w_pin.extend(pin.computeJointTorqueRegressor(model, data, q_pin[:, i], dq_pin[:, i], ddq_pin[:, i]))
     w_pin=np.array(w_pin)
-    
+
+    #This function calculates joint torques and generates the joint torque regressor.
+    #Note: a parameter Friction as to be set to include in dynamic model
+    #Input: model, data: model and data structure of robot from Pinocchio
+    #q, v, a: joint's position, velocity, acceleration
+    #N : number of samples
+    #nq: length of q
+    #Output: tau: vector of joint torque
+    #W : joint torque regressor"""
+
+
     #joint 0  
     Z=np.zeros((5*nbSamples,1))
     # print('shape of Z',Z.shape)
@@ -2400,6 +2422,43 @@ def plot_torque_qnd_error(tau,tau_param_base):
     plt.legend()
     plt.show()
 
+def iden_model_v2(model, data, Q_total, V_total, A_total, param):
+#This function calculates joint torques and generates the joint torque regressor.
+#Note: a parameter Friction as to be set to include in dynamic model
+#Input: model, data: model and data structure of robot from Pinocchio
+#q, v, a: joint's position, velocity, acceleration
+#N : number of samples
+#nq: length of q
+#Output: tau: vector of joint torque
+#W : joint torque regressor"""
+    nbSamples=np.array(Q_total[0]).size
+    q=np.array(Q_total)
+    dq=np.array(V_total)
+    ddq=np.array(A_total)
+    
+    param['NbSample']=int(nbSamples)
+
+    tau = np.empty(model.nq*param['NbSample'])
+    W = np.empty([param['NbSample']*model.nq ,10*model.nq])
+    for i in range(param['NbSample']):
+        # tau_temp = pin.rnea(model, data, q[i, :], dq[i, :], ddq[i, :])
+        W_temp = pin.computeJointTorqueRegressor(
+            model, data, q[i, :], dq[i, :], ddq[i, :])
+        for j in range(model.nq):
+            # tau[j*param['NbSample'] + i] = tau_temp[j]
+            W[j*param['NbSample'] + i, :] = W_temp[j, :]
+
+    if param['Friction']:
+        W = np.c_[W, np.zeros([param['NbSample']*model.nq, 2*model.nq])]
+        for i in range(param['NbSample']):
+            for j in range(model.nq):
+                tau[j*param['NbSample'] + i] = tau[j*param['NbSample'] + i] + dq[i, j]*param['fv'] + np.sign(dq[i, j])*param['fc']
+                W[j*param['NbSample'] + i, 10*model.nq+2*j] = dq[i, j]
+                W[j*param['NbSample'] + i, 10*model.nq+2*j + 1] = np.sign(dq[i, j])
+
+    return tau, W
+
+
 
 if __name__ == "__main__":
 
@@ -2409,7 +2468,7 @@ if __name__ == "__main__":
     V_filtrer=[[],[],[],[],[],[]]
     A_filtrer=[[],[],[],[],[],[]]
 
-    tau_simu_mauvais_ordre,Q_total,V_total,tau_simu_par_ordre,dq_th,ddq_th=read_tau_q_dq_ddq_fromTxt(nbr_of_joint)# gazebo
+    Q_total,V_total,dq_th,ddq_th=read_tau_q_dq_ddq_fromTxt(nbr_of_joint)# gazebo
     # tau_simu_mauvais_ordre=tau_simu_mauvais_ordre
     tau_simu_mauvais_ordre=filter_butterworth(int (1/Tech),5,tau_simu_mauvais_ordre)
     # tau_filtrer=tau_simu_par_ordre
@@ -2429,6 +2488,68 @@ if __name__ == "__main__":
     
     plot_QVA_total([],nbr_of_joint,Q_filtrer,dq_th,ddq_th,'name')
     
+    tau, W =iden_model_v2(model, data, Q_filtrer, dq_th, ddq_th, param)
+
+    w_pin=np.double(W)
+    p_pin=np.dot(w_pin.transpose(),w_pin)
+    q_pin= -np.dot(tau_filtrer.transpose(),w_pin)
+    p_pin=nearestPD(p_pin)
+
+    phi_etoile_pin=qpsolvers.solve_qp(
+                p_pin,
+                q_pin,
+                G=None,
+                h=None,
+                A=None,
+                b=None,
+                lb=None,
+                ub=None,
+                solver="quadprog",
+                initvals=None,
+                sym_proj=True
+                )
+
+    print('*****************************************')
+    # print('phi_etoile',phi_etoile.shape)
+    phi_etoile_pin=np.array(phi_etoile_pin)
+    phi_etoile_pin=np.double(phi_etoile_pin)
+    print('phi_etoile_pin',phi_etoile_pin.shape)
+    print('phi_etoile_pin_yaskawa value',phi_etoile_pin)
+    print('*****************************************')
+
+    tau_estime_pin=np.dot(w_pin,phi_etoile_pin)
+    print('shape of tau_estime',tau_estime_pin.shape)
+
+    samples = []
+    for i in range(np.array(tau_filtrer).size):
+        samples.append(i)
+
+    plt.figure('torque estime et torque mesure par le robot')
+    # plt.plot(samples, tau_pin, 'g', linewidth=2, label='tau')
+    plt.plot(samples, tau_filtrer, 'g', linewidth=1, label='tau_robot')
+    plt.plot(samples,tau_estime_pin, 'b', linewidth=1, label='tau estime ')
+    plt.title('tau robot et tau estime')
+    plt.xlabel(' Samples')
+    plt.ylabel('parametres')
+    plt.legend()
+    plt.show()
+    
+    err = []
+    for i in range(np.array(tau_filtrer).size):
+        err.append(abs(tau_filtrer[i] - tau_estime_pin[i]) * abs(tau_filtrer[i] - tau_estime_pin[i]))
+    plt.plot(samples, err, linewidth=2, label="err")
+    plt.title("erreur quadratique")
+    plt.legend()
+    plt.show()
+
+
+
+
+
+
+
+
+
     W_base,phi_base,tau_param_base_reshaped=Base_regressor(Q_filtrer,dq_th,ddq_th,tau_simu_mauvais_ordre)
    
     plot_torque_qnd_error(tau_param_base_reshaped,tau_filtrer)
