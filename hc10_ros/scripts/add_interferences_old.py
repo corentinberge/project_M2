@@ -52,20 +52,15 @@ class MoveGroupPythonIntefaceTutorial(object):
     robot = self.robot
     # xBloc = [[-350, -200], [-990, 1150], [-990, 1150], [200, 1150], [-990, -200], [-990, 1150], [900, 1150], [1150, 1160], [-1000, -990], [-990, 1150]]
     # yBloc = [[-150, 150], [-860, 1530], [450, 1530], [-860, 1530], [-860, 1530], [-860, -200], [50, 270], [-860, 1530], [-860, 1530], [-870, -860]]
+    
     # zBloc = [[-500, -150], [-500, 1530], [-500, 320], [-500, -260], [-500, -260], [-500, -260], [-500, 1350], [-500, 1530],[-500, 1530], [-500, 1530]]
     
-    # xBloc = [[-350, -200], [-1530, 860], [-920, -320], [-320, 900], [-320, 900], [200, 900], [-270, -50], [-920, 900], [-920, 900], [900, 910]]
-    # yBloc = [[-150, 150], [-990, 1150], [-900, 900], [200, 900], [-900, -200], [-200, 200], [900, 1150], [900, 910], [-910, -900], [-900, 900]]
-    # zBloc = [[-500, -150], [-500, 1530], [-500, 360], [-500, -260], [-500, -260], [-500, -260], [-500, 1350], [-500, 2300],[-500, 2300], [-500, 2300]]
-    # name = ["cables", "zone_travail", "chariot", "plan_part1", "plan_part3", "plan_part2", "poteau", "mur_x_pos", "mur_x_neg", "mur_y_neg"]
-    
-    xBloc = [[-295, 895], [-1050, -500],   [-1050, 1110],  [1060, 1110],    [-195, -105]]
-    yBloc = [[-295, 895], [-1214.5, 1275], [1275, 1325],   [-1214.5, 1325], [978, 1275]]
-    zBloc = [[0, -637.5], [600, -637.5],   [2000, -637.5], [2000, -637.5],  [2000, -637.5]]
-    name  = [  'table',      'rails',        'wall1',         'wall2',         'pillar']
-    
+    xBloc = [[-350, -200], [-1530, 860], [-920, -320], [-320, 900], [-320, 900], [200, 900], [-270, -50], [-920, 900], [-920, 900], [900, 910]]
+    yBloc = [[-150, 150], [-990, 1150], [-900, 900], [200, 900], [-900, -200], [-200, 200], [900, 1150], [900, 910], [-910, -900], [-900, 900]]
+    zBloc = [[-500, -150], [-500, 1530], [-500, 360], [-500, -260], [-500, -260], [-500, -260], [-500, 1350], [-500, 2300],[-500, 2300], [-500, 2300]]
+    name = ["cables", "zone_travail", "chariot", "plan_part1", "plan_part3", "plan_part2", "poteau", "mur_x_pos", "mur_x_neg", "mur_y_neg"]
     dilatation = 25 # mm
-    dilatations = [1 for n in name]
+    dilatations = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
     dilatations = [d * dilatation for d in dilatations]
     
     # add tool interference
@@ -87,36 +82,28 @@ class MoveGroupPythonIntefaceTutorial(object):
 
     # add scene interferences
     for i in range(len(xBloc)):
-      # if i!=1: # skip workspace as it's not a collision box
-
-      # Define sizes of the box
-      xL = (abs(xBloc[i][1]-xBloc[i][0]) + 2*dilatations[i])*1e-3
-      yL = (abs(yBloc[i][1]-yBloc[i][0]) + 2*dilatations[i])*1e-3
-      zL = (abs(zBloc[i][1]-zBloc[i][0]) + 2*dilatations[i])*1e-3
-      
-      # Define origin/center of the box
-      xC = (xBloc[i][0]+xBloc[i][1])/2*1e-3
-      yC = (yBloc[i][0]+yBloc[i][1])/2*1e-3
-      zC = (zBloc[i][0]+zBloc[i][1])/2*1e-3
-      
-      # apply position of the box based on its origin/center
-      box_pose = geometry_msgs.msg.PoseStamped()
-      box_pose.header.frame_id = "base"
-      box_pose.pose.position.x = round(xC, 2)
-      box_pose.pose.position.y = round(yC, 2)
-      box_pose.pose.position.z = round(zC, 2)
-      box_pose.pose.orientation.w = 1
-
-      box_name = name[i]
-      scene.add_box(box_name, box_pose, size=(xL, yL, zL))
-      rospy.logwarn('Added object {} to the scene, origin: x:{} y:{} z:{} | size: x:{} y:{} z:{}'.format(
-        box_name,
-        box_pose.pose.position.x, box_pose.pose.position.y, box_pose.pose.position.z,
-        xL, yL, zL
-      ))
+      if i!=1: # skip workspace as it's not a collision box
+        xL = (xBloc[i][1]-xBloc[i][0] + 2*dilatations[i])*1e-3
+        yL = (yBloc[i][1]-yBloc[i][0] + 2*dilatations[i])*1e-3
+        zL = (zBloc[i][1]-zBloc[i][0] + 2*dilatations[i])*1e-3
         
-      self.box_name = box_name
-      self.wait_for_state_update(box_is_known=True)
+        xC = (xBloc[i][0]+xBloc[i][1])/2*1e-3
+        yC = (yBloc[i][0]+yBloc[i][1])/2*1e-3
+        zC = (zBloc[i][0]+zBloc[i][1])/2*1e-3
+        #print(xL, yL, zL, xC, yC, zC)
+        
+        box_pose = geometry_msgs.msg.PoseStamped()
+        box_pose.header.frame_id = "base"
+        box_pose.pose.position.x = xC
+        box_pose.pose.position.y = yC
+        box_pose.pose.position.z = zC
+        box_pose.pose.orientation.w = 1
+        box_name = name[i]
+        print(box_name)
+        scene.add_box(box_name, box_pose, size=(xL, yL, zL))
+        
+        self.box_name = box_name
+        self.wait_for_state_update(box_is_known=True)
 
 def main():
   try:

@@ -13,8 +13,6 @@
 
     <!-- link list -->
 
-    <link name="world" />
-
     <link name="base_link">
         <visual>
             <geometry>
@@ -146,11 +144,6 @@
     <!-- end of link list -->
 
     <!-- joint list -->
-
-    <joint name="fixed" type="fixed">
-        <parent link="world" />
-        <child link="base_link" />
-    </joint>
 
     <joint name="joint_1_s" type="revolute">
         <parent link="base_link" />
