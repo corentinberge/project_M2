@@ -1,6 +1,7 @@
 from ctypes import sizeof
 from operator import index
 from pyexpat import model
+from random import random
 from termios import TCSAFLUSH
 from numpy import double, linalg, math, sign, sqrt
 from numpy.core.fromnumeric import shape
@@ -17,6 +18,7 @@ from typing import Optional
 from typing import Optional
 import qpsolvers
 from time import sleep
+import random
 
 pre_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 package_path = pre_path + '/Modeles'
@@ -44,48 +46,70 @@ def Generate_posture_static():
     posture1=np.array([[0],[0],[0],[0],[0],[0]])
     Q_total=posture1
     #print("shape of posture 1",np.array(posture1).shape)
-    
+
     posture3=np.array([[0],[0],[-math.pi/2],[0],[0],[0]])
     Q_total=np.concatenate([Q_total,posture3], axis=1)
+
+    posture100=np.array([[-0.959931],[-0.313159],[1.69297],[0.05],[-1.98968],[0.959931]])
+    Q_total=np.concatenate([Q_total,posture100], axis=1)
+
+    posture101=np.array([[math.pi],[0],[math.pi],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture101], axis=1)
+
+    posture102=np.array([[2.356125],[0],[math.pi],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture102], axis=1)
+
+    posture54=np.array([[0],[math.pi/6],[-math.pi/(1.5)],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture54],axis=1)
 
     posture4=np.array([[0],[0],[math.pi/2],[0],[0],[0]])
     Q_total=np.concatenate([Q_total,posture4], axis=1)
 
     posture5=np.array([[0],[0],[-math.pi/4],[0],[0],[0]])
     Q_total=np.concatenate([Q_total,posture5], axis=1)
+
+    posture103=np.array([[2.356125],[-0.25],[math.pi],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture103], axis=1)
+
     
+    posture12=np.array([[0],[math.pi/4],[-math.pi/4],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture12], axis=1)
+
     posture6=np.array([[0],[0],[math.pi/4],[0],[0],[0]])
     Q_total=np.concatenate([Q_total,posture6], axis=1)
     
+    posture104=np.array([[2.356125],[0.6],[math.pi],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture104], axis=1)
+
     posture7=np.array([[0],[0],[math.pi/(1.5)],[0],[0],[0]])
     Q_total=np.concatenate([Q_total,posture7], axis=1)
 
     posture8=np.array([[0],[0],[-math.pi/(1.5)],[0],[0],[0]])
     Q_total=np.concatenate([Q_total,posture8], axis=1)
 
-    
+    posture105=np.array([[math.pi],[0],[4.71225],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture105], axis=1)
+
     posture9=np.array([[0],[-math.pi/2],[math.pi/2],[0],[0],[0]])
     Q_total=np.concatenate([Q_total,posture9], axis=1)
 
-
     posture10=np.array([[0],[math.pi/4],[-math.pi/2],[0],[0],[0]])
     Q_total=np.concatenate([Q_total,posture10], axis=1)
+   
+    posture106=np.array([[math.pi],[0],[1.57075],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture106], axis=1)
 
-    
     posture11=np.array([[0],[math.pi/4],[math.pi/2],[0],[0],[0]])
     Q_total=np.concatenate([Q_total,posture11], axis=1)
 
-    
-    posture12=np.array([[0],[math.pi/4],[-math.pi/4],[0],[0],[0]])
-    Q_total=np.concatenate([Q_total,posture12], axis=1)
-
-    
     posture13=np.array([[0],[math.pi/4],[math.pi/4],[0],[0],[0]])
     Q_total=np.concatenate([Q_total,posture13], axis=1)
 
-
     posture14=np.array([[0],[math.pi/4],[math.pi/(1.5)],[0],[0],[0]])
     Q_total=np.concatenate([Q_total,posture14], axis=1)
+
+    posture107=np.array([[math.pi],[0],[1.9],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture107], axis=1)
 
     posture15=np.array([[0],[math.pi/4],[-math.pi/(1.5)],[0],[0],[0]])
     Q_total=np.concatenate([Q_total,posture15], axis=1)
@@ -93,11 +117,17 @@ def Generate_posture_static():
     posture16=np.array([[0],[math.pi/4],[math.pi],[0],[0],[0]])
     Q_total=np.concatenate([Q_total,posture16], axis=1)
 
+    posture108=np.array([[math.pi],[0],[math.pi],[math.pi],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture108], axis=1)
+
     posture17=np.array([[0],[-math.pi/4],[-math.pi/2],[0],[0],[0]])
     Q_total=np.concatenate([Q_total,posture17], axis=1)
 
     posture18=np.array([[0],[-math.pi/4],[math.pi/2],[0],[0],[0]])
     Q_total=np.concatenate([Q_total,posture18], axis=1)
+
+    posture109=np.array([[math.pi],[0],[math.pi],[-math.pi],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture109], axis=1)
 
     posture19=np.array([[0],[-math.pi/4],[-math.pi/4],[0],[0],[0]])
     Q_total=np.concatenate([Q_total,posture19], axis=1)
@@ -108,11 +138,17 @@ def Generate_posture_static():
     posture21=np.array([[0],[-math.pi/4],[math.pi/(1.5)],[0],[0],[0]])
     Q_total=np.concatenate([Q_total,posture21], axis=1)
 
+    posture110=np.array([[math.pi],[0],[math.pi],[0],[-math.pi],[0]])
+    Q_total=np.concatenate([Q_total,posture110], axis=1)
+
     posture22=np.array([[0],[-math.pi/4],[-math.pi/(1.5)],[0],[0],[0]])
     Q_total=np.concatenate([Q_total,posture22], axis=1)
 
     posture23=np.array([[0],[-math.pi/4],[math.pi],[0],[0],[0]])
     Q_total=np.concatenate([Q_total,posture23], axis=1)
+
+    posture111=np.array([[math.pi],[0],[math.pi],[0],[math.pi],[0]])
+    Q_total=np.concatenate([Q_total,posture111], axis=1)
 
     posture24=np.array([[0],[-math.pi/3],[math.pi],[0],[0],[0]])
     Q_total=np.concatenate([Q_total,posture24],axis=1)
@@ -204,8 +240,8 @@ def Generate_posture_static():
     posture53=np.array([[0],[math.pi/6],[math.pi/(1.5)],[0],[0],[0]])
     Q_total=np.concatenate([Q_total,posture53],axis=1)
     
-    posture54=np.array([[0],[math.pi/6],[-math.pi/(1.5)],[0],[0],[0]])
-    Q_total=np.concatenate([Q_total,posture54],axis=1)
+    posture5=np.array([[0],[0],[-math.pi/4],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture5], axis=1)
     
     posture55=np.array([[0],[math.pi/6],[math.pi],[0],[0],[0]])
     Q_total=np.concatenate([Q_total,posture55],axis=1)
@@ -322,21 +358,23 @@ def Calculate_base_param(Q, R, P,Tau):
     
     return R1,R2,Q1,W_base,phi_base
 
-def Redimention_x2(Regresseur):
-    Exp_Regrs,T = Generate_Regression_vector(Q_pos,Q_pos.shape[1])
+def Redimention_x2(Q_posture):
+    Exp_Regrs,T = Generate_Regression_vector(Q_posture,Q_posture.shape[1])
     Regresseur =  np.array(Exp_Regrs)
-    Regresseur = np.delete(Regresseur,index_vector_to_delete, axis=1)
-    (Q_1, R_1, P_1) = sp.qr(Regresseur, pivoting=True)
+    Regresseur_Redim = np.delete(Regresseur,index_vector_to_delete, axis=1)
+    (Q_1, R_1, P_1) = sp.qr(Regresseur_Redim, pivoting=True)
     R1_1,R1_1,Q1_1,W_base1,phi_base1 = Calculate_base_param(Q_1, R_1, P_1,T)
     #Regresseur = np.delete(Regresseur,indexQR, axis=1)
     print ('Shape of Regresseur',np.array(Regresseur).shape)
     return W_base1
 
-def Conditionnement(M_for_Cond,Q_pos):
-    M_for_Cond = np.array(M_for_Cond)
+def Conditionnement(M_for_Cond,Q_posture):
+
+    M_for_Cond = np.array(M_for_Cond[0:18])
+    print ('1111shape of',np.array(M_for_Cond).shape)
+    Q_posture = np.array(Q_posture)
     #Genrate regressor matric form experiences
-    
-    Redim_Exp_Regrs = Redimention_x2(M_for_Cond)
+    Redim_Exp_Regrs = Redimention_x2(Q_posture)
     Redim_Exp_Regrs = np.array(Redim_Exp_Regrs)
     #======================================
     print ('shape of Redim_Exp_Regrs',np.array(Redim_Exp_Regrs).shape)
@@ -345,14 +383,14 @@ def Conditionnement(M_for_Cond,Q_pos):
     Exps = []
     for i in range(Q_pos.shape[1]):  
         AddExp = np.array(Redim_Exp_Regrs[i*6:i*6+6])
-        print ('shape of AddExp',i," :",np.array(AddExp).shape)
-        M_for_Cond = np.concatenate((M_for_Cond,AddExp))
-        print ('shape of M_for_Cond',i," :",np.array(M_for_Cond).shape)
+        #print ('shape of AddExp',i," :",np.array(AddExp).shape)
+        M_for_Cond = np.concatenate((M_for_Cond,AddExp))# je suis pas dacc
+        #print ('shape of M_for_Cond',i," :",np.array(M_for_Cond).shape)
         Exps.append(i)
-        Cond.append(linalg.cond(M_for_Cond))
+        Cond.append(linalg.cond(M_for_Cond),np.inf)
 
-    print ('shape of Exps',np.array(Exps).shape)
-    print ('shape of Cond',np.array(Cond).shape)
+    #print ('shape of Exps',np.array(Exps).shape)
+    #print ('shape of Cond',np.array(Cond).shape)
     return Cond,Exps 
 
 def Generate_text(neW_reg):
@@ -365,9 +403,13 @@ def Generate_text(neW_reg):
         f.write('\n')
     f.close()
 
+#=============================================================================
+#=============================================================================
 if __name__=="__main__": 
     Q_pos=[]
-    Q_pos=Generate_posture_static()
+    Q_pos = Generate_posture_static()
+    random.shuffle(Q_pos)
+
     #print('shape of Q',np.array(Q).shape)
     for i in range(Q_pos[0].size):
         robot.display(Q_pos[:,i])
@@ -379,7 +421,7 @@ if __name__=="__main__":
 
 # ========== Step 3- Create IDM with pinocchio (regression matrix)
     # Generate a regressor matrix with random value
-    nbSample =10
+    nbSample =500
     q_random= np.random.rand(NQ, nbSample) * np.pi - np.pi/2
     W_reg_Pin,tau = Generate_Regression_vector(q_random,nbSample)
     #print('shape of Q',np.array(Q).shape)
@@ -399,13 +441,13 @@ if __name__=="__main__":
     R1,R2,Q1,W_base,phi_base = Calculate_base_param(Q, R, P,tau)
 
 # ========== Step 7 - Conditionnement with exp add.
-    Cond, Nbr_exp = Conditionnement(W_base,Q_pos)
-    
-    Cond = np.delete(Cond,[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16], axis=0)
-    Nbr_exp = np.delete(Nbr_exp,[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16], axis=0)
+    #Cond, Nbr_exp = Conditionnement(Q1,Q_pos)
+    Condi = linalg.cond(W_base)
+    print('Voila',Condi)
+
 # ========== Step 8 - Affichage with exp add.    
-    print(Cond)
-    print(Nbr_exp)
+    
+    Nbr_exp = np.delete(Nbr_exp,[0])
     plt.figure('Conditionnement en fonction du nombre dexps')
     plt.plot(Nbr_exp, Cond, 'g', linewidth=2, label='tau')
     plt.title('Conditionnement en fonction du nombre dexps')
