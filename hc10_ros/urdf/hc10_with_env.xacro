@@ -7,7 +7,7 @@
     <link name="world" />
 
     <xacro:include filename="$(find hc10_ros)/urdf/table.xacro" />
-    <xacro:include filename="$(find hc10_ros)/urdf/hc10_with_env.urdf" />
+    <xacro:include filename="$(find hc10_ros)/urdf/hc10_for_env.urdf" />
     <xacro:include filename="$(find hc10_ros)/urdf/walls.xacro" />
 
     <joint name="walls_joint" type="fixed">
