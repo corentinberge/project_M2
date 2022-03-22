@@ -13,6 +13,8 @@
 
     <!-- link list -->
 
+    <link name="world"/>
+
     <link name="base_link">
         <visual>
             <geometry>
@@ -144,7 +146,11 @@
     <!-- end of link list -->
 
     <!-- joint list -->
-
+    <joint name="fixed" type="fixed">
+        <parent link="world" />
+        <child link="base_link" />
+    </joint>
+    
     <joint name="joint_1_s" type="revolute">
         <parent link="base_link" />
         <child link="link_1_s" />
@@ -194,6 +200,15 @@
     </joint>
 
     <!-- end of joint list -->
+
+    <!-- ROS base_link to Robot Manufacturer World Coordinates transform -->
+    <link name="base" />
+
+    <!-- Fix robot base to world -->
+    <joint name="base_link-base" type="fixed">
+        <parent link="world" />
+        <child link="base" />
+    </joint>
     
     <transmission name="trans_joint_1_s">
         <type>transmission_interface/SimpleTransmission</type>

@@ -34,13 +34,13 @@
       <arg name="robot_ip" value="$(arg robot_ip)"/>
       <arg name="controller" value="$(arg controller)"/>
     </include>
+    
   </group>
 
   <!-- publish the robot state (tf transforms) -->
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
 
-  <include file="$(find hc10_ros)/launch/move_group.launch">
-    <arg name="publish_monitored_planning_scene" value="true" />
+  <include file="$(find hc10_ros)/launch/move_group.launch">    <arg name="publish_monitored_planning_scene" value="true" />
   </include>
 
   <include file="$(find hc10_ros)/launch/moveit_rviz.launch">
@@ -48,9 +48,5 @@
   </include>
 
   <!-- add interferences using python script -->
-  <node name="add_interferences" pkg="hc10_ros" type="add_interferences.py" />
-  
-<!--  
-  <include file="$(find hc10_ros)/launch/default_warehouse_db.launch" />
--->
+  <!-- <node name="add_interferences" pkg="hc10_ros" type="add_interferences.py" /> -->
 </launch>

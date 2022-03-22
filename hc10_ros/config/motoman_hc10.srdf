@@ -12,43 +12,162 @@
     <group name="Yaskawa_arm">
         <chain base_link="base_link" tip_link="tool0" />
     </group>
-    <!--GROUP STATES: Purpose: Define a named state for a particular group, in terms of joint values. This is useful to define states like 'folded arms'-->
-    <group_state name="zero" group="Yaskawa_arm">
-        <joint name="joint_1_s" value="0" />
-        <joint name="joint_2_l" value="0" />
-        <joint name="joint_3_u" value="0" />
-        <joint name="joint_4_r" value="0" />
-        <joint name="joint_5_b" value="0" />
-        <joint name="joint_6_t" value="0" />
-    </group_state>
-    <group_state name="Default_Identif" group="Yaskawa_arm">
-        <joint name="joint_1_s" value="-0.959931" />
-        <joint name="joint_2_l" value="-0.314159" />
-        <joint name="joint_3_u" value="1.69297" />
-        <joint name="joint_4_r" value="0.05" />
-        <joint name="joint_5_b" value="-1.98968" />
-        <joint name="joint_6_t" value="0.959931" />
-    </group_state>
-    <group_state name="ident_2" group="Yaskawa_arm">
-	<joint name="joint_1_s" value="0.0" />
+    <group_state name="posture_3" group="Yaskawa_arm">
+	    <joint name="joint_1_s" value="0.0" />
         <joint name="joint_2_l" value="0.0" />
-        <joint name="joint_3_u" value="1.69297" />
-        <joint name="joint_4_r" value="0.05" />
-        <joint name="joint_5_b" value="-1.98968" />
-        <joint name="joint_6_t" value="0.959931" />
+        <joint name="joint_3_u" value="4.71238898038" />
+        <joint name="joint_4_r" value="0.0" />
+        <joint name="joint_5_b" value="0.0" />
+        <joint name="joint_6_t" value="0.0" />
     </group_state>
-    <group_state name="chandelle" group="Yaskawa_arm">
-	<joint name="joint_1_s" value="0.0" />
+    <group_state name="posture_101" group="Yaskawa_arm">
+	    <joint name="joint_1_s" value="3.1415" />
         <joint name="joint_2_l" value="0.0" />
+        <joint name="joint_3_u" value="3.1415" />
+        <joint name="joint_4_r" value="0.0" />
+        <joint name="joint_5_b" value="0.0" />
+        <joint name="joint_6_t" value="0.0" />
+    </group_state>
+    <group_state name="posture_4" group="Yaskawa_arm">
+	    <joint name="joint_1_s" value="0.0" />
+        <joint name="joint_2_l" value="0.0" />
+        <joint name="joint_3_u" value="1.57079632679" />
+        <joint name="joint_4_r" value="0.0" />
+        <joint name="joint_5_b" value="0.0" />
+        <joint name="joint_6_t" value="0.0" />
+    </group_state>
+    <group_state name="posture_103" group="Yaskawa_arm">
+	    <joint name="joint_1_s" value="2.356125" />
+        <joint name="joint_2_l" value="0.25" />
+        <joint name="joint_3_u" value="3.1415" />
+        <joint name="joint_4_r" value="0.0" />
+        <joint name="joint_5_b" value="0.0" />
+        <joint name="joint_6_t" value="0.0" />
+    </group_state>
+    <group_state name="posture_6" group="Yaskawa_arm">
+	    <joint name="joint_1_s" value="0.0" />
+        <joint name="joint_2_l" value="0.0" />
+        <joint name="joint_3_u" value="0.78539816339" />
+        <joint name="joint_4_r" value="0.0" />
+        <joint name="joint_5_b" value="0.0" />
+        <joint name="joint_6_t" value="0.0" />
+    </group_state>
+    <group_state name="posture_104" group="Yaskawa_arm">
+	    <joint name="joint_1_s" value="2.356125" />
+        <joint name="joint_2_l" value="0.76" />
+        <joint name="joint_3_u" value="3.1415" />
+        <joint name="joint_4_r" value="0.0" />
+        <joint name="joint_5_b" value="0.0" />
+        <joint name="joint_6_t" value="0.0" />
+    </group_state>
+    <group_state name="posture_7" group="Yaskawa_arm">
+	    <joint name="joint_1_s" value="0.0" />
+        <joint name="joint_2_l" value="0.0" />
+        <joint name="joint_3_u" value="2.09439510239" />
+        <joint name="joint_4_r" value="0.0" />
+        <joint name="joint_5_b" value="0.0" />
+        <joint name="joint_6_t" value="0.0" />
+    </group_state>
+    <group_state name="posture_105" group="Yaskawa_arm">
+	    <joint name="joint_1_s" value="3.1415" />
+        <joint name="joint_2_l" value="0.0" />
+        <joint name="joint_3_u" value="4.71225" />
+        <joint name="joint_4_r" value="0.0" />
+        <joint name="joint_5_b" value="0.0" />
+        <joint name="joint_6_t" value="0.0" />
+    </group_state>
+    <group_state name="posture_10" group="Yaskawa_arm">
+	    <joint name="joint_1_s" value="0.0" />
+        <joint name="joint_2_l" value="0.78539816339" />
+        <joint name="joint_3_u" value="4.71238898038" />
+        <joint name="joint_4_r" value="0.0" />
+        <joint name="joint_5_b" value="0.0" />
+        <joint name="joint_6_t" value="0.0" />
+    </group_state>
+    <group_state name="posture_106" group="Yaskawa_arm">
+	    <joint name="joint_1_s" value="3.1415" />
+        <joint name="joint_2_l" value="0.0" />
+        <joint name="joint_3_u" value="1.57075" />
+        <joint name="joint_4_r" value="0.0" />
+        <joint name="joint_5_b" value="0.0" />
+        <joint name="joint_6_t" value="0.0" />
+    </group_state>
+    <group_state name="posture_107" group="Yaskawa_arm">
+	    <joint name="joint_1_s" value="3.1415" />
+        <joint name="joint_2_l" value="0.0" />
+        <joint name="joint_3_u" value="1.9" />
+        <joint name="joint_4_r" value="0.0" />
+        <joint name="joint_5_b" value="0.0" />
+        <joint name="joint_6_t" value="0.0" />
+    </group_state>
+    <group_state name="posture_108" group="Yaskawa_arm">
+	    <joint name="joint_1_s" value="3.1415" />
+        <joint name="joint_2_l" value="0.0" />
+        <joint name="joint_3_u" value="3.1415" />
+        <joint name="joint_4_r" value="3.1415" />
+        <joint name="joint_5_b" value="0.0" />
+        <joint name="joint_6_t" value="0.0" />
+    </group_state>
+    <group_state name="posture_110" group="Yaskawa_arm">
+	    <joint name="joint_1_s" value="3.1415" />
+        <joint name="joint_2_l" value="0.0" />
+        <joint name="joint_3_u" value="3.1415" />
+        <joint name="joint_4_r" value="0.0" />
+        <joint name="joint_5_b" value="-3.1415" />
+        <joint name="joint_6_t" value="0.0" />
+    </group_state>
+    <group_state name="posture_41" group="Yaskawa_arm">
+	    <joint name="joint_1_s" value="0.0" />
+        <joint name="joint_2_l" value="1.0471975512" />
+        <joint name="joint_3_u" value="4.71238898038" />
+        <joint name="joint_4_r" value="0.0" />
+        <joint name="joint_5_b" value="0.0" />
+        <joint name="joint_6_t" value="0.0" />
+    </group_state>
+    <group_state name="posture_48" group="Yaskawa_arm">
+	    <joint name="joint_1_s" value="0.0" />
+        <joint name="joint_2_l" value="0.52359877559" />
+        <joint name="joint_3_u" value="3.1415" />
+        <joint name="joint_4_r" value="0.0" />
+        <joint name="joint_5_b" value="0.0" />
+        <joint name="joint_6_t" value="0.0" />
+    </group_state>
+    <group_state name="posture_49" group="Yaskawa_arm">
+	    <joint name="joint_1_s" value="0.0" />
+        <joint name="joint_2_l" value="0.52359877559" />
+        <joint name="joint_3_u" value="4.71238898038" />
+        <joint name="joint_4_r" value="0.0" />
+        <joint name="joint_5_b" value="0.0" />
+        <joint name="joint_6_t" value="0.0" />
+    </group_state>
+    <group_state name="posture_57" group="Yaskawa_arm">
+	    <joint name="joint_1_s" value="0.0" />
+        <joint name="joint_2_l" value="0.52359877559" />
+        <joint name="joint_3_u" value="1.57079632679" />
+        <joint name="joint_4_r" value="0.78539816339" />
+        <joint name="joint_5_b" value="3.0" />
+        <joint name="joint_6_t" value="0.0" />
+    </group_state>
+    <group_state name="test_art_2_2" group="Yaskawa_arm">
+	    <joint name="joint_1_s" value="1.57075" />
+        <joint name="joint_2_l" value="-1.57075" />
         <joint name="joint_3_u" value="3.141592653589793" />
         <joint name="joint_4_r" value="0.0" />
         <joint name="joint_5_b" value="0.0" />
         <joint name="joint_6_t" value="0.0" />
     </group_state>
-    <group_state name="chandelle_2" group="Yaskawa_arm">
-	<joint name="joint_1_s" value="3.141592653589793" />
-        <joint name="joint_2_l" value="0.0" />
-        <joint name="joint_3_u" value="3.141592653589793" />
+    <group_state name="test_art_2_3" group="Yaskawa_arm">
+	    <joint name="joint_1_s" value="1.57075" />
+        <joint name="joint_2_l" value="-1.57075" />
+        <joint name="joint_3_u" value="1.57075" />
+        <joint name="joint_4_r" value="0.0" />
+        <joint name="joint_5_b" value="0.0" />
+        <joint name="joint_6_t" value="0.0" />
+    </group_state>
+    <group_state name="test_art_2_4" group="Yaskawa_arm">
+	    <joint name="joint_1_s" value="1.57075" />
+        <joint name="joint_2_l" value="1.57075" />
+        <joint name="joint_3_u" value="4.71238898038" />
         <joint name="joint_4_r" value="0.0" />
         <joint name="joint_5_b" value="0.0" />
         <joint name="joint_6_t" value="0.0" />

@@ -1,0 +1,223 @@
+<?xml version="1.0" ?>
+<!--This does not replace URDF, and is not an extension of URDF.
+    This is a format for representing semantic information about the robot structure.
+    A URDF file must exist for this robot as well, where the joints and the links that are referenced are defined
+-->
+<robot name="motoman_hc10">
+    <!--GROUPS: Representation of a set of joints and links. This can be useful for specifying DOF to plan for, defining arms, end effectors, etc-->
+    <!--LINKS: When a link is specified, the parent joint of that link (if it exists) is automatically included-->
+    <!--JOINTS: When a joint is specified, the child link of that joint (which will always exist) is automatically included-->
+    <!--CHAINS: When a chain is specified, all the links along the chain (including endpoints) are included in the group. Additionally, all the joints that are parents to included links are also included. This means that joints along the chain and the parent joint of the base link are included in the group-->
+    <!--SUBGROUPS: Groups can also be formed by referencing to already defined group names-->
+    <group name="Yaskawa_arm">
+        <chain base_link="base_link" tip_link="tool0" />
+    </group>
+    <!--GROUP STATES: Purpose: Define a named state for a particular group, in terms of joint values. This is useful to define states like 'folded arms'-->
+    <group_state name="zero" group="Yaskawa_arm">
+        <joint name="joint_1_s" value="0" />
+        <joint name="joint_2_l" value="0" />
+        <joint name="joint_3_u" value="0" />
+        <joint name="joint_4_r" value="0" />
+        <joint name="joint_5_b" value="0" />
+        <joint name="joint_6_t" value="0" />
+    </group_state>
+    <group_state name="Default_Identif" group="Yaskawa_arm">
+        <joint name="joint_1_s" value="-0.959931" />
+        <joint name="joint_2_l" value="-0.314159" />
+        <joint name="joint_3_u" value="1.69297" />
+        <joint name="joint_4_r" value="0.05" />
+        <joint name="joint_5_b" value="-1.98968" />
+        <joint name="joint_6_t" value="0.959931" />
+    </group_state>
+    <group_state name="ident_2" group="Yaskawa_arm">
+	    <joint name="joint_1_s" value="0.0" />
+        <joint name="joint_2_l" value="0.0" />
+        <joint name="joint_3_u" value="1.69297" />
+        <joint name="joint_4_r" value="0.05" />
+        <joint name="joint_5_b" value="-1.98968" />
+        <joint name="joint_6_t" value="0.959931" />
+    </group_state>
+    <group_state name="ident_2_2" group="Yaskawa_arm">
+	    <joint name="joint_1_s" value="0.8018584251403809" />
+        <joint name="joint_2_l" value="0.6618624925613403" />
+        <joint name="joint_3_u" value="1.909343957901001" />
+        <joint name="joint_4_r" value="2.879448652267456" />
+        <joint name="joint_5_b" value="-0.842910885810852" />
+        <joint name="joint_6_t" value="-0.37915197014808655" />
+    </group_state>
+    <group_state name="chandelle" group="Yaskawa_arm">
+	    <joint name="joint_1_s" value="0.0" />
+        <joint name="joint_2_l" value="0.0" />
+        <joint name="joint_3_u" value="3.141592653589793" />
+        <joint name="joint_4_r" value="0.0" />
+        <joint name="joint_5_b" value="0.0" />
+        <joint name="joint_6_t" value="0.0" />
+    </group_state>
+    <group_state name="pos_to_chandelle" group="Yaskawa_arm">
+        <joint name="joint_1_s" value="-3.0325095753401476" />
+        <joint name="joint_2_l" value="0.0" />
+        <joint name="joint_3_u" value="3.141592653589793" />
+        <joint name="joint_4_r" value="0.0" />
+        <joint name="joint_5_b" value="0.0" />
+        <joint name="joint_6_t" value="0.0" />
+    </group_state>
+    <group_state name="pos_to_chandelle_2" group="Yaskawa_arm">
+        <joint name="joint_1_s" value="3.141592653589793" />
+        <joint name="joint_2_l" value="0.0" />
+        <joint name="joint_3_u" value="3.141592653589793" />
+        <joint name="joint_4_r" value="0.0" />
+        <joint name="joint_5_b" value="0.0" />
+        <joint name="joint_6_t" value="0.0" />
+    </group_state>
+    <group_state name="fadi" group="Yaskawa_arm">
+        <joint name="joint_1_s" value="0.0" />
+        <joint name="joint_2_l" value="-1.57" />
+        <joint name="joint_3_u" value="1.57" />
+        <joint name="joint_4_r" value="0.0" />
+        <joint name="joint_5_b" value="0.0" />
+        <joint name="joint_6_t" value="0.0" />
+    </group_state>
+    <group_state name="passage_test_art" group="Yaskawa_arm">
+	    <joint name="joint_1_s" value="2.356125" />
+        <joint name="joint_2_l" value="0.0" />
+        <joint name="joint_3_u" value="3.141592653589793" />
+        <joint name="joint_4_r" value="0.0" />
+        <joint name="joint_5_b" value="0.0" />
+        <joint name="joint_6_t" value="0.0" />
+    </group_state>
+    <group_state name="test_art_2" group="Yaskawa_arm">
+	    <joint name="joint_1_s" value="1.57075" />
+        <joint name="joint_2_l" value="0.0" />
+        <joint name="joint_3_u" value="3.141592653589793" />
+        <joint name="joint_4_r" value="0.0" />
+        <joint name="joint_5_b" value="0.0" />
+        <joint name="joint_6_t" value="0.0" />
+    </group_state>
+    <group_state name="test_art_2_2" group="Yaskawa_arm">
+	    <joint name="joint_1_s" value="1.57075" />
+        <joint name="joint_2_l" value="-1.57075" />
+        <joint name="joint_3_u" value="3.141592653589793" />
+        <joint name="joint_4_r" value="0.0" />
+        <joint name="joint_5_b" value="0.0" />
+        <joint name="joint_6_t" value="0.0" />
+    </group_state>
+    <group_state name="test_art_3" group="Yaskawa_arm">
+	    <joint name="joint_1_s" value="3.141592653589793" />
+        <joint name="joint_2_l" value="0.0" />
+        <joint name="joint_3_u" value="1.57075" />
+        <joint name="joint_4_r" value="0.0" />
+        <joint name="joint_5_b" value="0.0" />
+        <joint name="joint_6_t" value="0.0" />
+    </group_state>
+    <group_state name="test_art_3_2" group="Yaskawa_arm">
+	    <joint name="joint_1_s" value="3.141592653589793" />
+        <joint name="joint_2_l" value="0.0" />
+        <joint name="joint_3_u" value="4.71225" />
+        <joint name="joint_4_r" value="0.0" />
+        <joint name="joint_5_b" value="0.0" />
+        <joint name="joint_6_t" value="0.0" />
+    </group_state>
+    <group_state name="test_art_4" group="Yaskawa_arm">
+	    <joint name="joint_1_s" value="3.141592653589793" />
+        <joint name="joint_2_l" value="0.0" />
+        <joint name="joint_3_u" value="3.141592653589793" />
+        <joint name="joint_4_r" value="3.14159265359" />
+        <joint name="joint_5_b" value="0.0" />
+        <joint name="joint_6_t" value="0.0" />
+    </group_state>
+    <group_state name="test_art_4_2" group="Yaskawa_arm">
+	    <joint name="joint_1_s" value="3.141592653589793" />
+        <joint name="joint_2_l" value="0.0" />
+        <joint name="joint_3_u" value="3.141592653589793" />
+        <joint name="joint_4_r" value="-3.14159265359" />
+        <joint name="joint_5_b" value="0.0" />
+        <joint name="joint_6_t" value="0.0" />
+    </group_state>
+    <group_state name="test_art_5" group="Yaskawa_arm">
+	    <joint name="joint_1_s" value="3.141592653589793" />
+        <joint name="joint_2_l" value="0.0" />
+        <joint name="joint_3_u" value="3.141592653589793" />
+        <joint name="joint_4_r" value="0.0" />
+        <joint name="joint_5_b" value="3.14159265359" />
+        <joint name="joint_6_t" value="0.0" />
+    </group_state>
+    <group_state name="test_art_5_2" group="Yaskawa_arm">
+	    <joint name="joint_1_s" value="3.141592653589793" />
+        <joint name="joint_2_l" value="0.0" />
+        <joint name="joint_3_u" value="3.141592653589793" />
+        <joint name="joint_4_r" value="0.0" />
+        <joint name="joint_5_b" value="-3.14159265359" />
+        <joint name="joint_6_t" value="0.0" />
+    </group_state>
+    <group_state name="test_art_6" group="Yaskawa_arm">
+	    <joint name="joint_1_s" value="3.141592653589793" />
+        <joint name="joint_2_l" value="0.0" />
+        <joint name="joint_3_u" value="3.141592653589793" />
+        <joint name="joint_4_r" value="0.0" />
+        <joint name="joint_5_b" value="0.0" />
+        <joint name="joint_6_t" value="3.141592653589793" />
+    </group_state>
+    <group_state name="test_art_6_2" group="Yaskawa_arm">
+	    <joint name="joint_1_s" value="3.141592653589793" />
+        <joint name="joint_2_l" value="0.0" />
+        <joint name="joint_3_u" value="3.141592653589793" />
+        <joint name="joint_4_r" value="0.0" />
+        <joint name="joint_5_b" value="0.0" />
+        <joint name="joint_6_t" value="-3.141592653589793" />
+    </group_state>
+    <group_state name="test_art_4_6" group="Yaskawa_arm">
+	    <joint name="joint_1_s" value="3.141592653589793" />
+        <joint name="joint_2_l" value="0.0" />
+        <joint name="joint_3_u" value="3.141592653589793" />
+        <joint name="joint_4_r" value="3.141592653589793" />
+        <joint name="joint_5_b" value="3.141592653589793" />
+        <joint name="joint_6_t" value="3.141592653589793" />
+    </group_state>
+    <group_state name="test_art_6_4" group="Yaskawa_arm">
+	    <joint name="joint_1_s" value="3.141592653589793" />
+        <joint name="joint_2_l" value="0.0" />
+        <joint name="joint_3_u" value="3.141592653589793" />
+        <joint name="joint_4_r" value="-3.14159265359" />
+        <joint name="joint_5_b" value="-3.14159265359" />
+        <joint name="joint_6_t" value="-3.141592653589793" />
+    </group_state>
+    <group_state name="pos_photo" group="Yaskawa_arm">
+	    <joint name="joint_1_s" value="0.8018584251403809" />
+        <joint name="joint_2_l" value="1.1848593950271606" />
+        <joint name="joint_3_u" value="2.388075828552246" />
+        <joint name="joint_4_r" value="2.8793625831604004" />
+        <joint name="joint_5_b" value="-0.8428030610084534" />
+        <joint name="joint_6_t" value="-0.37915197014808655" />
+    </group_state>
+    <group_state name="pos_photo_2" group="Yaskawa_arm">
+	    <joint name="joint_1_s" value="0.6327290534973145" />
+        <joint name="joint_2_l" value="0.6873697638511658" />
+        <joint name="joint_3_u" value="1.2588683366775513" />
+        <joint name="joint_4_r" value="-2.6502909660339355" />
+        <joint name="joint_5_b" value="-0.952644407749176" />
+        <joint name="joint_6_t" value="-1.1328099966049194" />
+    </group_state>
+    <group_state name="pos_video" group="Yaskawa_arm">
+	    <joint name="joint_1_s" value="-1.9433214664459229" />
+        <joint name="joint_2_l" value="0.16793370246887207" />
+        <joint name="joint_3_u" value="1.4496458768844604" />
+        <joint name="joint_4_r" value="-1.70084810256958" />
+        <joint name="joint_5_b" value="1.26406991481781" />
+        <joint name="joint_6_t" value="-1.2147976160049438" />
+    </group_state>
+    <!--VIRTUAL JOINT: Purpose: this element defines a virtual joint between a robot link and an external frame of reference (considered fixed with respect to the robot)-->
+    <virtual_joint name="virtual_joint" type="fixed" parent_frame="world" child_link="base_link" />
+    <!--DISABLE COLLISIONS: By default it is assumed that any link of the robot could potentially come into collision with any other link in the robot. This tag disables collision checking between a specified pair of links. -->
+    <disable_collisions link1="base_link" link2="link_1_s" reason="Adjacent" />
+    <disable_collisions link1="base_link" link2="link_3_u" reason="Never" />
+    <disable_collisions link1="link_1_s" link2="link_2_l" reason="Adjacent" />
+    <disable_collisions link1="link_1_s" link2="link_3_u" reason="Never" />
+    <disable_collisions link1="link_2_l" link2="link_3_u" reason="Adjacent" />
+    <disable_collisions link1="link_2_l" link2="link_4_r" reason="Never" />
+    <disable_collisions link1="link_3_u" link2="link_4_r" reason="Adjacent" />
+    <disable_collisions link1="link_3_u" link2="link_5_b" reason="Never" />
+    <disable_collisions link1="link_3_u" link2="link_6_t" reason="Never" />
+    <disable_collisions link1="link_4_r" link2="link_5_b" reason="Adjacent" />
+    <disable_collisions link1="link_4_r" link2="link_6_t" reason="Never" />
+    <disable_collisions link1="link_5_b" link2="link_6_t" reason="Adjacent" />
+</robot>

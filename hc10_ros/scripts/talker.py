@@ -14,10 +14,10 @@ def talker():
     for i in range(0, 6):
         pub.append(rospy.Publisher('/motoman_hc10/joint'+str(i+1)+'_position_controller/command', Float64, queue_size=10))
         rospy.init_node('talker', anonymous=True)
-        rate = rospy.Rate(100) # 10hz
+        rate = rospy.Rate(10) # 10hz
 
     # Open file
-    f = open("data/trajectoire_simple2.txt", "r")
+    f = open("data/trajectoire_simple.txt", "r")
 
     # robot = RobotWrapper()
     # robot.initFromURDF(urdf_path, package_path, verbose=True)
@@ -29,10 +29,6 @@ def talker():
             
         # tmp = [f.readline() for i in range(1,250)]
         l = f.readline()
-
-        if len(l) == 0:
-            print('Done!')
-            exit()
 
         # If EOF => Loop on file
         # if len(l) == 0:
@@ -46,7 +42,7 @@ def talker():
         for i in range(0, 6):
             rospy.loginfo(q_data_float[i])
             pub[i].publish(q_data_float[i])
-
+        
         rate.sleep()
 
 
