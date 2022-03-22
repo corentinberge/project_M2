@@ -1,7 +1,6 @@
 from ctypes import sizeof
 from operator import index
 from pyexpat import model
-from random import random
 from termios import TCSAFLUSH
 from numpy import double, linalg, math, sign, sqrt, transpose
 from numpy.core.fromnumeric import shape
@@ -13,13 +12,14 @@ import matplotlib.pyplot as plt
 import scipy.linalg as sp
 import pinocchio as pin
 import numpy as np
-# from tabulate import tabulate
+from tabulate import tabulate
 import os
 from typing import Any, Optional
 from typing import Optional
 import qpsolvers
 from time import sleep
 import random
+
 #----------------------------------------------------
 pre_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 package_path = pre_path + '/Modeles'
@@ -36,6 +36,28 @@ data = robot.data
 model = robot.model
 NQ = robot.nq  
 #------------------------------------------------------
+def standardParameters(model, param):
+#This function prints out the standard inertial parameters obtained from 3D design.
+#Note: a flag IsFrictioncld to include in standard parameters
+#Input: njoints: number of jointsOutput: params_std: a dictionary of parameter names and their values
+    params_name = ['m', 'mx', 'my', 'mz', 'Ixx','Ixy', 'Iyy', 'Ixz', 'Iyz', 'Izz']
+    phi = []
+    params = []
+    for i in range(1, model.njoints):
+        P = model.inertias[i].toDynamicParameters()
+        for k in P:
+            phi.append(k)
+        for j in params_name:
+            params.append(j + str(i))
+
+    if param['Friction']:
+        for k in range(1, model.njoints):
+            # Here we add arbitrary values
+
+            phi.extend([param['fv'], param['fc']])
+            params.extend(['fv' + str(k), 'fc' + str(k)])
+    params_std = dict(zip(params, phi))
+    return params_std
 
 def iden_model(model, data, q, dq, ddq, param):
 #This function calculates joint torques and generates the joint torque regressor.
@@ -67,7 +89,6 @@ def iden_model(model, data, q, dq, ddq, param):
 
     return tau, W
 
-
 def eliminateNonAffecting(W_, params_std, tol_e):
 #This function eliminates columns which has L2 norm smaller than tolerance.
 #Input: W: joint torque regressor
@@ -84,10 +105,9 @@ def eliminateNonAffecting(W_, params_std, tol_e):
             params_e.append(list(params_std.keys())[i])
         else:
             params_r.append(list(params_std.keys())[i])
-
+    
     W_e = np.delete(W_, idx_e, 1)
-    return W_e, params_r
-
+    return W_e, params_r,idx_e
 
 def double_QR(tau, W_e, params_r, params_std=None):
 #This function calculates QR decompostion 2 times, first to find symbolic
@@ -127,7 +147,7 @@ def double_QR(tau, W_e, params_r, params_std=None):
 
     params_base = []
     params_regroup = []
-    print(idx_base)
+    print(idx_base,"ICI")
     for i in range(len(idx_base)):
         W1[:, i] = W_e[:, idx_base[i]]
         params_base.append(params_r[idx_base[i]])
@@ -208,9 +228,225 @@ def double_QR(tau, W_e, params_r, params_std=None):
     if params_std is not None:
         return W_b, base_parameters, params_base, phi_b, phi_std
     else:
-        return W_b, base_parameters, params_base, phi_b
+        return W_b, base_parameters, params_base, phi_b,idx_base
 
-#=============================================================================
+def Generate_posture_static():
+    
+    # Q_total=[[],[],[],[],[],[]]
+    Q_total=[]
+    Q_total=np.array(Q_total)
+    posture1=np.array([[0],[0],[0],[0],[0],[0]])
+    Q_total=posture1
+    #print("shape of posture 1",np.array(posture1).shape)
+
+    posture3=np.array([[0],[0],[-math.pi/2],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture3], axis=1)
+
+    posture100=np.array([[-0.959931],[-0.313159],[1.69297],[0.05],[-1.98968],[0.959931]])
+    Q_total=np.concatenate([Q_total,posture100], axis=1)
+
+    posture101=np.array([[math.pi],[0],[math.pi],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture101], axis=1)
+
+    posture102=np.array([[2.356125],[0],[math.pi],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture102], axis=1)
+
+    posture54=np.array([[0],[math.pi/6],[-math.pi/(1.5)],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture54],axis=1)
+
+    posture4=np.array([[0],[0],[math.pi/2],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture4], axis=1)
+
+    posture5=np.array([[0],[0],[-math.pi/4],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture5], axis=1)
+
+    posture103=np.array([[2.356125],[-0.25],[math.pi],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture103], axis=1)
+
+    
+    posture12=np.array([[0],[math.pi/4],[-math.pi/4],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture12], axis=1)
+
+    posture6=np.array([[0],[0],[math.pi/4],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture6], axis=1)
+    
+    posture104=np.array([[2.356125],[0.6],[math.pi],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture104], axis=1)
+
+    posture7=np.array([[0],[0],[math.pi/(1.5)],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture7], axis=1)
+
+    posture8=np.array([[0],[0],[-math.pi/(1.5)],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture8], axis=1)
+
+    posture105=np.array([[math.pi],[0],[4.71225],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture105], axis=1)
+
+    posture9=np.array([[0],[-math.pi/2],[math.pi/2],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture9], axis=1)
+
+    posture10=np.array([[0],[math.pi/4],[-math.pi/2],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture10], axis=1)
+   
+    posture106=np.array([[math.pi],[0],[1.57075],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture106], axis=1)
+
+    posture11=np.array([[0],[math.pi/4],[math.pi/2],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture11], axis=1)
+
+    posture13=np.array([[0],[math.pi/4],[math.pi/4],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture13], axis=1)
+
+    posture14=np.array([[0],[math.pi/4],[math.pi/(1.5)],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture14], axis=1)
+
+    posture107=np.array([[math.pi],[0],[1.9],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture107], axis=1)
+
+    posture15=np.array([[0],[math.pi/4],[-math.pi/(1.5)],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture15], axis=1)
+
+    posture16=np.array([[0],[math.pi/4],[math.pi],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture16], axis=1)
+
+    posture108=np.array([[math.pi],[0],[math.pi],[math.pi],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture108], axis=1)
+
+    posture17=np.array([[0],[-math.pi/4],[-math.pi/2],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture17], axis=1)
+
+    posture18=np.array([[0],[-math.pi/4],[math.pi/2],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture18], axis=1)
+
+    posture109=np.array([[math.pi],[0],[math.pi],[-math.pi],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture109], axis=1)
+
+    posture19=np.array([[0],[-math.pi/4],[-math.pi/4],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture19], axis=1)
+    
+    posture20=np.array([[0],[-math.pi/4],[math.pi/4],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture20], axis=1)
+    
+    posture21=np.array([[0],[-math.pi/4],[math.pi/(1.5)],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture21], axis=1)
+
+    posture110=np.array([[math.pi],[0],[math.pi],[0],[-math.pi],[0]])
+    Q_total=np.concatenate([Q_total,posture110], axis=1)
+
+    posture22=np.array([[0],[-math.pi/4],[-math.pi/(1.5)],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture22], axis=1)
+
+    posture23=np.array([[0],[-math.pi/4],[math.pi],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture23], axis=1)
+
+    posture111=np.array([[math.pi],[0],[math.pi],[0],[math.pi],[0]])
+    Q_total=np.concatenate([Q_total,posture111], axis=1)
+
+    posture24=np.array([[0],[-math.pi/3],[math.pi],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture24],axis=1)
+    
+    posture25=np.array([[0],[-math.pi/3],[-math.pi/2],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture25],axis=1)
+    
+    posture26=np.array([[0],[-math.pi/3],[math.pi/2],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture26],axis=1)
+    
+    posture27=np.array([[0],[-math.pi/3],[-math.pi/4],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture27],axis=1)
+    
+    posture28=np.array([[0],[-math.pi/3],[math.pi/4],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture28],axis=1)
+    
+    posture29=np.array([[0],[-math.pi/3],[math.pi/(1.5)],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture29],axis=1)
+    
+    posture30=np.array([[0],[-math.pi/3],[-math.pi/(1.5)],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture30],axis=1)
+    
+    posture31=np.array([[0],[-math.pi/3],[math.pi],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture31],axis=1)
+    
+    posture32=np.array([[0],[-math.pi/6],[math.pi],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture32],axis=1)
+    
+    posture33=np.array([[0],[-math.pi/6],[-math.pi/2],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture33],axis=1)
+    
+    posture34=np.array([[0],[-math.pi/6],[math.pi/2],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture34],axis=1)
+    
+    posture35=np.array([[0],[-math.pi/6],[-math.pi/4],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture35],axis=1)
+    
+    posture36=np.array([[0],[-math.pi/6],[math.pi/4],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture36],axis=1)
+    
+    posture37=np.array([[0],[-math.pi/6],[math.pi/(1.5)],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture37],axis=1)
+    
+    posture38=np.array([[0],[-math.pi/6],[-math.pi/(1.5)],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture38],axis=1)
+    
+    posture39=np.array([[0],[-math.pi/6],[math.pi],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture39],axis=1)
+    
+    posture40=np.array([[0],[math.pi/3],[math.pi],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture40],axis=1)
+    
+    posture41=np.array([[0],[math.pi/3],[-math.pi/2],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture41],axis=1)
+    
+    posture42=np.array([[0],[math.pi/3],[math.pi/2],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture42],axis=1)
+    
+    posture43=np.array([[0],[math.pi/3],[-math.pi/4],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture43],axis=1)
+    
+    posture44=np.array([[0],[math.pi/3],[math.pi/4],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture44],axis=1)
+    
+    posture45=np.array([[0],[math.pi/3],[math.pi/(1.5)],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture45],axis=1)
+    
+    posture46=np.array([[0],[math.pi/3],[-math.pi/(1.5)],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture46],axis=1)
+    
+    posture47=np.array([[0],[math.pi/3],[math.pi],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture47],axis=1)
+    
+    posture48=np.array([[0],[math.pi/6],[math.pi],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture48],axis=1)
+    
+    posture49=np.array([[0],[math.pi/6],[-math.pi/2],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture49],axis=1)
+    
+    posture50=np.array([[0],[math.pi/6],[math.pi/2],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture50],axis=1)
+    
+    posture51=np.array([[0],[math.pi/6],[-math.pi/4],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture51],axis=1)
+    
+    posture52=np.array([[0],[math.pi/6],[math.pi/4],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture52],axis=1)
+    
+    posture53=np.array([[0],[math.pi/6],[math.pi/(1.5)],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture53],axis=1)
+    
+    posture5=np.array([[0],[0],[-math.pi/4],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture5], axis=1)
+    
+    posture55=np.array([[0],[math.pi/6],[math.pi],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture55],axis=1)
+
+    posture56=np.array([[0],[math.pi/6],[math.pi],[math.pi/2],[3],[0]])
+    Q_total=np.concatenate([Q_total,posture56],axis=1)
+
+    posture57=np.array([[0],[math.pi/6],[math.pi],[math.pi/4],[3],[0]])
+    Q_total=np.concatenate([Q_total,posture57],axis=1)
+
+
+    return Q_total
+#===============MAIN==========================================================
 #=============================================================================
 if __name__=="__main__": 
     param={
@@ -241,23 +477,94 @@ if __name__=="__main__":
     }
     param['NbSample']=int (param['tf']/param['ts'])
 
-    nbSamples = param['NbSample']
-    q_random= np.random.rand(nbSamples, NQ) * np.pi - np.pi/2
-    dq = np.zeros((nbSamples, NQ))# matrice des zero 6 lignes nbr de posture en colones 
-    ddq = np.zeros((nbSamples, NQ)) # matrice des zero 6 lignes nbr de posture en colones
+#====GENERATE RANDOM Q AND STATIC POS==========================
+    q_random= np.random.rand(param['NbSample'], NQ) * np.pi - np.pi/2
+    dq = np.zeros((param['NbSample'], NQ))# matrice des zero 6 lignes nbr de posture en colones 
+    ddq = np.zeros((param['NbSample'], NQ)) # matrice des zero 6 lignes nbr de posture en colones
 
+#====FIRST REALISATION==========================
     Tau, W = iden_model(model, data, q_random, dq, ddq, param)
-    print('shape of Tau',np.array(Tau).shape)
-    print('shape of W',np.array(W).shape)
-    print(Tau)
-    
-    names = []
-    for i in range(1, NJOINT):
-        names += ['m'+str(i), 'mx'+str(i), 'my'+str(i), 'mz'+str(i), 'Ixx'+str(i),
-              'Ixy'+str(i), 'Iyy'+str(i), 'Izx'+str(i), 'Izy'+str(i), 'Izz'+str(i) ,'Fs'+str(i) ,'Fv'+str(i)]
-    #names_list = list(names)
-    W_e, params_r = eliminateNonAffecting(W,params_std=none,tol_e=0.0001)
-    print('shape of W_e',np.array(W_e).shape)
-    print('shape of params_r',np.array(params_r).shape)
+    params_std = standardParameters(model, param)
+    W_e, params_r,idx_elim1 = eliminateNonAffecting(W,params_std,tol_e=0.0001)
+    W_b, base_parameters, params_base, phi_b,idx_base = double_QR(Tau, W_e, params_r, params_std=None)
+    Cond = linalg.cond(W_b)
+    print("Conditionnement",Cond)
+#===TEST WITH POSTURE============================
+    Q_pos=[]
+    Q_pos = Generate_posture_static()
+    random.shuffle(Q_pos)
 
+#=====GEPETTO==================================
+    for i in range(Q_pos[0].size):
+        robot.display(Q_pos[:,i])
+        sleep(0.1)
+    Q_pos = np.transpose(Q_pos)
+
+    paramPosture={
+        'nb_iter_OEM':2, # number of OEM to be optimized
+        'tf':1,# duration of one OEM
+        'freq': 1, # frequency of the fourier serie coefficient
+        'nb_repet_trap': 2, # number of repetition of the trapezoidal motions
+        'q_safety': 0.08, # value in radian (=5deg) to remove from the actual joint limits
+        'q_lim_def': 1.57,# default value for joint limits in cas the URDF does not have the info
+        'dq_lim_def':4, # in rad.s-1
+        'ddq_lim_def':20, # in rad.s-2
+        'tau_lim_def':3, # in N.m
+        'trapez_vel_steps':20,# Velocity step in % of the max velocity
+        'ts_OEM':1/100,# Sampling frequency of the optimisation process
+        'ts':1/1000,# Sampling frequency of the trajectory to be recorded
+        'Friction':True,
+        'fv':0.01,# default values of the joint viscous friction in case they are used
+        'fc':0.1,# default value of the joint static friction in case they are used
+        'K_1':1, # default values of drive gains in case they are used
+        'K_2':2, # default values of drive gains in case they are used
+        'nb_harmonics': 2,# number of harmonics of the fourier serie
+        'mass_load':3.0,
+        'idx_base_param':(1, 3, 6, 11, 13, 16),# retrieved from previous analysis
+        'sync_joint_motion':0, # move all joint simultaneously when using quintic polynomial interpolation
+        'eps_gradient':1e-6,# numerical gradient step
+        'ANIMATE':0,# plot flag for gepetto-viewer
+        'SAVE_FILE':0
+    }
+    paramPosture['NbSample']= Q_pos.shape[0]
+#=======W_BASE FOR POSTURE
+    Tau_Posture, W_Posture = iden_model(model, data, Q_pos, dq, ddq, paramPosture)
+    Wfirstelim_Posture = np.delete(W_Posture, idx_elim1, 1)
+    print(idx_base)
+    unDixSept= np.array([[1],[2],[3],[4],[5],[6],[7],[8],[9],[10],[11],[12],[13],[14],[15],[16]])
+    print(unDixSept)
+    idx_elim2 = np.delete(np.array([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]), idx_base, 1)
+    print(idx_elim2)
+    W_Posture_base = np.delete(Wfirstelim_Posture, idx_elim2, 1) #[2,5,8,9,11,13,16] invers idx_base
     
+#===CALCUL COND FOR POSTURE
+    Cond_posture = []
+    Exps = []
+    M_for_Cond_Base = np.array(W_Posture_base[0:18])
+    Exps.append(3)
+    Cond_posture.append(linalg.cond(M_for_Cond_Base))
+
+    print(W_Posture_base.shape[0])
+    for i in range(18,W_Posture_base.shape[0]-5,6):  
+        #print("IM IN",i)
+        AddExp = np.array(W_Posture_base[i:i+6])
+        M_for_Cond_Base = np.concatenate((M_for_Cond_Base,AddExp))
+        Exps.append(i/6+1)
+        Cond_posture.append(linalg.cond(M_for_Cond_Base))
+    
+
+    print("First Cond",linalg.cond(W_Posture_base[0:18]))
+    #print("Last Cond",linalg.cond(W_Posture_base))
+    print(Cond_posture)
+    print(Exps)
+    
+    
+    plt.figure('Conditionnement en fonction du nombre dexps')
+    plt.plot(Exps, Cond_posture, 'g', linewidth=2, label='Conditionnement')
+    plt.title('Conditionnement en fonction du nombre dexps')
+    plt.xlabel('NbrsExps')
+    plt.ylabel('Cond')
+    plt.legend()
+    plt.yscale('log')
+    plt.show()
+
