@@ -446,6 +446,78 @@ def Generate_posture_static():
 
 
     return Q_total
+
+def Generate_posture_static_Fadi():
+    
+    # Q_total=[[],[],[],[],[],[]]
+    Q_total=[]
+    Q_total=np.array(Q_total)
+    posture1=np.array([[0],[0],[0],[0],[0],[0]])
+    Q_total=posture1
+    #print("shape of posture 1",np.array(posture1).shape)
+
+    posture1=np.array([[0],[0],[4.71238898038],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture1], axis=1)
+
+    posture2=np.array([[3.1415],[0],[3.1415],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture2], axis=1)
+
+    posture3=np.array([[0],[0],[1.57079632679],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture3], axis=1)
+
+    posture4=np.array([[2.356125 ],[0.25],[3.1415],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture4], axis=1)
+
+    posture5=np.array([[0],[0],[0.78539816339],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture5], axis=1)
+
+    posture6=np.array([[2.356125],[0.76],[3.1415],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture6], axis=1)
+
+    posture7=np.array([[0],[0],[2.09439510239],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture7], axis=1)
+
+    posture8=np.array([[3.1415],[0],[4.71225],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture8], axis=1)
+
+    posture9=np.array([[0],[0.78539816339],[4.71238898038],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture9], axis=1)
+
+    posture10=np.array([[3.1415],[0],[1.57075],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture10], axis=1)
+
+    posture11=np.array([[3.1415],[0],[1.9],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture11], axis=1)
+
+    posture12=np.array([[3.1415],[0],[3.1415],[3.1415],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture12], axis=1)
+
+    posture13=np.array([[3.1415],[0],[3.1415],[0],[-3.1415],[0]])
+    Q_total=np.concatenate([Q_total,posture13], axis=1)
+
+    posture14=np.array([[0],[1.0471975512],[4.71238898038],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture14], axis=1)
+
+    posture15=np.array([[0],[0.52359877559],[3.1415],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture15], axis=1)
+
+    posture16=np.array([[0],[0.52359877559],[4.71238898038],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture16], axis=1)
+
+    posture17=np.array([[0],[0.52359877559],[1.57079632679],[0.78539816339],[3.0],[0]])
+    Q_total=np.concatenate([Q_total,posture17], axis=1)
+
+    posture18=np.array([[1.57075],[-1.57075],[3.141592653589793],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture18], axis=1)
+
+    posture19=np.array([[1.57075],[-1.57075],[1.57075],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture19], axis=1)
+
+    posture20=np.array([[1.57075],[1.57075],[4.71238898038],[0],[0],[0]])
+    Q_total=np.concatenate([Q_total,posture20], axis=1)
+
+
+    return Q_total
 #===============MAIN==========================================================
 #=============================================================================
 if __name__=="__main__": 
@@ -491,7 +563,7 @@ if __name__=="__main__":
     print("Conditionnement",Cond)
 #===TEST WITH POSTURE============================
     Q_pos=[]
-    Q_pos = Generate_posture_static()
+    Q_pos = Generate_posture_static_Fadi()
     random.shuffle(Q_pos)
 
 #=====GEPETTO==================================
@@ -530,12 +602,7 @@ if __name__=="__main__":
 #=======W_BASE FOR POSTURE
     Tau_Posture, W_Posture = iden_model(model, data, Q_pos, dq, ddq, paramPosture)
     Wfirstelim_Posture = np.delete(W_Posture, idx_elim1, 1)
-    print(idx_base)
-    unDixSept= np.array([[1],[2],[3],[4],[5],[6],[7],[8],[9],[10],[11],[12],[13],[14],[15],[16]])
-    print(unDixSept)
-    idx_elim2 = np.delete(np.array([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]), idx_base, 1)
-    print(idx_elim2)
-    W_Posture_base = np.delete(Wfirstelim_Posture, idx_elim2, 1) #[2,5,8,9,11,13,16] invers idx_base
+    W_Posture_base = np.delete(Wfirstelim_Posture, [2,5,8,9,11,13,16], 1) #[2,5,8,9,11,13,16] invers idx_base
     
 #===CALCUL COND FOR POSTURE
     Cond_posture = []
@@ -553,10 +620,10 @@ if __name__=="__main__":
         Cond_posture.append(linalg.cond(M_for_Cond_Base))
     
 
-    print("First Cond",linalg.cond(W_Posture_base[0:18]))
+    #print("First Cond",linalg.cond(W_Posture_base[0:18]))
     #print("Last Cond",linalg.cond(W_Posture_base))
     print(Cond_posture)
-    print(Exps)
+    #print(Exps)
     
     
     plt.figure('Conditionnement en fonction du nombre dexps')
