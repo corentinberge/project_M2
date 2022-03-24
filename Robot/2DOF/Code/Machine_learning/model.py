@@ -9,8 +9,6 @@ from tensorflow.keras import layers
 # Make numpy values easier to read
 np.set_printoptions(precision=3, suppress=True)
 
-# q = positions, dq = vitesses, ddq = accélérations, tau = torques
-
 
 class NeuralNetwork(tf.keras.Model):
     def __init__(self, nb_axes):
@@ -67,8 +65,6 @@ class NeuralNetwork(tf.keras.Model):
         :param show_summary: (False by default) if True, show the architecture of the model
         :return: the created model
         """
-        normalizer = self.normalize_data()
-
         inputs = tf.keras.Input(shape=input_shape)
 
         x = self.norm(inputs)
