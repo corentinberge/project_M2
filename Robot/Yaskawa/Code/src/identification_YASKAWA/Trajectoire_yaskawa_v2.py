@@ -43,12 +43,22 @@ gv = robot.viewer.gui
 #sampling time 
 Tech=(1/10)
 # INITIALISATION 
+
+# deg5 est une marge pour eviter de depasser les butees min max des articulations
 deg_5=-0.08726646259971647
 deg_5=deg_5+0.25*deg_5
+
+# position initial des articulations butees min
 q_start=[-3.141592653589793-1*deg_5,-3.141592653589793/4-1*deg_5, -0.08726646259971647-1*deg_5,-3.141592653589793-1*deg_5, -3.141592653589793-1*deg_5, -3.141592653589793-1*deg_5]
-q_end=[3.141592653589793, 3.141592653589793/4, 6.19591884457987, 3.141592653589793, 3.141592653589793, 3.141592653589793] 
+
+# position final des articulations butees max
+q_end=[3.141592653589793, 3.141592653589793/4, 6.19591884457987, 3.141592653589793, 3.141592653589793, 3.141592653589793]
+
+# vitesse et acceleration max des articulations
 Vmax=[2.2689280275926285, 2.2689280275926285, 3.141592653589793, 3.141592653589793, 4.36, 4.36]
 acc_max=[4,4,4,4,4,4]
+
+# dictionnaire des parametres
 param={
         'nb_iter_OEM':2, # number of OEM to be optimized
         'tf':1,# duration of one OEM
@@ -76,6 +86,8 @@ param={
         'SAVE_FILE':0
     }
 param['NbSample']=int (param['tf']/param['ts'])
+
+# Joint configuration pour l'interpolation polinomiale
 
 Jcf_Home=np.array([
                 [3.141592653589793/4,0,0],
@@ -123,17 +135,16 @@ Jcf_aprBute=np.array([
                 ])
 
 def generation_palier_vitesse_calcul_oneJoint(nbr_rep,prct,q_start,q_end,Vmax,acc_max,Tech):
-    #this function take in input :1- the number of repetition 
-    #                             2- the data of the chosen joint motion(qstart qend V acc)
+    #this function take in input :1- the number of repetition of a joint
+    #                             2- the data of the chosen joint motion(q_start q_end V acc)
+                                # this function provide the option to chose a specific percentage of the max velocity
     
     # and return the data of the chosen joint in a matrix that combine:
     #                                                       1- position vector after  repetion 
     #                                                       2- velosity vector after  repetion 
     #                                                       3- acc vector after  repetion 
     #                                                       4- time vector with after repetion     
-    # print('entrer votre pourcentage de augmenter la vitesse')
-    # prct=float(input())
-    # prct=1
+   
     vitesse=prct*Vmax
     prct_var=prct
     i=0
@@ -173,7 +184,9 @@ def generation_palier_vitesse_calcul_oneJoint(nbr_rep,prct,q_start,q_end,Vmax,ac
     return Q_all
 
 def generation_palier_vitesse_calcul_allJoint(nbr_rep,prct,nbr_joint,q_start,q_end,Vmax,acc_max,Tech,padind_vect_chandell):
-    
+    # this function return the position velocity acc for all joint one by one 
+    # the pading vector is to put the joint that dont move in a specific position
+
     tf=0
     T=[]
     Q_palier_V_Joint=[]
@@ -233,11 +246,7 @@ def generation_palier_vitesse_calcul_allJoint(nbr_rep,prct,nbr_joint,q_start,q_e
         T.extend(t)       
         tf=T[np.array(T).size-1]
         # plot_QVA_total(times,nbr_joint,Q_inter_one_joint,V_inter_one_joint,A_inter_one_joint,'max_')
-        
-       
-        
-
-
+    
             
     print('shape of Time vect T',np.array(T).shape)
     print('Q_total_All_Joint',np.array(Q_total_All_Joint).shape)
@@ -787,7 +796,7 @@ def calcul_QVA_joints_total(nbr_joint,joint_i,Q_plot,appending_vect):
     #                               a specifique joint joint_i
     #                               and Q_plot the data of joint_i
     # it return the data of all joint in mode axe to axe so the non chosen joint will have:
-    #                                                                     q=0,dq=0,ddq=0  
+    #                                                                     q=appending_vect,dq=0,ddq=0  
     #
     joint_3=2
     # joint3=3.141592653589793
@@ -884,9 +893,10 @@ def plot_Trajectory(Q):
     plt.title('acc acceleration calculated via derivation(ddq)')
 
 def calcul_Q_all_variable_sync(nbr_rep,time1,timeEnd,q_min,q_max,V_joint,acc_joint,D,Tech):
-    #this function take in input :1- the number of repetition 
-    #                             2- the data of each joint motion(qstart qend V acc )
-    # and return a matrix that combine:1- position vector after  repetion 
+    # this function take in input :1- the number of repetition 
+    #                              2- the data of each joint motion(qstart qend V acc )
+
+    # And return a matrix that combine:1- position vector after  repetion 
     #                                  2- velosity vector after  repetion 
     #                                  3- acc vector after  repetion 
     #                                  4- time vector with after repetion     
@@ -1285,6 +1295,7 @@ def PreDefined_velocity_trajectory(time1,timeEnd,Vmax,acc_max,Tech):
 
 def Generate_Torque_Regression_matrix(nbr_joint,Q_total,V_total,A_total):
 
+    # esopilome dont use this function
     #this function take as input number of joints and the data of each joint (q dq ddq)
     #it return the torque of each joint and the regression matrix
 
@@ -1545,12 +1556,12 @@ def force_coulomb(FS,V_total,nbr_joint):
 
     print(np.array(Force).shape)
 
-    
+    # Force contient les force de toutes les articulation
     return(Force)
 
 def generateQuinticPolyTraj(Jc0,Jcf,model,param):
 
-    
+    # depreciated
     q=np.zeros(param['NbSample_interpolate'])
     dq=np.zeros(param['NbSample_interpolate'])
     ddq=np.zeros(param['NbSample_interpolate'])
@@ -1575,43 +1586,8 @@ def generateQuinticPolyTraj(Jc0,Jcf,model,param):
     return q, dq ,ddq
 
 def generateQuinticPolyTraj_version_GF(Jc0,Jcf,vmax,Tech):
-
-    # q=np.zeros(NbSample_interpolate)
-    # dq=np.zeros(NbSample_interpolate)
-    # ddq=np.zeros(NbSample_interpolate)
-    # q=[]
-    # dq=[]
-    # ddq=[]
-    # vmax=vmax*0.75
-    # amax=30
-
-    # D=(Jcf[0]-Jc0[0])
-    # # vect=[(15*D)/(8*vmax),sqrt((10*D)/(1.73*amax))]
-    # tf=(15*abs(D))/(8*vmax)#np.max(np.array(vect))
     
-    # a=np.zeros(6)
-    # a[0]=Jc0[0]
-    # a[1]=Jc0[1]
-    # a[2]=Jc0[2]/2
-    # a[3]=( 20*Jcf[0]-20*Jc0[0] -(8*Jcf[1]+12*Jc0[1])*tf -(3*Jc0[2]-Jcf[2])*tf**2 )/(2*tf**3)
-    # a[4]=( 30*Jc0[0]-30*Jcf[0] +(14*Jcf[1]+16*Jc0[1])*tf +(3*Jc0[2]-2*Jcf[2])*tf**2 )/(2*tf**4)
-    # a[5]=( 12*Jcf[0]-12*Jc0[0] -(6*Jcf[1]+6*Jc0[1])*tf -(Jc0[2]-Jcf[2])*tf**2 )/(2*tf**5)
-
-    # t=0
     T=[]
-      
-    # while(t<tf):
-    #     T.append(t)
-    #     q_=a[0]+a[1]*t +a[2]*t**2 +a[3]*t**3   +a[4]*t**4     +a[5]*t**5
-    #     q.append(q_)
-    #     dq_=    a[1]   +2*a[2]*t  +3*a[3]*t**2 +4*a[4]*t**3    +5*a[5]*t**4
-    #     dq.append(dq_)
-    #     ddq_= +2*a[2]    +6*a[3]*t    +12*a[4]*t**2    +20*a[5]*t**3   
-    #     ddq.append(ddq_)
-    #     t=t+Tech
-
-    # print('T shape',np.array(T).shape)
-    # print('Q shape',np.array(q).shape)
     vmax=vmax
     
     tf=15*np.abs(Jcf[0]-Jc0[0])/(8*vmax)
@@ -1644,6 +1620,7 @@ def generateQuinticPolyTraj_version_GF(Jc0,Jcf,vmax,Tech):
     return q, dq ,ddq,T
 
 def Bang_Bang_acceleration_profile(q_start,q_end,v_max,a_max,Tech):
+# depreciated
     q=[]
     dq=[]
     ddq=[]
@@ -1671,7 +1648,7 @@ def Bang_Bang_acceleration_profile(q_start,q_end,v_max,a_max,Tech):
     return q,dq,ddq
 
 def estimated_parameters_from_data_file(nbr_joint,Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint,tau_simu_gazebo):
-
+# depreciated
 
     tau_pin,w=Generate_Torque_Regression_matrix(nbr_joint,Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint)
     # phi_etoile_pin=estimation_with_qp_solver(w,tau_pin)
@@ -1692,7 +1669,7 @@ def estimated_parameters_from_data_file(nbr_joint,Q_total_All_Joint,V_total_All_
     return phi_etoile
 
 def genrate_W_And_torque_simulation_pin(Q_total,V_total,A_total):
-
+# depreciated
     nbSamples=np.array(Q_total[0]).size
     q_pin=np.array(Q_total)
     dq_pin=np.array(V_total)
@@ -1864,7 +1841,7 @@ def genrate_W_And_torque_simulation_pin(Q_total,V_total,A_total):
     return(phi_etoile_pin)
 
 def genrate_W_And_torque_pin_rand(nbSamples):
-
+# depreciated
     q_pin = np.random.rand(NQ, nbSamples) * np.pi - np.pi/2  # -pi/2 < q < pi/2
     dq_pin = np.random.rand(NQ, nbSamples) * 10              # 0 < dq  < 10
     ddq_pin = np.random.rand(NQ, nbSamples) * 2               # 0 < dq  < 2
@@ -2022,7 +1999,7 @@ def genrate_W_And_torque_pin_rand(nbSamples):
     return(phi_etoile_pin)
 
 def genrate_W_And_torque_experimentale(Q_total,V_total,A_total,tau_experimentale):
-
+# depreciated
     nbSamples=np.array(Q_total[0]).size
     q_pin=np.array(Q_total)
     dq_pin=np.array(V_total)
@@ -2230,7 +2207,7 @@ def genrate_W_And_torque_experimentale(Q_total,V_total,A_total,tau_experimentale
     return(phi_etoile_pin)
 
 def Base_regressor(Q_total,V_total,A_total,tau_experimentale):
-    
+    # depreciated
     nbSamples=np.array(Q_total[0]).size
     q_pin=np.array(Q_total)
     dq_pin=np.array(V_total)
