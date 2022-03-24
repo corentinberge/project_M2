@@ -1,23 +1,24 @@
 from cProfile import label
 from multiprocessing.dummy import Array
 from numpy.linalg.linalg import det, transpose
+
+#Pinocchio
 import pinocchio as pin
 from pinocchio.utils import *
-from pinocchio.visualize import GepettoVisualizer
 from pinocchio.robot_wrapper import RobotWrapper
+
+#Python
 import numpy as np
 import math
 import matplotlib.pyplot as plt
 from numpy.linalg import norm, inv, pinv
 from scipy.linalg import pinv2
-from pathlib import Path
-import pandas as pd
-import time
 import os
 import csv
 
-import rospy                            # For node ROS
-from std_msgs.msg import Float64MultiArray # For publish
+#ROS
+import rospy                            
+from std_msgs.msg import Float64MultiArray
 
 def situationOT(M):
 
@@ -83,11 +84,14 @@ def getRobot():
 
     """ load urdf file  """
 
-    workingDir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    """workingDir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
     workingDir += '/Modeles'
     package_dir = workingDir
-    urdf_file = workingDir + '/motoman_hc10_support/urdf/hc10dt.urdf'
-    robot = RobotWrapper.BuildFromURDF(urdf_file,package_dir,verbose=True)
+    urdf_file = workingDir + '/motoman_hc10_support/urdf/hc10dt.urdf'"""
+
+    package_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))) + '/project_M2/hc10_ros'
+    urdf_path = package_path + '/urdf/hc10.urdf'
+    robot = RobotWrapper.BuildFromURDF(urdf_path,package_path,verbose=True)
     return robot
 
 class trajectory:
@@ -111,6 +115,8 @@ class trajectory:
         self.ddX = next(lecteurCSV)
         self.dt = next(lecteurCSV)
         self.f.close()
+     
+        
 
     def EcritureFichierCSV(self,N,robot,dt):
 
@@ -141,33 +147,28 @@ class trajectory:
             writer.writerow(self.ddX)
             writer.writerow(self.t)
 
-    def talker_file(self):
+    def talker_file(self,N):
 
         """ Publish the position, velocity and acceleration in topic for commande node"""
 
         pub = rospy.Publisher('Topic_file_trajectory', Float64MultiArray, queue_size=10) #Topic name to change
         rospy.init_node('talker_file', anonymous=True)
         rate = rospy.Rate(10) # 10hz
-
         while not rospy.is_shutdown():
-            TrajectoryX = "Trajectory for position %s" % rospy.get_time()
-            rospy.loginfo(TrajectoryX)
-            data_to_sendX = Float64MultiArray()
-            data_to_sendX.data = self.X
-            pub.publish(data_to_sendX)
+            data_to_sendX, data_to_sendDX, data_to_sendDDX = Float64MultiArray()
+            send_rate = self.dt.index('0.02')
+            while send_rate!=N:
+                for i,j,k in range(send_rate):
 
-            TrajectorydX = "Trajectory for velocity %s" % rospy.get_time()
-            rospy.loginfo(TrajectorydX)
-            data_to_sendDX = Float64MultiArray()
-            data_to_sendDX.data = self.dotX
-            pub.publish(data_to_sendDX)
+                    data_to_sendX.data = self.X[i]
+                    data_to_sendDX.data = self.dotX[j]
+                    data_to_sendDDX.data = self.ddX[k]
+                    pub.publish(data_to_sendX)
+                    pub.publish(data_to_sendDX)
+                    pub.publish(data_to_sendDDX)
 
-            TrajectoryddX = "Trajectory for acceleration %s" % rospy.get_time()
-            rospy.loginfo(TrajectoryddX)
-            data_to_sendDDX = Float64MultiArray()
-            data_to_sendDDX.data = self.ddX
-            pub.publish(data_to_sendDDX)
-
+            i,j,k = send_rate
+            send_rate += send_rate
             rate.sleep()
     
     def Trace(self):
@@ -223,7 +224,7 @@ class trajectory:
         plt.show()
 
 if __name__ == '__main__':
-    N = 5000
+    N = 3000
     dt = 1e-3
     robot = getRobot()
     traj = trajectory()
@@ -231,6 +232,6 @@ if __name__ == '__main__':
     traj.lectureCSV()
     #traj.Trace()
     """try:
-        traj.talker_file()
+        traj.talker_file(N)
     except rospy.ROSInterruptException:
         pass"""
