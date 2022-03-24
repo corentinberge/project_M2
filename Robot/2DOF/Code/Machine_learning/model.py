@@ -3,6 +3,7 @@ import pandas as pd
 import tensorflow as tf
 import matplotlib.pyplot as plt
 
+from scipy import signal
 from tensorflow.keras import layers
 
 # Make numpy values easier to read
@@ -171,6 +172,253 @@ class NeuralNetwork(tf.keras.Model):
         :return: list of all the predicted values of the chosen torque
         """
         return predictions.T[which_torque-1:which_torque].T
+
+    def plot_torques_6dof(self, real_torques, predicted_torques, nb_axes=6):
+        """
+        Functions that plot the predicted torques and the real torques
+
+        :param real_torques: DataFrame that contains the real torques
+        :param predicted_torques: list that contains the predicted torques
+        :param nb_axes: (6 by default) number of axes used
+        :return: graphic with real and predicted torques
+        """
+        pred_tau1 = self.get_predictions_one_torque(predicted_torques, 1)
+        pred_tau2 = self.get_predictions_one_torque(predicted_torques, 2)
+        pred_tau3 = self.get_predictions_one_torque(predicted_torques, 3)
+        pred_tau4 = self.get_predictions_one_torque(predicted_torques, 4)
+        pred_tau5 = self.get_predictions_one_torque(predicted_torques, 5)
+        pred_tau6 = self.get_predictions_one_torque(predicted_torques, 6)
+
+        pred_t = []
+        for i in range(len(pred_tau1.flatten())):
+            pred_t.append(pred_tau1.flatten()[i])
+        for i in range(len(pred_tau2.flatten())):
+            pred_t.append(pred_tau2.flatten()[i])
+        for i in range(len(pred_tau3.flatten())):
+            pred_t.append(pred_tau3.flatten()[i])
+        for i in range(len(pred_tau4.flatten())):
+            pred_t.append(pred_tau4.flatten()[i])
+        for i in range(len(pred_tau5.flatten())):
+            pred_t.append(pred_tau5.flatten()[i])
+        for i in range(len(pred_tau6.flatten())):
+            pred_t.append(pred_tau6.flatten()[i])
+
+        toto = real_torques.T[nb_axes * 3:].T
+
+        real_tau1 = (toto.T[0:1].T).to_numpy()
+        real_tau2 = (toto.T[1:2].T).to_numpy()
+        real_tau3 = (toto.T[2:3].T).to_numpy()
+        real_tau4 = (toto.T[3:4].T).to_numpy()
+        real_tau5 = (toto.T[4:5].T).to_numpy()
+        real_tau6 = (toto.T[5:6].T).to_numpy()
+
+        real_t = []
+        for i in range(len(real_tau1.flatten())):
+            real_t.append(real_tau1.flatten()[i])
+        for i in range(len(real_tau2.flatten())):
+            real_t.append(real_tau2.flatten()[i])
+        for i in range(len(real_tau3.flatten())):
+            real_t.append(real_tau3.flatten()[i])
+        for i in range(len(real_tau4.flatten())):
+            real_t.append(real_tau4.flatten()[i])
+        for i in range(len(real_tau5.flatten())):
+            real_t.append(real_tau5.flatten()[i])
+        for i in range(len(real_tau6.flatten())):
+            real_t.append(real_tau6.flatten()[i])
+
+        rt = [i for i in range(282)]
+
+        plt.plot(real_t, 'r', label="Real torques")
+        plt.plot(pred_t, 'b--', label="Predicted torques")
+
+        # #plt.title("Model loss with batch size = {}".format(batch_size))
+        plt.xlabel("Samples")
+        plt.ylabel("Torques (N/m)")
+        plt.legend()
+        plt.show()
+
+    # Use of indentification's functions
+    def filter_butterworth(self, sampling_freq, f_coupure, sig):
+        sfreq = sampling_freq
+        f_p = f_coupure
+        nyq = sfreq / 2
+
+        sos = signal.iirfilter(5, f_p / nyq, btype='low', ftype='butter', output='sos')
+        signal_filtrer = signal.sosfiltfilt(sos, sig)
+
+        return signal_filtrer
+
+    def param_from_txt(self, nb_joint):
+        file_path = "5_sec.txt"
+
+        tau_par_ordre = []
+        with open(file_path, 'r') as f:
+
+            tau1, tau2, tau3, tau4, tau5, tau6 = [], [], [], [], [], []
+            q1, q2, q3, q4, q5, q6, q = [], [], [], [], [], [], []
+            dq1, dq2, dq3, dq4, dq5, dq6, dq = [], [], [], [], [], [], []
+
+            tau_simu_gazebo = []
+
+            for line in f:
+                data_split = line.strip().split('\t')
+
+                q1.append(data_split[0])
+                q2.append(data_split[1])
+                q3.append(data_split[2])
+                q4.append(data_split[3])
+                q5.append(data_split[4])
+                q6.append(data_split[5])
+
+                dq1.append(data_split[6])
+                dq2.append(data_split[7])
+                dq3.append(data_split[8])
+                dq4.append(data_split[9])
+                dq5.append(data_split[10])
+                dq6.append(data_split[11])
+
+                tau1.append(data_split[12])
+                tau2.append(data_split[13])
+                tau3.append(data_split[14])
+                tau4.append(data_split[15])
+                tau5.append(data_split[16])
+                tau6.append(data_split[17])
+
+        q.append(q1)
+        q.append(q2)
+        q.append(q3)
+        q.append(q4)
+        q.append(q5)
+        q.append(q6)
+        q = np.array(q)
+        q = np.double(q)
+
+        dq.append(dq1)
+        dq.append(dq2)
+        dq.append(dq3)
+        dq.append(dq4)
+        dq.append(dq5)
+        dq.append(dq6)
+        dq = np.array(dq)
+        dq = np.double(dq)
+
+        tau_simu_gazebo = np.array(tau_simu_gazebo)
+        tau_simu_gazebo = np.double(tau_simu_gazebo)
+        tau4 = np.double(tau4)
+        tau4 = abs(tau4)
+        tau_par_ordre.append(tau1)
+        tau_par_ordre.append(tau2)
+        tau_par_ordre.append(tau3)
+        tau_par_ordre.append(tau4)
+        tau_par_ordre.append(tau5)
+        tau_par_ordre.append(tau6)
+        tau_par_ordre = np.array(tau_par_ordre)
+        tau_par_ordre = np.double(tau_par_ordre)
+
+        ddq = [[], [], [], [], [], []]
+        dq_th = [[], [], [], [], [], []]
+
+        for joint_index in range(nb_joint):
+
+            for i in range(q[0].size - 1):
+                j = i + 1
+                dv = (q[joint_index][j] - q[joint_index][i]) / self.tech
+                # print('da=\t','dv',(v[j]-v[i]),'/dt',(time[j]-time[i]),'=',da)
+                dq_th[joint_index].append(dv)
+
+            dq_th[joint_index].append(dv)
+
+        dq_th = np.array(dq_th)
+
+        for joint_index in range(nb_joint):
+
+            for i in range(dq_th[0].size - 1):
+                j = i + 1
+                da = (dq_th[joint_index][j] - dq_th[joint_index][i]) / self.tech
+                # print('da=\t','dv',(v[j]-v[i]),'/dt',(time[j]-time[i]),'=',da)
+                ddq[joint_index].append(da)
+
+            ddq[joint_index].append(0)
+
+        ddq = np.array(ddq)
+
+        tau_par_ordre = self.filter_butterworth(int(1 / self.tech), 5, tau_par_ordre)
+
+        for i in range(6):
+            q[i] = self.filter_butterworth(int(1 / self.tech), 5, q[i])
+            dq_th[i] = self.filter_butterworth(int(1 / self.tech), 5, dq_th[i])
+            ddq[i] = self.filter_butterworth(int(1 / self.tech), 5, ddq[i])
+
+        self.generate_ddq(q, dq_th, ddq, tau_par_ordre)
+
+        return q, dq_th, ddq, tau_par_ordre
+
+    def generate_ddq(self, pos, vit, acc, tau):
+        # this function take in input q dq ddq tau for all the joint
+        # and write all the data in a file .txt
+        with open("data_V2.txt", 'w+') as f:
+            nbSamples = np.array(pos[0]).size
+            q_pin = np.array(pos)
+            dq_pin = np.array(vit)
+            ddq_pin = np.array(acc)
+            tau_pin = np.array(tau)
+            print('shape of Q ', q_pin.shape)
+
+            i = 0
+            line = [str('q1'), '\t',
+                    str('q2'), '\t',
+                    str('q3'), '\t',
+                    str('q4'), '\t',
+                    str('q5'), '\t',
+                    str('q6'), '\t',
+                    str('dq1'), '\t',
+                    str('dq2'), '\t',
+                    str('dq3'), '\t',
+                    str('dq4'), '\t',
+                    str('dq5'), '\t',
+                    str('dq6'), '\t',
+                    str('ddq1'), '\t',
+                    str('ddq2'), '\t',
+                    str('ddq3'), '\t',
+                    str('ddq4'), '\t',
+                    str('ddq5'), '\t',
+                    str('ddq6'), '\t',
+                    str('tau1'), '\t',
+                    str('tau2'), '\t',
+                    str('tau3'), '\t',
+                    str('tau4'), '\t',
+                    str('tau5'), '\t',
+                    str('tau6')]
+            f.writelines(line)
+            f.write('\n')
+
+            for i in range(nbSamples):
+                line = [str(q_pin[0][i]), '\t',
+                        str(q_pin[1][i]), '\t',
+                        str(q_pin[2][i]), '\t',
+                        str(q_pin[3][i]), '\t',
+                        str(q_pin[4][i]), '\t',
+                        str(q_pin[5][i]), '\t',
+                        str(dq_pin[0][i]), '\t',
+                        str(dq_pin[1][i]), '\t',
+                        str(dq_pin[2][i]), '\t',
+                        str(dq_pin[3][i]), '\t',
+                        str(dq_pin[4][i]), '\t',
+                        str(dq_pin[5][i]), '\t',
+                        str(ddq_pin[0][i]), '\t',
+                        str(ddq_pin[1][i]), '\t',
+                        str(ddq_pin[2][i]), '\t',
+                        str(ddq_pin[3][i]), '\t',
+                        str(ddq_pin[4][i]), '\t',
+                        str(ddq_pin[5][i]), '\t',
+                        str(tau_pin[0][i]), '\t',
+                        str(tau_pin[1][i]), '\t',
+                        str(tau_pin[2][i]), '\t',
+                        str(tau_pin[3][i]), '\t',
+                        str(tau_pin[4][i]), '\t',
+                        str(tau_pin[5][i])]
+                f.writelines(line)
+                f.write('\n')
 
 
 if __name__ == '__main__':
