@@ -418,20 +418,30 @@ class NeuralNetwork(tf.keras.Model):
 
 
 if __name__ == '__main__':
-    # Initialisation of the parameters
-    filename = "../Identification/2dof_data_LC.txt"
-    # filename = "../Identification/2dof_data_LC_V1.txt"
-    # filename = "../Identification/2dof_data_LC_V3_syncronized.txt"
-
-    column_names = ["q1", "q2", "dq1", "dq2", "ddq1", "ddq2", "tau1", "tau2"]
-
-    batch_size = 64
-    epochs = 100
-
-    nb_axes = 2
+    nb_axes = 6
 
     # Creation of the object
-    my_model = NeuralNetwork()
+    my_model = NeuralNetwork(nb_axes)
+
+    if nb_axes == 2:
+        filename = "../Identification/2dof_data_LC.txt"
+        # filename = "../Identification/2dof_data_LC_V1.txt"
+        # filename = "../Identification/2dof_data_LC_V3_syncronized.txt"
+        column_names = ["q1", "q2", "dq1", "dq2", "ddq1", "ddq2", "tau1", "tau2"]
+
+    if nb_axes == 6:
+        q, dq_th, ddq, tau_par_ordre = my_model.param_from_txt(nb_axes)
+        filename = "data_V2.txt"
+        column_names = ['q1', 'q2', 'q3', 'q4', 'q5', 'q6',
+                        'dq1', 'dq2', 'dq3', 'dq4', 'dq5', 'dq6',
+                        'ddq1', 'ddq2', 'ddq3', 'ddq4', 'ddq5', 'ddq6',
+                        'tau1', 'tau2', 'tau3', 'tau4', 'tau5', 'tau6']
+
+    rep_train_test = 0.8  # 80% train / 20% test
+    input_shape = (len(column_names),)
+    learning_rate = 0.001
+    batch_size = 64
+    epochs = 100
 
     """
     Functions calls
@@ -442,10 +452,10 @@ if __name__ == '__main__':
     dataset = raw_dataset.copy()
 
     # Separate data between train and test
-    train_dataset, test_dataset = my_model.separate_data(dataset, repartition=0.8)
+    train_dataset, test_dataset = my_model.separate_data(dataset, repartition=rep_train_test)
 
     # Create model
-    model = my_model.create_model((8, ), learning_rate=0.001, show_summary=True)
+    model = my_model.create_model(input_shape, learning_rate=learning_rate, show_summary=True)
 
     # Get target from both train and test dataset
     train_que_tau, test_que_tau = my_model.get_target(train_dataset, test_dataset, nb_axes)
@@ -457,7 +467,7 @@ if __name__ == '__main__':
     result = my_model.evaluate_model(model, test_dataset, test_que_tau, show_result=True)
 
     # Get all predicted torques
-    predictions = my_model.get_predictions_all_torques(model, test_dataset)
+    predictions = my_model.get_predictions_all_torques(model, dataset)
 
     # Get each predicted torques in a list
     tau1 = my_model.get_predictions_one_torque(predictions, 1)
