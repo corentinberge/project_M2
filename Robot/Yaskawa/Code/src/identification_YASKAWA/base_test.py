@@ -292,13 +292,8 @@ if __name__=="__main__":
     # q= np.random.rand(nbSamples, NQ) * np.pi - np.pi/2
     # dq= np.zeros((nbSamples, NQ))# matrice des zero 6 lignes nbr de posture en colones 
     # ddq= np.zeros((nbSamples, NQ))# matrice des zero 6 lignes nbr de posture en colones
-    Q=Generate_posture_static()
-    # posture3=np.array([[0],[0],[-math.pi/2],[0],[0],[0]])
 
-    robot.display(Q[:,6])
-
-
-    param['NbSample']=int(1264)
+    param['NbSample']=int(1264)#size of q (number of sampels)
     nbSamples = param['NbSample']
 
     q,dq,ddq,tau_robot=read_tau_q_dq_ddq_fromTxt(6)
@@ -309,8 +304,6 @@ if __name__=="__main__":
     
     plot_QVA_total([],6,(q.T),(dq.T),(ddq.T),'joint')
     
-    
-
     param_std= standardParameters(model, param)
     
     _, W=iden_model(model, data, q, dq, ddq, param)
@@ -323,7 +316,11 @@ if __name__=="__main__":
     print('lez conditionnement est ',con)
 
     tau_base=np.dot(W_b,phi_b)
+    
+    # calcul pour les parametres de base et regresseur de base
     plot_torque_qnd_error(tau_robot,tau_base)
+
+    #calcul pour tous les parametre et le regresseur initiale
     estimation_with_qp_solver(W,tau_robot)
     
     
