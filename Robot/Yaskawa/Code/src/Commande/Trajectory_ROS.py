@@ -17,7 +17,7 @@ import os
 import csv
 
 import rospy                            # For node ROS
-from std_msgs.msg import Float64MultiArray
+from std_msgs.msg import Float64MultiArray # For publish
 
 def situationOT(M):
 
