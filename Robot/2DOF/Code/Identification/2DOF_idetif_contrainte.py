@@ -69,7 +69,7 @@ tau=[]
 # f = open('/home/fadi/projet_cobot_master2/project_M2/Robot/2DOF/Code/Identification/data_2dof.txt','r')
 
 package_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) 
-file_path = package_path + '/Identification/data_2dof.txt'
+file_path = package_path + '/Code/Identification/data_2dof.txt'
 f=open(file_path,'r')
 
 for line in f:
@@ -285,8 +285,8 @@ plt.figure('torque pin/than et torque base parameters')
 plt.plot(samples, tau, 'g', linewidth=2, label='tau')
 plt.plot(samples,tau_param_base, 'b', linewidth=1, label='tau base param ')
 plt.title('tau tau_estime with base param ')
-plt.xlabel('2000 Samples')
-plt.ylabel('parametres')
+plt.xlabel('Samples')
+plt.ylabel('torque(N/m)')
 plt.legend()
 plt.show()
 
@@ -548,8 +548,8 @@ plt.plot(samples, tau, 'g', linewidth=2, label='tau')
 plt.plot(samples,tau_estime, 'b:', linewidth=1, label='tau estime')
 # plt.plot(samples, tau_estime1, 'r', linewidth=1, label='tau estime 1')
 plt.title('tau and tau_estime')
-plt.xlabel('2000 Samples')
-plt.ylabel('parametres')
+plt.xlabel('Samples')
+plt.ylabel('torque(N/m)')
 plt.legend()
 plt.show()
 
@@ -565,6 +565,8 @@ for i in range(nbSamples * NQ):
 plt.plot(samples, err, linewidth=2, label="err")
 # plt.plot(samples, err1,linewidth=1, label="err1")
 plt.title("erreur quadratique")
+plt.xlabel('Samples')
+plt.ylabel('err(N/m)')
 plt.legend()
 plt.show()
 

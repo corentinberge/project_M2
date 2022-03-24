@@ -27,7 +27,7 @@ from Trajectoire_yaskawa_v2  import filter_butterworth
 from Trajectoire_yaskawa_v2 import plot_torque_qnd_error
 from Trajectoire_yaskawa_v2 import plot_QVA_total
 from Trajectoire_yaskawa_v2 import estimation_with_qp_solver
-
+from Conditionnement import Generate_posture_static
 
 #----------------------------------------------------
 pre_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -45,6 +45,12 @@ data = robot.data
 model = robot.model
 NQ = robot.nq  
 #------------------------------------------------------
+# 
+# 
+# idx_e_predifine=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 15, 16, 17, 18, 19, 22, 24, 25, 26, 27, 28, 29, 34, 35,
+#        36, 37, 38, 39, 44, 45, 46, 47, 48, 49, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71]
+# idx_base_predifine=[0, 1, 3, 4, 6, 7, 10, 12, 14, 15]
+# numrank_W_predifine =10
 param={
         'nb_iter_OEM':2, # number of OEM to be optimized
         'tf':1,# duration of one OEM
@@ -84,7 +90,7 @@ def standardParameters(model, param):
     phi = []
     params = []
 
-    for i in range(1, model.njoints):
+    for i in range(1,model.njoints):
         P = model.inertias[i].toDynamicParameters()
         for k in P:
             phi.append(k)
@@ -98,17 +104,18 @@ def standardParameters(model, param):
             phi.extend([param['fv'], param['fc']])
             params.extend(['fv' + str(k), 'fc' + str(k)])
     params_std = dict(zip(params, phi))
+    print('shape of phi',np.array(phi).shape)
     return params_std
 
 def iden_model(model, data, q, dq, ddq, param):
-#This function calculates joint torques and generates the joint torque regressor.
-#Note: a parameter Friction as to be set to include in dynamic model
-#Input: model, data: model and data structure of robot from Pinocchio
-#q, v, a: joint's position, velocity, acceleration
-#N : number of samples
-#nq: length of q
-#Output: tau: vector of joint torque
-#W : joint torque regressor"""
+    #This function calculates joint torques and generates the joint torque regressor.
+    #Note: a parameter Friction as to be set to include in dynamic model
+    #Input: model, data: model and data structure of robot from Pinocchio
+    #q, v, a: joint's position, velocity, acceleration
+    #N : number of samples
+    #nq: length of q
+    #Output: tau: vector of joint torque
+    #W : joint torque regressor"""
 
     tau = np.empty(model.nq*param['NbSample'])
     W = np.empty([param['NbSample']*model.nq ,10*model.nq])
@@ -140,13 +147,16 @@ def eliminateNonAffecting(W_, params_std, tol_e):
     idx_e = []
     params_e = []
     params_r = []
+    print(col_norm.shape[0])
     for i in range(col_norm.shape[0]):
+        print(i,len(list(params_std.keys())))
         if col_norm[i] < tol_e:
             idx_e.append(i)
             params_e.append(list(params_std.keys())[i])
         else:
             params_r.append(list(params_std.keys())[i])
-
+    # idx_e=idx_base_predifine
+    # print('idx_e',idx_e)
     W_e = np.delete(W_, idx_e, 1)
     return W_e, params_r
 
@@ -180,15 +190,18 @@ def double_QR(tau, W_e, params_r, params_std=None):
         else:
             idx_regroup.append(i)
 
-    numrank_W = len(idx_base)
+    # idx_base=idx_base_predifine
 
+    numrank_W = len(idx_base)
+    # numrank_W=numrank_W_predifine
     # rebuild W and params after sorted
     W1 = np.zeros([W_e.shape[0], len(idx_base)])
     W2 = np.zeros([W_e.shape[0], len(idx_regroup)])
 
     params_base = []
     params_regroup = []
-    print(idx_base)
+    print('inx de base',idx_base)
+    print('numrank_W',numrank_W)
     for i in range(len(idx_base)):
         W1[:, i] = W_e[:, idx_base[i]]
         params_base.append(params_r[idx_base[i]])
@@ -277,17 +290,30 @@ if __name__=="__main__":
 
     # nbSamples = param['NbSample']
     # q= np.random.rand(nbSamples, NQ) * np.pi - np.pi/2
-    # dq= np.random.rand(nbSamples, NQ)# matrice des zero 6 lignes nbr de posture en colones 
-    # ddq= np.random.rand(nbSamples, NQ)# matrice des zero 6 lignes nbr de posture en colones
+    # dq= np.zeros((nbSamples, NQ))# matrice des zero 6 lignes nbr de posture en colones 
+    # ddq= np.zeros((nbSamples, NQ))# matrice des zero 6 lignes nbr de posture en colones
+    Q=Generate_posture_static()
+    # posture3=np.array([[0],[0],[-math.pi/2],[0],[0],[0]])
+
+    robot.display(Q[:,6])
+
+
+    param['NbSample']=int(1264)
+    nbSamples = param['NbSample']
 
     q,dq,ddq,tau_robot=read_tau_q_dq_ddq_fromTxt(6)
-    plot_QVA_total([],6,(q.T),(dq.T),(ddq.T),'joint')
+    # dq= np.zeros((nbSamples, NQ))# matrice des zero 6 lignes nbr de posture en colones 
+    # ddq= np.zeros((nbSamples, NQ))# matrice des zero 6 lignes nbr de posture en colones
     print('shape of q',np.array(q).shape)
-    param['NbSample']=int(1264)
+    print('shape of tau_robot',tau_robot.shape)
+    
+    plot_QVA_total([],6,(q.T),(dq.T),(ddq.T),'joint')
+    
+    
 
     param_std= standardParameters(model, param)
     
-    _ , W=iden_model(model, data, q, dq, ddq, param)
+    _, W=iden_model(model, data, q, dq, ddq, param)
     
     W_e, params_r=eliminateNonAffecting(W, param_std, 0.00001)
     
@@ -299,5 +325,6 @@ if __name__=="__main__":
     tau_base=np.dot(W_b,phi_b)
     plot_torque_qnd_error(tau_robot,tau_base)
     estimation_with_qp_solver(W,tau_robot)
+    
     
     

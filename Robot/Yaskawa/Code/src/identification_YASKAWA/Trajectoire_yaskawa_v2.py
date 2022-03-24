@@ -41,7 +41,7 @@ NJOINT = robot.model.njoints  # number of links
 gv = robot.viewer.gui
 
 #sampling time 
-Tech=(1/200)
+Tech=(1/10)
 # INITIALISATION 
 deg_5=-0.08726646259971647
 deg_5=deg_5+0.25*deg_5
@@ -383,7 +383,7 @@ def axe2axe_palier_de_vitesse_all_joint_one_by_one():
     Q_total_All_Joint=np.concatenate([Q_total_All_Joint,Q_total_Joint], axis=1)
     V_total_All_Joint=np.concatenate([V_total_All_Joint,V_total_Joint], axis=1)
     A_total_All_Joint=np.concatenate([A_total_All_Joint,A_total_Joint], axis=1)
-    Generate_text_data_file_Q_txt(Q_total_All_Joint)
+    # Generate_text_data_file_Q_txt(Q_total_All_Joint)
     plot_QVA_total(T,nbr_joint,Q_total_All_Joint,V_total_All_Joint,A_total_All_Joint,'joint_')
 
 def trajectory_mode_a2a_sync():
@@ -576,19 +576,20 @@ def Generate_text_data_file_Q_txt(Q_total,V_total,A_total):
 def read_tau_q_dq_ddq_fromTxt(nbr_of_joint):
 
     package_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) 
+    
     # file_path_pos = package_path + '/src/identification_YASKAWA/position yaskawa.txt'
     # file_path_V = package_path + '/src/identification_YASKAWA/velosity yaskawa.txt'
     # file_path_torque = package_path + '/src/identification_YASKAWA/torque_yaskawa.txt '
 
     # file_path = package_path + '/src/identification_YASKAWA/data_all_2_one_by_one.txt'
 
-    file_path = package_path + '/src/identification_YASKAWA/cuting data test.txt'# un palier a 0.2 
-    # file_path = package_path + '/src/identification_YASKAWA/cuting data 2.txt'# 2 palier a 0.2
+    file_path = package_path + '/src/identification_YASKAWA/cuting data test.txt'# sandelle one by one <3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3<3
     
+    # file_path = package_path + '/src/identification_YASKAWA/data_static_5_sec.txt'
     # file_path = package_path + '/src/identification_YASKAWA/Yaskawa max min.txt'
     # file_path = package_path + '/src/identification_YASKAWA/cuting data just palier.txt'
-    # file_path = package_path + '/src/identification_YASKAWA/Cuting data 0.20.4palier.txt '
-
+    
+    # file_path = package_path + '/src/identification_YASKAWA/data_static.txt'# un palier a 0.2 
 
     
     # f_pos = open(file_path_pos,'r')
@@ -624,7 +625,8 @@ def read_tau_q_dq_ddq_fromTxt(nbr_of_joint):
 
     for line in f:
 
-        data_split = line.strip().split('\t')
+        data_split = line.strip().split()
+        print(data_split)
         
         q1.append(data_split[0])
         q2.append(data_split[1])
@@ -635,12 +637,19 @@ def read_tau_q_dq_ddq_fromTxt(nbr_of_joint):
     # for line in f_V:
     #     data_split = line.strip().split('\t')
         
-        dq1.append(data_split[6])
-        dq2.append(data_split[7])
-        dq3.append(data_split[8])
-        dq4.append(data_split[9])
-        dq5.append(data_split[10])
-        dq6.append(data_split[11])
+        # dq1.append(data_split[6])
+        # dq2.append(data_split[7])
+        # dq3.append(data_split[8])
+        # dq4.append(data_split[9])
+        # dq5.append(data_split[10])
+        # dq6.append(data_split[11])
+
+        # tau1.append(data_split[6])
+        # tau2.append(data_split[7])
+        # tau3.append(data_split[8])
+        # tau4.append(data_split[9])
+        # tau5.append(data_split[10])
+        # tau6.append(data_split[11])
 
     # for line in f_V:
     #     data_split = line.strip().split('\t')   
@@ -670,19 +679,15 @@ def read_tau_q_dq_ddq_fromTxt(nbr_of_joint):
     q=np.array(q)
     q=np.double(q)
     
-    dq.append(dq1)
-    dq.append(dq2)
-    dq.append(dq3)
-    dq.append(dq4)
-    dq.append(dq5)
-    dq.append(dq6)
-    dq=np.array(dq)
-    dq=np.double(dq)
+    # dq.append(dq1)
+    # dq.append(dq2)
+    # dq.append(dq3)
+    # dq.append(dq4)
+    # dq.append(dq5)
+    # dq.append(dq6)
+    # dq=np.array(dq)
+    # dq=np.double(dq)
 
-    tau_simu_gazebo=np.array(tau_simu_gazebo)
-    tau_simu_gazebo=np.double(tau_simu_gazebo)
-    tau4=np.double(tau4)
-    tau4=abs(tau4)
     tau_par_ordre.extend(tau1)
     tau_par_ordre.extend(tau2)
     tau_par_ordre.extend(tau3)
@@ -719,15 +724,18 @@ def read_tau_q_dq_ddq_fromTxt(nbr_of_joint):
    
     ddq=np.array(ddq)
 
-    tau_par_ordre=filter_butterworth(int (1/Tech),5,tau_par_ordre)
+    tau_par_ordre=filter_butterworth(int (1/Tech),2,tau_par_ordre)
 
     for i in range(6):
-        q[i]=filter_butterworth(int (1/Tech),5,q[i])
-        dq_th[i]=filter_butterworth(int (1/Tech),5,dq_th[i])
-        ddq[i]=filter_butterworth(int (1/Tech),5,ddq[i])
+       q[i]=filter_butterworth(int (1/Tech),2,q[i])
+       dq_th[i]=filter_butterworth(int (1/Tech),2,dq_th[i])
+       ddq[i]=filter_butterworth(int (1/Tech),2,ddq[i])
     print("shape of q",q.shape)
-    print("shape of tau_simu_gazebo",tau_simu_gazebo.shape)
     
+    q=np.array(q)
+    dq=np.array(dq)
+    ddq=np.array(ddq)
+    tau_par_ordre=np.array(tau_par_ordre)
     q=q.T
     dq=dq.T
     ddq=ddq.T
@@ -751,17 +759,17 @@ def plot_QVA_total(time,nbr_joint,Q_total,V_total,A_total,name):
     for i in range(nbr_joint):
         plt.plot(samples,Q_total[i],linewidth=1, label='q'+str(name)+str(i))
     plt.title('q Trajectory')
-    plt.xlabel('t')
-    plt.ylabel('q')
+    plt.xlabel('samples')
+    plt.ylabel('q(rad)')
     plt.legend()
     plt.show()        
 
-    plt.figure('V_total velosity')
+    plt.figure('V_total velocity')
     for i in range(nbr_joint):
         plt.plot(samples,np.array(V_total[i]),linewidth=1, label='V'+str(name)+str(i))
-    plt.title('V velosity')
-    plt.xlabel('t sec')
-    plt.ylabel('V m/sec')
+    plt.title('V velocity')
+    plt.xlabel('sampels')
+    plt.ylabel('V rad/sec')
     plt.legend()
     plt.show() 
 
@@ -769,8 +777,8 @@ def plot_QVA_total(time,nbr_joint,Q_total,V_total,A_total,name):
     for i in range(nbr_joint):
         plt.plot(samples,A_total[i],linewidth=1, label='acc'+str(name)+str(i))
     plt.title('acc acceleration')
-    plt.xlabel('t')
-    plt.ylabel('acc')
+    plt.xlabel('sampels')
+    plt.ylabel('acc rad/s^2')
     plt.legend()
     plt.show() 
 
@@ -1440,11 +1448,11 @@ def estimation_with_qp_solver(w,tau):
 
     plt.figure('torque et torque estime')
     plt.plot(samples, tau, 'g', linewidth=1, label='tau')
-    plt.plot(samples,tau_estime, 'b:', linewidth=0.4, label='tau estime')
+    plt.plot(samples,tau_estime, 'b', linewidth=0.5, label='tau estime')
     # plt.plot(samples, tau_estime1, 'r', linewidth=1, label='tau estime 1')
     plt.title('tau and tau_estime')
-    plt.xlabel('2000 Samples')
-    plt.ylabel('parametres')
+    plt.xlabel(' Samples')
+    plt.ylabel('Torque (N/m)')
     plt.legend()
     plt.show()
 
@@ -2408,8 +2416,8 @@ def plot_torque_qnd_error(tau,tau_param_base):
     plt.plot(samples, tau, 'g', linewidth=1, label='tau')
     plt.plot(samples,tau_param_base, 'b', linewidth=1, label='tau base param ')
     plt.title('tau tau_estime with base param ')
-    plt.xlabel('nbr Samples')
-    plt.ylabel('parametres')
+    plt.xlabel('Samples')
+    plt.ylabel('torque(N/m)')
     plt.legend()
     plt.show()
 
@@ -2463,7 +2471,7 @@ def iden_model_v2(model, data, Q_total, V_total, A_total, param):
 if __name__ == "__main__":
 
     nbr_of_joint=6
-    
+    axe2axe_palier_de_vitesse_all_joint_one_by_one()
     Q_filtrer=[[],[],[],[],[],[]]
     V_filtrer=[[],[],[],[],[],[]]
     A_filtrer=[[],[],[],[],[],[]]
