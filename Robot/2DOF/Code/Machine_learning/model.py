@@ -167,7 +167,7 @@ class NeuralNetwork(tf.keras.Model):
         :param which_torque: number of the torque to get
         :return: list of all the predicted values of the chosen torque
         """
-        return predictions.T[which_torque-1:which_torque].T
+        return predictions.T[which_torque - 1:which_torque].T
 
     def plot_torques_6dof(self, real_torques, predicted_torques, nb_axes=6):
         """
@@ -461,7 +461,8 @@ if __name__ == '__main__':
     train_que_tau, test_que_tau = my_model.get_target(train_dataset, test_dataset, nb_axes)
 
     # Train the model
-    history = my_model.train_model(model, train_dataset, train_que_tau, batch_size, epochs, plot_loss=True, plot_accuracy=True)
+    history = my_model.train_model(model, train_dataset, train_que_tau, batch_size, epochs, plot_loss=True,
+                                   plot_accuracy=True)
 
     # Evaluate the model
     result = my_model.evaluate_model(model, test_dataset, test_que_tau, show_result=True)
@@ -472,5 +473,8 @@ if __name__ == '__main__':
     # Get each predicted torques in a list
     tau1 = my_model.get_predictions_one_torque(predictions, 1)
     tau2 = my_model.get_predictions_one_torque(predictions, 2)
+
+    # Plot torques
+    my_model.plot_torques_6dof(dataset, predictions)
 
     print()
