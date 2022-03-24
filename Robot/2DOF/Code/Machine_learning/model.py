@@ -12,11 +12,14 @@ np.set_printoptions(precision=3, suppress=True)
 
 
 class NeuralNetwork(tf.keras.Model):
-    def __init__(self):
+    def __init__(self, nb_axes):
         super(NeuralNetwork, self).__init__()
+        self.nb_axes = nb_axes
+        self.norm = tf.keras.layers.Normalization(axis=-1)
         self.dense1 = layers.Dense(64, activation=tf.nn.relu)
         self.dense2 = layers.Dense(64, activation=tf.nn.relu)
-        self.out = layers.Dense(2)
+        self.out = layers.Dense(self.nb_axes)
+        self.tech = 1 / 250
 
     def get_data(self, filename, separator, skip_rows, column_names):
         """
@@ -67,7 +70,7 @@ class NeuralNetwork(tf.keras.Model):
 
         inputs = tf.keras.Input(shape=input_shape)
 
-        x = normalizer(inputs)
+        x = self.norm(inputs)
         x = self.dense1(x)
         x = self.dense2(x)
         outputs = self.out(x)
@@ -94,7 +97,7 @@ class NeuralNetwork(tf.keras.Model):
         :param nb_axes: number of joints used
         :return: 2 dataset with only the target in it, one for training and one for test
         """
-        index = nb_axes * 3     # *3 to have q, dq, ddq for each joint
+        index = nb_axes * 3  # *3 to have q, dq, ddq for each joint
         return train_dataset.T[index:].T, test_dataset.T[index:].T
 
     def train_model(self, model, dataset, target, batch_size, epochs, plot_loss=False, plot_accuracy=False):
