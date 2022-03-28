@@ -1,0 +1,23 @@
+motoman_hc10:
+  # Publish all joint states
+  joint_state_controller:
+    type: joint_state_controller/JointStateController
+    publish_rate: 50
+
+  # Position Controllers
+  joint_position_controllers:
+    type: position_controllers/JointGroupPositionController
+    joints: 
+      - joint_1_s
+      - joint_2_l
+      - joint_3_u
+      - joint_4_r
+      - joint_5_b
+      - joint_6_t
+    pid_gains:  
+      - joint_1_s: {p: 100.0, i: 0.01, d: 10.0}
+      - joint_2_l: {p: 100.0, i: 0.01, d: 10.0}
+      - joint_3_u: {p: 100.0, i: 0.01, d: 10.0}
+      - joint_4_r: {p: 100.0, i: 0.01, d: 10.0}
+      - joint_5_b: {p: 100.0, i: 0.01, d: 10.0}
+      - joint_6_t: {p: 100.0, i: 0.01, d: 10.0}
