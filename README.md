@@ -1,6 +1,6 @@
 # Command for the Yaskawa HC10 collaborative robot
 
-This project was made by a group of student from the "Université Paul Sabatier" in Toulouse, France.  
+This project was made by a group of student from the "Université Paul Sabatier" in Toulouse, France, then taken over by a trainee from the "Université de Montpellier".  
 The purpose of this project is to make a force feedback control for the collaborative robot Yaskawa HC10.  
 You will find identification and control code + the ros code to make it run on the simulators rViz and Gazebo of ROS.
 

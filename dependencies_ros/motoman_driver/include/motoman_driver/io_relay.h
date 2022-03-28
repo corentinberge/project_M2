@@ -2,6 +2,7 @@
  * Software License Agreement (BSD License)
  *
  * Copyright (c) 2020, Southwest Research Institute
+ * Copyright (c) 2021, Delft Robotics Institute
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,20 +35,13 @@
 
 #include "simple_message/socket/tcp_client.h"
 #include "motoman_driver/io_ctrl.h"
+#include "motoman_msgs/ReadMRegister.h"
 #include "motoman_msgs/ReadSingleIO.h"
+#include "motoman_msgs/ReadGroupIO.h"
+#include "motoman_msgs/WriteMRegister.h"
 #include "motoman_msgs/WriteSingleIO.h"
+#include "motoman_msgs/WriteGroupIO.h"
 #include <boost/thread.hpp>
-
-#include "motoman_msgs/Position.h"
-#include "motoman_msgs/Vitesse.h"
-#include "motoman_msgs/Effort.h"
-#include "motoman_driver/motoman_memory.h"
-#include <bitset>
-
-//using motoman::yrc1000_memory::Mregister;
-using industrial::shared_types::shared_int;
-using industrial::shared_types::shared_real;
-
 
 namespace motoman
 {
@@ -70,44 +64,32 @@ public:
    */
   bool init(int default_port);
 
-  /**
-   * \brief Read registers
-   *
-   * \param default_port
-   * \return true on success, false otherwise
-   */
-  bool readIoCB();
-
-  bool positionCB();
-  bool vitesseCB();
-  bool effortCB();
-  shared_real to_newton(shared_int in);
-  void to_mm(shared_real &value);
-  void to_deg(shared_real &value);
-
-  void readDoubleIO(shared_int address1, shared_real &myFloat);
-
 protected:
   io_ctrl::MotomanIoCtrl io_ctrl_;
-  motoman_msgs::Position position_msg;
-  motoman_msgs::Vitesse vitesse_msg;
-  motoman_msgs::Effort effort_msg;
 
-  ros::ServiceServer srv_read_single_io;   // handle for read_single_io service
+  ros::ServiceServer srv_read_mregister;    // handle for read_mregister service
+  ros::ServiceServer srv_read_single_io;    // handle for read_single_io service
+  ros::ServiceServer srv_read_group_io;     // handle for read_group_io service
+  ros::ServiceServer srv_write_mregister;   // handle for write_mregister service
   ros::ServiceServer srv_write_single_io;   // handle for write_single_io service
-  ros::Publisher pub_position_;
-  ros::Publisher pub_vitesse_;
-  ros::Publisher pub_effort_;
-
+  ros::ServiceServer srv_write_group_io;    // handle for write_group_io service
 
   ros::NodeHandle node_;
   boost::mutex mutex_;
   TcpClient default_tcp_connection_;
 
+  bool readMRegisterCB(motoman_msgs::ReadMRegister::Request &req,
+                            motoman_msgs::ReadMRegister::Response &res);
   bool readSingleIoCB(motoman_msgs::ReadSingleIO::Request &req,
                             motoman_msgs::ReadSingleIO::Response &res);
+  bool readGroupIoCB(motoman_msgs::ReadGroupIO::Request &req,
+                            motoman_msgs::ReadGroupIO::Response &res);
+  bool writeMRegisterCB(motoman_msgs::WriteMRegister::Request &req,
+                            motoman_msgs::WriteMRegister::Response &res);
   bool writeSingleIoCB(motoman_msgs::WriteSingleIO::Request &req,
                             motoman_msgs::WriteSingleIO::Response &res);
+  bool writeGroupIoCB(motoman_msgs::WriteGroupIO::Request &req,
+                            motoman_msgs::WriteGroupIO::Response &res);
 };
 
 }  // namespace io_relay

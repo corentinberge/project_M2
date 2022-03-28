@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.0.2)
 project(motoman_msgs)
 
 find_package(catkin
@@ -18,9 +18,6 @@ add_message_files(
     DynamicJointState.msg
     DynamicJointTrajectory.msg
     DynamicJointTrajectoryFeedback.msg
-    Position.msg
-    Vitesse.msg
-    Effort.msg
 )
 
 add_service_files(
@@ -28,8 +25,13 @@ add_service_files(
     srv
   FILES
     CmdJointTrajectoryEx.srv
+    ReadMRegister.srv
     ReadSingleIO.srv
+    ReadGroupIO.srv
+    SelectTool.srv
+    WriteMRegister.srv
     WriteSingleIO.srv
+    WriteGroupIO.srv
 )
 
 generate_messages(

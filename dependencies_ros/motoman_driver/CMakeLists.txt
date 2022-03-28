@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.0.2)
 project(motoman_driver)
 
 # require C++11
@@ -61,18 +61,36 @@ catkin_package(
 
 
 set(MSG_SRC_FILES
+  src/simple_message/messages/motoman_motion_ctrl_message.cpp
+  src/simple_message/messages/motoman_motion_reply_message.cpp
+  src/simple_message/messages/motoman_read_mregister_message.cpp
+  src/simple_message/messages/motoman_read_mregister_reply_message.cpp
   src/simple_message/messages/motoman_read_single_io_message.cpp
   src/simple_message/messages/motoman_read_single_io_reply_message.cpp
+  src/simple_message/messages/motoman_read_group_io_message.cpp
+  src/simple_message/messages/motoman_read_group_io_reply_message.cpp
+  src/simple_message/messages/motoman_select_tool_message.cpp
+  src/simple_message/messages/motoman_write_mregister_message.cpp
+  src/simple_message/messages/motoman_write_mregister_reply_message.cpp
   src/simple_message/messages/motoman_write_single_io_message.cpp
   src/simple_message/messages/motoman_write_single_io_reply_message.cpp
+  src/simple_message/messages/motoman_write_group_io_message.cpp
+  src/simple_message/messages/motoman_write_group_io_reply_message.cpp
   src/simple_message/motoman_motion_ctrl.cpp
-  src/simple_message/motoman_motion_ctrl_message.cpp
   src/simple_message/motoman_motion_reply.cpp
-  src/simple_message/motoman_motion_reply_message.cpp
+  src/simple_message/motoman_read_mregister.cpp
+  src/simple_message/motoman_read_mregister_reply.cpp
   src/simple_message/motoman_read_single_io.cpp
   src/simple_message/motoman_read_single_io_reply.cpp
+  src/simple_message/motoman_read_group_io.cpp
+  src/simple_message/motoman_read_group_io_reply.cpp
+  src/simple_message/motoman_select_tool.cpp
+  src/simple_message/motoman_write_mregister.cpp
+  src/simple_message/motoman_write_mregister_reply.cpp
   src/simple_message/motoman_write_single_io.cpp
   src/simple_message/motoman_write_single_io_reply.cpp
+  src/simple_message/motoman_write_group_io.cpp
+  src/simple_message/motoman_write_group_io_reply.cpp
 )
 
 set(CLIENT_SRC_FILES
@@ -108,6 +126,7 @@ target_link_libraries(motoman_industrial_robot_client
   industrial_robot_client
   industrial_utils)
 add_dependencies(motoman_industrial_robot_client ${catkin_EXPORTED_TARGETS})
+target_compile_definitions(motoman_industrial_robot_client PUBLIC ${industrial_robot_client_DEFINITIONS})
 
 # Robot state node
 add_executable(motoman_robot_state
@@ -147,6 +166,7 @@ set_target_properties(motoman_io_relay
   PROPERTIES OUTPUT_NAME io_relay
   PREFIX "")
 
+
 #----------------------------------------------------------------
 # FS100 uses opposite byte-ordering from most i386-based PCs
 # Simple message library
@@ -162,6 +182,7 @@ target_link_libraries(motoman_industrial_robot_client_bswap
   industrial_robot_client_bswap
   industrial_utils)
 add_dependencies(motoman_industrial_robot_client_bswap ${catkin_EXPORTED_TARGETS})
+target_compile_definitions(motoman_industrial_robot_client_bswap PUBLIC ${industrial_robot_client_bswap_DEFINITIONS})
 
 # Robot state node
 add_executable(motoman_robot_state_bswap

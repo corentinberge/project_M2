@@ -66,9 +66,9 @@ install(
 catkin_install_python(
   PROGRAMS
   scripts/talker.py
-  scripts/test.py
+  #scripts/test.py
   scripts/execute_trajectory.py
-  scripts/traj.py
-  scripts/test_traj.py
+  #scripts/traj.py
+  #scripts/test_traj.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
