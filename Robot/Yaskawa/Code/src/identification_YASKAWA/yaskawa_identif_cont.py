@@ -17,7 +17,7 @@ import qpsolvers
 # urdf_path = package_path + '/robots/urdf/planar_2DOF.urdf'
 
 #package_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) + '/Modeles/'
-package_path='/home/fadi/projet_cobot_master2/project_M2/Robot/Yaskawa/Modeles/'
+package_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))) + '/Modeles/'
 urdf_path = package_path + 'motoman_hc10_support/urdf/hc10_FGV.urdf'
 
 # ========== Step 1 - load model, create robot model and create robot data
@@ -56,7 +56,7 @@ nbSamples = 1000  # number of samples
 # the idea is to have severale input/output so we can test the identification method
 #l'idee d'avoir plusieure input/output afin de mieux tester la methode d'identification
 q_pin = np.random.rand(NQ, nbSamples) * np.pi - np.pi/2  # -pi/2 < q < pi/2
-dq_pin = np.random.rand(NQ, nbSamples) * 10              # 0 < dq  < 10
+dq_pin = np.random.rand(NQ, nbSamples) * 10              # 0 < dq  < 10 revoir max 2,3,4
 ddq_pin = np.random.rand(NQ, nbSamples) * 2               # 0 < dq  < 2
 # tau_pin = np.random.rand(NQ*nbSamples) * 4
 tau_pin=[]
@@ -97,14 +97,17 @@ threshold = 0.000001
 W_modified = np.array(w_pin[:])
 tau=tau_pin
 
+index_vector_to_delete=[]
 tmp = []
 for i in range(len(phi)):
     if (np.dot([W_modified[:, i]], np.transpose([W_modified[:, i]]))[0][0] <= threshold):
         tmp.append(i)
+        index_vector_to_delete.append(i)
 tmp.sort(reverse=True)
-
+index_vector_to_delete.sort(reverse=True)
 phi_modified = phi[:]
 names_modified = names[:]
+print(names_modified)
 for i in tmp:
     W_modified = np.delete(W_modified, i, 1)
     phi_modified = np.delete(phi_modified, i, 0)
@@ -129,7 +132,9 @@ tmp = 0
 for i in range(np.diag(R).shape[0]):
         if abs(np.diag(R)[i]) < threshold:
             tmp = i
-
+            
+index_vector_to_delete.append(tmp)
+QRindex=tmp
 # for i in range(len(R[0])):
 #     if R[i, i] > threshold:
 #         tmp = i
@@ -157,6 +162,11 @@ print('Shape of beta:\t', np.array(beta).shape)
 phi_base = np.dot(np.linalg.inv(R1), np.dot(Q1.T, tau))  # Base parameters
 W_base = np.dot(Q1, R1)                             # Base regressor
 print('Shape of W_base:\t', np.array(W_base).shape)
+print('shape of phi ',np.array(phi).shape)
+print('shape of phi_base ',np.array(phi_base).shape)
+print('shape of vector_index',np.array(index_vector_to_delete).shape)
+print(index_vector_to_delete)
+print('index qr ',QRindex)
 
 # print('Shape of phi_m:\t', np.array(phi_modified).shape)
 # print('Shape of W_m:\t', np.array(W_modified).shape)
@@ -369,7 +379,6 @@ def nearestPD(A):
 
     return A3
 
-
 def isPD(B):
     """Returns true when input is positive-definite, via Cholesky"""
     try:
@@ -381,6 +390,8 @@ def isPD(B):
         return True
     except np.linalg.LinAlgError:
         return False
+##########################################################################################################################################################
+########################################################################################################################################################
 
 # QP_solver
 w_pin=np.double(w_pin)
@@ -556,4 +567,7 @@ Notez que si vous multipliez le regresseur R par phi vous obtenez tau=RPhi
 
 vous cherchez donc à déterminer Phi* qui minimise l’erreur quadratique ||tau_m-RPhi  ||^2 avec tau_m le couple mesuré (celui donné par Thanh). Déjà faites cela avec qp-solvers ensuite rajouter la contrainte que les masses (elements 1 et 5 du vecteur phi) M>=0
 '''
+
+
+    
 
