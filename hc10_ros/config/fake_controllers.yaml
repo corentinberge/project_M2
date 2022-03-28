@@ -1,0 +1,13 @@
+controller_list:
+  - name: fake_Yaskawa_arm_controller
+    type: $(arg fake_execution_type)
+    joints:
+      - joint_1_s
+      - joint_2_l
+      - joint_3_u
+      - joint_4_r
+      - joint_5_b
+      - joint_6_t
+initial:  # Define initial robot poses.
+  - group: Yaskawa_arm
+    pose: zero

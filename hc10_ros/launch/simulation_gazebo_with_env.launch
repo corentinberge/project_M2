@@ -1,0 +1,4 @@
+<launch>
+    <include file="$(find hc10_ros)/launch/hc10_gazebo_env.launch" />
+    <include file="$(find hc10_ros)/launch/hc10_control_pid.launch" />
+</launch>

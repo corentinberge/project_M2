@@ -1,0 +1,22 @@
+<launch>
+
+  <!-- Load joint controller configurations from YAML file to parameter server -->
+  <rosparam file="$(find hc10_ros)/config/control_torque.yaml" command="load"/>
+
+  <!-- load the controllers  -->
+  <node name="controller_torque_spawner" pkg="controller_manager" type="spawner" respawn="false"
+	output="screen" ns="/motoman_hc10" args="joint_state_torque_controller
+					    joint1_torque_controller
+					    joint2_torque_controller
+            			joint3_torque_controller
+            			joint4_torque_controller
+            			joint5_torque_controller
+            			joint6_torque_controller"/>
+
+  <!-- convert joint states to TF transforms for rviz, etc -->
+  <node name="robot_state_publisher_torque" pkg="robot_state_publisher" type="robot_state_publisher"
+	respawn="false" output="screen">
+    <remap from="/joint_states" to="/motoman_hc10/joint_states" />
+  </node>
+
+</launch>
