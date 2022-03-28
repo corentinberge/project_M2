@@ -517,7 +517,7 @@ def main():
 
     # ========== Step 8 - Calculate the modified phi
     baseParameters = np.dot(np.linalg.inv(R1), np.dot(Q1.T, tau))  # Base parameters
-    baseRegressor = np.dot(Q1, R1)                                 # Base regressor
+    baseRegressor = np.dot(Q1, R1) # Base regressor
     inertialParameters = {names[i]: baseParameters[i] for i in range(len(baseParameters))}
 
     print('Base parameters:\t', inertialParameters)
