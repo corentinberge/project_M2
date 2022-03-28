@@ -1,4 +1,6 @@
 
+from numpy.core.defchararray import join
+from numpy.core.fromnumeric import transpose
 import pinocchio as pin
 from pinocchio.utils import *
 from pinocchio.visualize import GepettoVisualizer
