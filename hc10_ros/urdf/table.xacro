@@ -1,0 +1,25 @@
+<?xml version="1.0" ?>
+<robot name="env" xmlns:xacro="http://www.ros.org/wiki/xacro" >
+
+  <link name="table_link">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://hc10_ros/meshes/env/table.stl" scale="0.01 0.01 0.01"/>
+      </geometry>
+      <material name="silver"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://hc10_ros/meshes/env/table.stl" scale="0.01 0.01 0.01"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- <joint name="table_link-base" type="fixed">
+      <parent link="table_link" />
+      <child link="base_table" />
+  </joint> -->
+
+</robot>

@@ -1,0 +1,31 @@
+motoman_hc10:
+  # Publish all joint states
+  joint_state_torque_controller:
+    type: joint_state_controller/JointStateController
+    publish_rate: 50
+
+  # Effort Controllers 
+  joint1_torque_controller:
+    type: effort_controllers/JointEffortController
+    joint: joint_1_s
+    pid: {p: 100.0, i: 0.01, d: 10.0}
+  joint2_torque_controller:
+    type: effort_controllers/JointEffortController
+    joint: joint_2_l
+    pid: {p: 100.0, i: 0.01, d: 10.0}
+  joint3_torque_controller:
+    type: effort_controllers/JointEffortController
+    joint: joint_3_u
+    pid: {p: 100.0, i: 0.01, d: 10.0}
+  joint4_torque_controller:
+    type: effort_controllers/JointEffortController
+    joint: joint_4_r
+    pid: {p: 100.0, i: 0.01, d: 10.0}
+  joint5_torque_controller:
+    type: effort_controllers/JointEffortController
+    joint: joint_5_b
+    pid: {p: 100.0, i: 0.01, d: 10.0}
+  joint6_torque_controller:
+    type: effort_controllers/JointEffortController
+    joint: joint_6_t
+    pid: {p: 100.0, i: 0.01, d: 10.0}

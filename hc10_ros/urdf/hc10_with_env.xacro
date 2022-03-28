@@ -1,0 +1,29 @@
+<?xml version="1.0" ?>
+
+<robot name="robotOnTable" xmlns:xacro="http://www.ros.org/wiki/xacro" >
+
+    <xacro:include filename="$(find hc10_ros)/urdf/materials.xacro" />
+
+    <link name="world" />
+
+    <xacro:include filename="$(find hc10_ros)/urdf/table.xacro" />
+    <xacro:include filename="$(find hc10_ros)/urdf/hc10_for_env.urdf" />
+    <xacro:include filename="$(find hc10_ros)/urdf/walls.xacro" />
+
+    <joint name="walls_joint" type="fixed">
+        <parent link="world" />
+        <child link="walls_link" />
+    </joint>
+
+    <joint name="table_joint" type="fixed">
+        <parent link="world" />
+        <child link="table_link" />
+    </joint>
+
+    <joint name="link-base" type="fixed">
+        <origin rpy="0 0 0" xyz="0 0 0.6375" />
+        <parent link="table_link" />
+        <child link="base_link" />
+    </joint>
+
+</robot>

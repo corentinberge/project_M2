@@ -1,6 +1,0 @@
-string[] name
----
-uint32[] found
-float64[] position
-float64[] velocity
-float64[] effort

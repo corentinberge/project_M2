@@ -13,8 +13,6 @@
 
     <!-- link list -->
 
-    <link name="world"/>
-
     <link name="base_link">
         <visual>
             <geometry>
@@ -146,10 +144,12 @@
     <!-- end of link list -->
 
     <!-- joint list -->
+    
     <joint name="fixed" type="fixed">
         <parent link="world" />
         <child link="base_link" />
     </joint>
+    
     <joint name="joint_1_s" type="revolute">
         <parent link="base_link" />
         <child link="link_1_s" />
@@ -199,16 +199,6 @@
     </joint>
 
     <!-- end of joint list -->
-
-    <!-- ROS base_link to Robot Manufacturer World Coordinates transform -->
-    <link name="base" />
-
-    <!-- Fix robot base to world -->
-    <joint name="base_link-base" type="fixed">
-        <origin rpy="0 0 0" xyz="0 0 0.275" />
-        <parent link="base_link" />
-        <child link="base" />
-    </joint>
     
     <transmission name="trans_joint_1_s">
         <type>transmission_interface/SimpleTransmission</type>
@@ -282,25 +272,4 @@
             <robotSimType>gazebo_ros_control/DefaultRobotHWSim</robotSimType>
         </plugin>
     </gazebo>
-    <!-- <gazebo reference="${prefix}base_link">
-        <turnGravityOff>true</turnGravityOff>
-    </gazebo>
-    <gazebo reference="${prefix}link_1_s">
-        <turnGravityOff>true</turnGravityOff>
-    </gazebo>
-    <gazebo reference="${prefix}link_2_l">
-        <turnGravityOff>true</turnGravityOff>
-    </gazebo>
-    <gazebo reference="${prefix}link_3_u">
-        <turnGravityOff>true</turnGravityOff>
-    </gazebo>
-    <gazebo reference="${prefix}link_4_r">
-        <turnGravityOff>true</turnGravityOff>
-    </gazebo>
-    <gazebo reference="${prefix}link_5_b">
-        <turnGravityOff>true</turnGravityOff>
-    </gazebo>
-    <gazebo reference="${prefix}link_6_t">
-        <turnGravityOff>true</turnGravityOff>
-    </gazebo> -->
 </robot>
