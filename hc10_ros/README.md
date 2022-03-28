@@ -24,7 +24,7 @@ roslaunch hc10_ros simulation_moveit_rviz.launch sim:=false robot_ip:=192.168.1.
 
 topic controlling the pose of the joint {$} in radiant.
 
-*/!\ All joints range between [-3.141592653589793;+3.141592653589793], except joint 3 for witch the pose control ranges between [0;6.28318530718] !!!*
+*/!\ All joints range between [-3.141592653589793;+3.141592653589793], except joint 3 for which the pose control ranges between [0;6.28318530718] !!!*
 
 ### **/motoman_hc10/joint_states/**
 
