@@ -31,5 +31,8 @@
 *.out
 *.app
 
+# Config Pycharm
+.idea
+
 # Test files
 hc10_ros/scripts/data/*.txt
