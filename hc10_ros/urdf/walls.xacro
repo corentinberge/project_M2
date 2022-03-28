@@ -1,0 +1,25 @@
+<?xml version="1.0" ?>
+<robot name="env" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <link name="walls_link">
+    <inertial>
+      <origin rpy="0 0 0" xyz="-0.04720668354347962 0.018066716841360707 0.07080670574116438"/>
+      <mass value="17.370821533898557"/>
+      <inertia ixx="0.142346" ixy="-0.012291" ixz="-0.015362" iyy="0.109318" iyz="-0.007628" izz="0.181525"/>
+    </inertial>
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://hc10_ros/meshes/env/walls.stl" scale="0.01 0.01 0.01"/>
+      </geometry>
+      <material name="silver"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://hc10_ros/meshes/env/walls.stl" scale="0.01 0.01 0.01"/>
+      </geometry>
+    </collision>
+  </link>
+
+</robot>
